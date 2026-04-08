@@ -1,0 +1,23 @@
+[33mcommit c33af559287e216d1e0223ed0b619731bce532e4[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: Shweta Limbhore <shweta.limbhore@advaytechsolutions.com>
+Date:   Wed Apr 8 19:20:08 2026 +0530
+
+    bootstrap setup done
+
+[33mcommit 953f77725114f72efe2450f2ebedbc62e4f7c08f[m
+Author: Shweta Limbhore <shweta.limbhore@advaytechsolutions.com>
+Date:   Wed Apr 8 18:25:51 2026 +0530
+
+    Bootstrap template setup
+
+[33mcommit 314b317452a3fc55034fdc68f01e5d678b814674[m
+Author: Shweta Limbhore <shweta.limbhore@advaytechsolutions.com>
+Date:   Wed Apr 8 17:56:02 2026 +0530
+
+    Remove secrets from config/services.php
+
+[33mcommit a120e166340120e72eb604655883dead032d3c6a[m[33m ([m[1;31morigin/main[m[33m)[m
+Author: Shweta Limbhore <shweta.limbhore@advaytechsolutions.com>
+Date:   Tue Apr 7 15:42:49 2026 +0530
+
+    Initial Laravel 11 project setup
