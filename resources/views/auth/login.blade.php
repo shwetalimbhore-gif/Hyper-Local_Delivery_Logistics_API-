@@ -1,47 +1,90 @@
-<x-guest-layout>
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+<!DOCTYPE html>
 
-    <form method="POST" action="{{ route('login') }}">
-        @csrf
+<html>
+<head>
+    <title>Login</title>
 
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
+<!-- Bootstrap 4 CDN -->
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 
-            <x-text-input id="password" class="block mt-1 w-full"
+
+</head>
+<body class="bg-light">
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-4">
+
+
+        <div class="card shadow">
+            <div class="card-body">
+
+                <h4 class="text-center mb-4">Login</h4>
+
+                {{-- Error Message --}}
+                @if ($errors->any())
+                    <div class="alert alert-danger">
+                        {{ $errors->first() }}
+                    </div>
+                @endif
+
+                <form method="POST" action="{{ route('login') }}">
+                    @csrf
+
+                    <!-- Email -->
+                    <div class="form-group">
+                        <label>Email address</label>
+                        <input
+                            type="email"
+                            name="email"
+                            class="form-control"
+                            placeholder="Enter email"
+                            value="{{ old('email') }}"
+                            required
+                        >
+                    </div>
+
+                    <!-- Password -->
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input
                             type="password"
                             name="password"
-                            required autocomplete="current-password" />
+                            class="form-control"
+                            placeholder="Enter password"
+                            required
+                        >
+                    </div>
 
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+                    <!-- Remember Me -->
+                    <div class="form-group form-check">
+                        <input
+                            type="checkbox"
+                            name="remember"
+                            class="form-check-input"
+                            id="remember"
+                        >
+                        <label class="form-check-label" for="remember">
+                            Remember Me
+                        </label>
+                    </div>
+
+                    <!-- Submit -->
+                    <button type="submit" class="btn btn-primary btn-block">
+                        Login
+                    </button>
+
+                </form>
+
+            </div>
         </div>
 
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
-                <span class="ms-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
-            </label>
-        </div>
+    </div>
+</div>
+```
 
-        <div class="flex items-center justify-end mt-4">
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
-                </a>
-            @endif
+</div>
 
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-primary-button>
-        </div>
-    </form>
-</x-guest-layout>
+</body>
+</html>

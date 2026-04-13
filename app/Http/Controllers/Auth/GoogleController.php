@@ -26,6 +26,7 @@ class GoogleController extends Controller
                 'name' => $googleUser->getName(),
                 'email' => $googleUser->getEmail(),
                 'password' => bcrypt('12345678'),
+                'role_id' => 2    // rider (default)
 
             ]);
         }

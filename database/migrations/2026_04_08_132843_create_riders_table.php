@@ -13,7 +13,18 @@ return new class extends Migration
     {
         Schema::create('riders', function (Blueprint $table) {
             $table->id();
+
+            $table->string('name');
+            $table->string('phone');
+            $table->text('address');
+
+            $table->decimal('current_latitude', 10, 7)->nullable();
+            $table->decimal('current_longitude' , 10 , 7)->nullable();
+
+            $table->boolean('is_available')->default(true);
+
             $table->timestamps();
+
         });
     }
 

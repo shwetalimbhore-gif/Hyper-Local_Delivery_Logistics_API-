@@ -13,6 +13,13 @@ return new class extends Migration
     {
         Schema::create('hubs', function (Blueprint $table) {
             $table->id();
+
+            $table->string('name');
+            $table->text('address');
+
+            $table->decimal('latitude' , 10 , 7);
+            $table->decimal('longitude', 10 ,7);
+
             $table->timestamps();
         });
     }

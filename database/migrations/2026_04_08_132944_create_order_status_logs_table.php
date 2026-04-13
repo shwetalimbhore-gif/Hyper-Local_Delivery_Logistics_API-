@@ -13,7 +13,23 @@ return new class extends Migration
     {
         Schema::create('order_status_logs', function (Blueprint $table) {
             $table->id();
-            $table->timestamps();
+
+            $table->foreignId('order_id')->constrained()->cascadeOnDelete();
+            $table->enum('status' ,[
+                'pending',
+                'assigned',
+                'picked_up',
+                'delivered',
+                'failed_delivery',
+                'returned'
+            ]);
+
+            $table->unsignedBigInteger('changed_by_id')->nullable();
+            $table->enum('changed_by_type', ['admin','rider','system']);
+
+            $table->text('notes')->nullable();
+
+            $table->timestamp('created_at')->useCurrent();
         });
     }
 
