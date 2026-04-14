@@ -27,6 +27,8 @@
             <a href="{{ route('admin.orders.edit', $order->id) }}" class="btn btn-warning btn-sm">Edit</a>
 
             <a href="{{ route('admin.orders.delete', $order->id) }}" class="btn btn-danger btn-sm">Delete</a>
+
+            <a href="{{ route('orders.assignRider', $order->id) }}" class="btn btn-success">Assign Rider</a>
         </td>
     </tr>
     @endforeach

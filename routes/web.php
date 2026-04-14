@@ -5,6 +5,8 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\RiderController;
+use App\Http\Controllers\Admin\HubController;
 
 use App\Http\Controllers\AuthController;
 
@@ -25,7 +27,6 @@ Route::middleware('guest')->group(function () {
 
 // // Protected routes
 Route::middleware('auth')->group(function () {
-    // Route::get('/dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
     Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 
@@ -49,7 +50,6 @@ Route::middleware('auth')->group(function () {
 // });
 
 
-
 Route::middleware('auth')->prefix('admin')->group(function () {
 
     Route::get('/dashboard', [DashboardController::class , 'index'])
@@ -59,16 +59,22 @@ Route::middleware('auth')->prefix('admin')->group(function () {
     //     return view('admin.orders.index');
     // })->name('admin.orders');
 
-    Route::get('/riders', function () {
-        return view('admin.riders.index');
-    })->name('admin.riders');
+    // Route::get('/riders', function () {
+    //     return view('admin.riders.index');
+    // })->name('admin.riders');
 
-    Route::get('/orders', [OrderController::class, 'index'])->name('admin.orders');
-    Route::get('/orders/create', [OrderController::class, 'create'])->name('admin.orders.create');
-    Route::post('/orders/store', [OrderController::class, 'store'])->name('admin.orders.store');
-    Route::get('/orders/edit/{id}', [OrderController::class, 'edit'])->name('admin.orders.edit');
-    Route::post('/orders/update/{id}', [OrderController::class, 'update'])->name('admin.orders.update');
-    Route::get('/orders/delete/{id}', [OrderController::class, 'delete'])->name('admin.orders.delete');
+    Route::resource('riders', RiderController::class);
+    Route::resource('hubs', HubController::class);
+    Route::resource('orders', OrderController::class);
+
+    // Route::get('/orders', [OrderController::class, 'index'])->name('admin.orders');
+    // Route::get('/orders/create', [OrderController::class, 'create'])->name('admin.orders.create');
+    // Route::post('/orders/store', [OrderController::class, 'store'])->name('admin.orders.store');
+    // Route::get('/orders/edit/{id}', [OrderController::class, 'edit'])->name('admin.orders.edit');
+    // Route::post('/orders/update/{id}', [OrderController::class, 'update'])->name('admin.orders.update');
+    // Route::get('/orders/delete/{id}', [OrderController::class, 'delete'])->name('admin.orders.delete');
+    // Route::get('/orders/{id}/assign-rider', [OrderController::class, 'assignNearestRider'])
+    // ->name('orders.assignRider');
 
 });
 

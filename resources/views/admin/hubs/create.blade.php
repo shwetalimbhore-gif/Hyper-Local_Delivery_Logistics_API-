@@ -2,14 +2,18 @@
 
 @section('content')
 <div class="container">
-    <h2>Add Rider</h2>
+    <h2>Add Hub</h2>
 
-    <form method="POST" action="{{ route('riders.store') }}">
+    <form method="POST" action="{{ route('hubs.store') }}">
         @csrf
 
         <input type="text" name="name" placeholder="Name" class="form-control mb-2">
-        <input type="text" name="phone" placeholder="Phone" class="form-control mb-2">
         <textarea name="address" placeholder="Address" class="form-control mb-2"></textarea>
+
+       <div id="map" style="height: 400px;"></div>
+
+        <input type="text" name="latitude" id="latitude" class="form-control mt-2" placeholder="Latitude">
+        <input type="text" name="longitude" id="longitude" class="form-control mt-2" placeholder="Longitude">
 
         <button class="btn btn-success">Save</button>
     </form>

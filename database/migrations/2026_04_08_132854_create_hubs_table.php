@@ -17,8 +17,8 @@ return new class extends Migration
             $table->string('name');
             $table->text('address');
 
-            $table->decimal('latitude' , 10 , 7);
-            $table->decimal('longitude', 10 ,7);
+            $table->text('latitude')->nullable();
+            $table->text('longitude')->nullable();
 
             $table->timestamps();
         });

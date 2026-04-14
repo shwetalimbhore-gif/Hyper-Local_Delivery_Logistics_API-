@@ -57,9 +57,11 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        // return redirect()->route('login')->with('success', 'Registered successfully!');
+
         Auth::login($user);
 
-        return redirect('/dashboard');
+        return redirect('login');
     }
 
     // Show forgot password form

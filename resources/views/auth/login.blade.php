@@ -29,52 +29,35 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('login') }}">
+                 <form method="POST" action="/login">
                     @csrf
 
                     <!-- Email -->
-                    <div class="form-group">
-                        <label>Email address</label>
-                        <input
-                            type="email"
-                            name="email"
-                            class="form-control"
-                            placeholder="Enter email"
-                            value="{{ old('email') }}"
-                            required
-                        >
+                    <div class="mb-3">
+                        <label>Email</label>
+                        <input type="email" name="email" class="form-control" placeholder="Enter email" required>
                     </div>
 
                     <!-- Password -->
-                    <div class="form-group">
+                    <div class="mb-3">
                         <label>Password</label>
-                        <input
-                            type="password"
-                            name="password"
-                            class="form-control"
-                            placeholder="Enter password"
-                            required
-                        >
+                        <input type="password" name="password" class="form-control" placeholder="Enter password" required>
                     </div>
 
-                    <!-- Remember Me -->
-                    <div class="form-group form-check">
-                        <input
-                            type="checkbox"
-                            name="remember"
-                            class="form-check-input"
-                            id="remember"
-                        >
-                        <label class="form-check-label" for="remember">
-                            Remember Me
-                        </label>
+                    <!-- Forgot Password -->
+                    <div class="mb-3 text-end">
+                        <a href="/forgot-password">Forgot Password?</a>
                     </div>
 
-                    <!-- Submit -->
-                    <button type="submit" class="btn btn-primary btn-block">
-                        Login
-                    </button>
+                    <!-- Login Button -->
+                    <div class="mb-3">
+                        <button type="submit" class="btn btn-primary w-100">Login</button>
+                    </div>
 
+                    <!-- Register Redirect -->
+                    <div class="text-center">
+                        <a href="/register">Create Account</a>
+                    </div>
                 </form>
 
             </div>

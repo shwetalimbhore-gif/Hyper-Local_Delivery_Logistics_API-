@@ -18,8 +18,8 @@ return new class extends Migration
             $table->string('phone');
             $table->text('address');
 
-            $table->decimal('current_latitude', 10, 7)->nullable();
-            $table->decimal('current_longitude' , 10 , 7)->nullable();
+            $table->text('current_latitude')->nullable();
+            $table->text('current_longitude')->nullable();
 
             $table->boolean('is_available')->default(true);
 

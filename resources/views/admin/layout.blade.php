@@ -77,16 +77,23 @@
           </li>
 
           <li class="sidebar-item">
-            <a class="sidebar-link" href="{{ route('admin.orders') }}">
+            <a class="sidebar-link" href="{{ route('orders.index') }}">
               <iconify-icon icon="solar:checklist-line-duotone"></iconify-icon>
               <span class="hide-menu">Orders</span>
             </a>
           </li>
 
           <li class="sidebar-item">
-            <a class="sidebar-link" href="{{ route('admin.riders') }}">
+            <a class="sidebar-link" href="{{ route('riders.index') }}">
               <iconify-icon icon="solar:bicycle-line-duotone"></iconify-icon>
               <span class="hide-menu">Riders</span>
+            </a>
+          </li>
+
+          <li class="sidebar-item">
+            <a class="sidebar-link" href="{{ route('hubs.index') }}">
+              <iconify-icon icon="solar:bicycle-line-duotone"></iconify-icon>
+              <span class="hide-menu">Hub</span>
             </a>
           </li>
 

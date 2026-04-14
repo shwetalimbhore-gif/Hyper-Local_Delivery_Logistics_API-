@@ -17,8 +17,9 @@ return new class extends Migration
             $table->string('customer_name');
             $table->string('customer_phone');
 
-            $table->decimal('drop_address', 10 , 7);
-            $table->decimal('drop_latitude' , 10 , 7);
+            $table->text('drop_address');
+            $table->text('drop_latitude')->nullable();
+            $table->text('drop_longitude')->nullable();
 
             $table->decimal('total_amount', 10 , 2);
 
@@ -31,9 +32,10 @@ return new class extends Migration
                 'returned'
             ])->default('pending');
 
-            $table->foreignId('rider_id')->nullable()->constrained()->nullableOnDelete();
+            $table->foreignId('rider_id')->nullable()->constrained()->nullOnDelete();
 
             $table->enum('return_type' , ['hub' ,'owner'])->nullable();
+
             $table->foreignId('hub_id')->nullable()->constrained()->nullOnDelelte();
             $table->text('return_address')->nullable();
 

@@ -24,15 +24,16 @@
                   <img src="{{ asset('assets/images/logos/logo.svg') }}" alt="">
                 </a>
                 <p class="text-center">Your Social Campaigns</p>
-                <form method="POST" action="{{ route('register') }}">
+                <form method="POST" action="/register">
                     @csrf
 
-                    <input type="text" name="name" placeholder="Name" required>
-                    <input type="email" name="email" placeholder="Email" required>
-                    <input type="password" name="password" placeholder="Password" required>
-                    <input type="password" name="password_confirmation" placeholder="Confirm Password" required>
+                    <input type="text" name="name" class="form-control mb-2" placeholder="Name" required>
+                    <input type="email" name="email" class="form-control mb-2" placeholder="Email" required>
 
-                    <button type="submit">Register</button>
+                    <input type="password" name="password" class="form-control mb-2" placeholder="Password" required>
+                    <input type="password" name="password_confirmation" class="form-control mb-2" placeholder="Confirm Password" required>
+
+                    <button class="btn btn-success btn-block">Register</button>
                 </form>
               </div>
             </div>
