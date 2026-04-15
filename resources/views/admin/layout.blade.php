@@ -51,7 +51,16 @@
                     <i class="ti ti-list-check fs-6"></i>
                     <p class="mb-0 fs-3">My Task</p>
                   </a>
-                  <a href="{{ route('logout') }}" class="btn btn-outline-primary mx-3 mt-2 d-block">Logout</a>
+
+                  <!-- FIXED LOGOUT BUTTON - Using POST method -->
+                  <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="d-flex align-items-center gap-2 dropdown-item"
+                            style="background: none; border: none; width: 100%; text-align: left;">
+                      <i class="ti ti-logout fs-6"></i>
+                      <p class="mb-0 fs-3">Logout</p>
+                    </button>
+                  </form>
                 </div>
               </div>
             </li>
@@ -77,21 +86,21 @@
           </li>
 
           <li class="sidebar-item">
-            <a class="sidebar-link" href="{{ route('orders.index') }}">
+            <a class="sidebar-link" href="{{ route('admin.orders.index') }}">
               <iconify-icon icon="solar:checklist-line-duotone"></iconify-icon>
               <span class="hide-menu">Orders</span>
             </a>
           </li>
 
           <li class="sidebar-item">
-            <a class="sidebar-link" href="{{ route('riders.index') }}">
+            <a class="sidebar-link" href="{{ route('admin.riders.index') }}">
               <iconify-icon icon="solar:bicycle-line-duotone"></iconify-icon>
               <span class="hide-menu">Riders</span>
             </a>
           </li>
 
           <li class="sidebar-item">
-            <a class="sidebar-link" href="{{ route('hubs.index') }}">
+            <a class="sidebar-link" href="{{ route('admin.hubs.index') }}">
               <iconify-icon icon="solar:bicycle-line-duotone"></iconify-icon>
               <span class="hide-menu">Hub</span>
             </a>

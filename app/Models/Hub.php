@@ -2,23 +2,56 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Hub extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'name',
+        'code',
         'address',
-        'latitude',
-        'longitude',
-        'created_at',
-        'updated_at',
+        'phone',
+        'email',
+        'manager_name',
+        'is_active',
     ];
 
-    // Relationships
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
 
-    public function order()
+    /**
+     * Get riders assigned to this hub
+     */
+    public function riders()
     {
-        return $this->hasMany(Order::class);
+        return $this->hasMany(Rider::class);
+    }
+
+    /**
+     * Get parcels that originated from this hub
+     */
+    public function sourceParcels()
+    {
+        return $this->hasMany(Parcel::class, 'source_hub_id');
+    }
+
+    /**
+     * Get parcels currently at this hub
+     */
+    public function currentParcels()
+    {
+        return $this->hasMany(Parcel::class, 'current_hub_id');
+    }
+
+    /**
+     * Check if hub is active
+     */
+    public function isActive()
+    {
+        return $this->is_active;
     }
 }

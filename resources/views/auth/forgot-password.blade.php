@@ -1,22 +1,65 @@
 <!doctype html>
 <html lang="en">
-
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <link rel="stylesheet" href="{{ asset('css/styles.min.css') }}"/>
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Forgot Password</title>
+    <link rel="stylesheet" href="{{ asset('assets/css/styles.min.css') }}" />
 </head>
 <body>
-<div class="container mt-5">
-    <h3>Forgot Password</h3>
-    <form method="POST" action="{{ route('password.email') }}">
-        @csrf
-        <input type="email" name="email" class="form-control mb-2" placeholder="Enter email">
-        <button class="btn btn-warning btn-block">Send Reset Link</button>
-    </form>
+    <div class="page-wrapper">
+        <div class="position-relative overflow-hidden text-bg-light min-vh-100 d-flex align-items-center justify-content-center">
+            <div class="d-flex align-items-center justify-content-center w-100">
+                <div class="row justify-content-center w-100">
+                    <div class="col-md-8 col-lg-6 col-xxl-3">
+                        <div class="card mb-0">
+                            <div class="card-body">
+                                <a href="{{ url('/') }}" class="text-nowrap logo-img text-center d-block py-3 w-100">
+                                    <img src="{{ asset('assets/images/logos/logo.svg') }}" alt="Logo">
+                                </a>
+                                <p class="text-center">Reset Your Password</p>
 
-</div>
+                                @if(session('status'))
+                                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                        {{ session('status') }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                @endif
+
+                                @if($errors->any())
+                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                        @foreach($errors->all() as $error)
+                                            <div>{{ $error }}</div>
+                                        @endforeach
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                @endif
+
+                                <form method="POST" action="{{ route('password.email') }}">
+                                    @csrf
+                                    <div class="mb-3">
+                                        <label for="email" class="form-label">Email Address</label>
+                                        <input type="email" class="form-control @error('email') is-invalid @enderror"
+                                               id="email" name="email" value="{{ old('email') }}" required autofocus>
+                                        <div class="form-text">We'll send a password reset link to this email.</div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100 py-8 fs-4 mb-4 rounded-2">
+                                        Send Reset Link
+                                    </button>
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <a class="text-primary fw-bold" href="{{ route('login') }}">Back to Login</a>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ asset('assets/libs/jquery/dist/jquery.min.js') }}"></script>
+    <script src="{{ asset('assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
 </body>
+</html>
