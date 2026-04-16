@@ -12,9 +12,9 @@ class AuthController extends Controller
 {
     public function showLogin()
     {
-        // If already logged in, redirect to admin dashboard
+        // If already logged in, redirect based on role
         if (Auth::check()) {
-            return redirect()->route('admin.dashboard');
+            return $this->redirectBasedOnRole();
         }
         return view('auth.login');
     }
@@ -35,7 +35,9 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
-            return redirect()->intended(route('admin.dashboard'));
+
+            // Redirect based on user role
+            return $this->redirectBasedOnRole();
         }
 
         return back()->withErrors([
@@ -43,11 +45,30 @@ class AuthController extends Controller
         ])->onlyInput('email');
     }
 
+    /**
+     * Redirect users based on their role
+     */
+    private function redirectBasedOnRole()
+    {
+        $user = Auth::user();
+
+        // Check if user has role relationship
+        if ($user->role) {
+            if ($user->role->slug === 'admin') {
+                return redirect()->route('admin.dashboard');
+            } elseif ($user->role->slug === 'rider') {
+                return redirect()->route('rider.dashboard');
+            }
+        }
+
+        // Default fallback
+        return redirect('/dashboard');
+    }
+
     public function showRegister()
     {
-        // If already logged in, redirect to admin dashboard
         if (Auth::check()) {
-            return redirect()->route('admin.dashboard');
+            return $this->redirectBasedOnRole();
         }
         return view('auth.register');
     }
@@ -58,6 +79,7 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
+            'phone' => 'required|string|max:20',
         ]);
 
         if ($validator->fails()) {
@@ -68,17 +90,13 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'phone' => $request->phone,
+            'role_id' => 2, // Default to Rider role
         ]);
 
         Auth::login($user);
 
-        // FIXED: Redirect to admin dashboard instead of login page
-        return redirect()->route('admin.dashboard')->with('success', 'Welcome! Your account has been created successfully.');
-    }
-
-    public function dashboard()
-    {
-        return view('dashboard');
+        return redirect()->route('login')->with('success', 'Welcome! Your account has been created successfully.');
     }
 
     public function logout(Request $request)
@@ -86,8 +104,6 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-
-        // FIXED: Use route() helper for better URL generation
-        return redirect()->route('login')->with('status', 'You have been logged out successfully.');
+        return redirect()->route('login');
     }
 }

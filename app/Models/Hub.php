@@ -20,7 +20,7 @@ class Hub extends Model
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'is_active' => 'boolean',  // This ensures is_active is treated as boolean
     ];
 
     /**

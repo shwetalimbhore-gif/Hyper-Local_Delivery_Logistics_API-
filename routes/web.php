@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ParcelController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\GoogleController;
@@ -11,6 +12,8 @@ use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
+
+use App\Http\Controllers\Rider\RiderController as RiderRiderController;
 
 // Test mail route
 Route::get('/test-mail', function () {
@@ -42,19 +45,71 @@ Route::middleware('guest')->group(function () {
     Route::post('/reset-password', [PasswordResetController::class, 'resetPassword'])->name('password.update');
 });
 
-// Authenticated routes (logged in)
+// Authenticated routes
 Route::middleware('auth')->group(function () {
-    // IMPORTANT: Logout route MUST be POST
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+});
 
-    // Admin routes
-    Route::prefix('admin')->name('admin.')->group(function () {
-        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-        Route::resource('riders', RiderController::class);
-        Route::resource('hubs', HubController::class);
-        Route::resource('orders', OrderController::class);
+// Admin routes (protected by auth and role)
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Parcel Management
+    Route::resource('parcels', ParcelController::class);
+
+    // Rider Management
+    Route::resource('riders', RiderController::class);
+
+    // Hub Management
+    Route::resource('hubs', HubController::class);
+    Route::get('/hubs/{hub}/toggle-status', [HubController::class, 'toggleStatus'])->name('hubs.toggle-status');
+
+    Route::get('/notifications/fetch', [DashboardController::class, 'fetchNotifications'])->name('notifications.fetch');
+    Route::post('/notification/read', [DashboardController::class, 'markNotificationRead'])->name('notification.read');
+    Route::post('/notifications/read-all', [DashboardController::class, 'markAllNotificationsRead'])->name('notifications.read-all');
+
+
+
+    // Reports Routes
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/earnings', [App\Http\Controllers\Admin\ReportController::class, 'earnings'])->name('earnings');
+        Route::get('/delivery', [App\Http\Controllers\Admin\ReportController::class, 'delivery'])->name('delivery');
+        Route::get('/earnings/export', [App\Http\Controllers\Admin\ReportController::class, 'exportEarnings'])->name('earnings.export');
+        Route::get('/delivery/export', [App\Http\Controllers\Admin\ReportController::class, 'exportDelivery'])->name('delivery.export');
     });
 });
+
+
+// Rider routes (protected by auth and role check)
+Route::middleware(['auth'])->prefix('rider')->name('rider.')->group(function () {
+    // Dashboard
+    Route::get('/dashboard', [RiderRiderController::class, 'dashboard'])->name('dashboard');
+
+    // Parcel Management
+    Route::get('/parcels', [RiderRiderController::class, 'parcels'])->name('parcels.index');
+    Route::post('/parcels/{parcel}/update-status', [RiderRiderController::class, 'updateParcelStatus'])->name('parcels.update-status');
+    Route::get('/parcels/{parcel}/available-statuses', [RiderRiderController::class, 'getAvailableStatuses'])->name('parcels.available-statuses');
+
+    // Earnings
+    Route::get('/earnings', [RiderRiderController::class, 'earnings'])->name('earnings');
+
+    // Profile
+    Route::get('/profile', [RiderRiderController::class, 'profile'])->name('profile');
+    Route::post('/profile/update', [RiderRiderController::class, 'updateProfile'])->name('profile.update');
+    Route::post('/profile/update-image', [RiderController::class, 'updateProfileImage'])->name('profile.update-image');
+
+
+    // Status
+    Route::post('/update-status', [RiderRiderController::class, 'updateStatus'])->name('update-status');
+
+    Route::post('/notification/read', [RiderController::class, 'markNotificationRead'])->name('notification.read');
+    Route::post('/notifications/read-all', [RiderController::class, 'markAllNotificationsRead'])->name('notifications.read-all');
+});
+
+
+
+// Route::get('/dashboard');
 
 // Home route - redirect based on auth status
 Route::get('/', function () {

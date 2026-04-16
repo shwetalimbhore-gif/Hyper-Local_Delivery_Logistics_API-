@@ -9,6 +9,8 @@ class Notification extends Model
 {
     use HasFactory;
 
+    protected $table = 'notifications';
+
     protected $fillable = [
         'user_id',
         'title',
@@ -32,6 +34,14 @@ class Notification extends Model
     }
 
     /**
+     * Scope for unread notifications
+     */
+    public function scopeUnread($query)
+    {
+        return $query->where('is_read', false);
+    }
+
+    /**
      * Mark notification as read
      */
     public function markAsRead()
@@ -39,13 +49,5 @@ class Notification extends Model
         $this->is_read = true;
         $this->save();
         return $this;
-    }
-
-    /**
-     * Scope for unread notifications
-     */
-    public function scopeUnread($query)
-    {
-        return $query->where('is_read', false);
     }
 }

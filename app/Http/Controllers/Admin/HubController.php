@@ -3,58 +3,149 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Hub;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class HubController extends Controller
 {
+    /**
+     * Display a listing of hubs.
+     */
     public function index()
     {
-        $hubs = Hub::latest()->get();
+        $hubs = Hub::latest()->paginate(15);
         return view('admin.hubs.index', compact('hubs'));
     }
 
+    /**
+     * Show the form for creating a new hub.
+     */
     public function create()
     {
         return view('admin.hubs.create');
     }
 
+    /**
+     * Store a newly created hub in storage.
+     */
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required',
-            'address' => 'required',
-            'latitude' => 'required',
-            'longitude' => 'required'
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => 'required|string|max:20|unique:hubs,code',
+            'address' => 'required|string',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'manager_name' => 'nullable|string|max:255',
+            'is_active' => 'boolean',
         ]);
 
-        Hub::create($request->all());
+        try {
+            // Ensure is_active is properly set (checkbox returns 1 or 0)
+            $validated['is_active'] = $request->has('is_active') ? true : false;
 
-        return redirect()->route('hubs.index')->with('success', 'Hub created successfully');
+            $hub = Hub::create($validated);
+
+            return redirect()->route('admin.hubs.index')
+                ->with('success', 'Hub created successfully! Hub Code: ' . $hub->code);
+
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Failed to create hub: ' . $e->getMessage()]);
+        }
     }
 
+    /**
+     * Display the specified hub.
+     */
+    public function show(Hub $hub)
+    {
+        $hub->load(['riders' => function($q) {
+            $q->with('user')->limit(10);
+        }, 'sourceParcels' => function($q) {
+            $q->latest()->limit(10);
+        }]);
+
+        $riderCount = $hub->riders()->count();
+        $parcelCount = $hub->sourceParcels()->count();
+
+        return view('admin.hubs.show', compact('hub', 'riderCount', 'parcelCount'));
+    }
+
+    /**
+     * Show the form for editing the specified hub.
+     */
     public function edit(Hub $hub)
     {
         return view('admin.hubs.edit', compact('hub'));
     }
 
+    /**
+     * Update the specified hub in storage.
+     */
     public function update(Request $request, Hub $hub)
     {
-        $request->validate([
-            'name' => 'required',
-            'address' => 'required',
-            'latitude' => 'required',
-            'longitude' => 'required'
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => 'required|string|max:20|unique:hubs,code,' . $hub->id,
+            'address' => 'required|string',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'manager_name' => 'nullable|string|max:255',
+            'is_active' => 'boolean',
         ]);
 
-        $hub->update($request->all());
+        try {
+            // FIXED: Properly handle the is_active checkbox value
+            // When checkbox is checked, it sends value "1" or "on"
+            // When unchecked, the hidden input sends "0"
+            $validated['is_active'] = $request->has('is_active') && $request->input('is_active') == 1;
 
-        return redirect()->route('hubs.index')->with('success', 'Hub updated successfully');
+            $hub->update($validated);
+
+            return redirect()->route('admin.hubs.index')
+                ->with('success', 'Hub updated successfully! Status is now ' . ($hub->is_active ? 'ACTIVE' : 'INACTIVE'));
+
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Failed to update hub: ' . $e->getMessage()]);
+        }
     }
 
+    /**
+     * Remove the specified hub from storage.
+     */
     public function destroy(Hub $hub)
     {
-        $hub->delete();
-        return redirect()->route('hubs.index')->with('success', 'Hub deleted successfully');
+        try {
+            // Check if hub has any riders or parcels
+            if ($hub->riders()->count() > 0) {
+                return back()->withErrors(['error' => 'Cannot delete hub because it has assigned riders.']);
+            }
+
+            if ($hub->sourceParcels()->count() > 0) {
+                return back()->withErrors(['error' => 'Cannot delete hub because it has associated parcels.']);
+            }
+
+            $hub->delete();
+
+            return redirect()->route('admin.hubs.index')
+                ->with('success', 'Hub deleted successfully!');
+
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Failed to delete hub: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Toggle hub status (activate/deactivate)
+     */
+    public function toggleStatus(Hub $hub)
+    {
+        $hub->is_active = !$hub->is_active;
+        $hub->save();
+
+        $status = $hub->is_active ? 'activated' : 'deactivated';
+        return redirect()->route('admin.hubs.index')
+            ->with('success', "Hub {$status} successfully!");
     }
 }
