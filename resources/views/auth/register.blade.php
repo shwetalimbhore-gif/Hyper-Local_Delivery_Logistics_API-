@@ -47,6 +47,24 @@
                                                id="email" name="email" value="{{ old('email') }}"
                                                aria-describedby="emailHelp" required>
                                     </div>
+
+                                    <div class="mb-3">
+                                        <label for="phone" class="form-label">Phone Number</label>
+                                        <input type="tel" class="form-control @error('phone') is-invalid @enderror"
+                                            id="phone" name="phone" value="{{ old('phone') }}" required>
+                                        @error('phone')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="address" class="form-label">Address (Optional)</label>
+                                        <textarea class="form-control @error('address') is-invalid @enderror"
+                                                id="address" name="address" rows="2">{{ old('address') }}</textarea>
+                                        @error('address')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
                                     <div class="mb-4">
                                         <label for="password" class="form-label">Password</label>
                                         <input type="password" class="form-control @error('password') is-invalid @enderror"

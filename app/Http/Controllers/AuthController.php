@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use App\Models\Rider;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -79,24 +81,50 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'phone' => 'required|string|max:20',
+            'phone' => 'required|string|max:20',  // Uncommented - this is required
+            'address' => 'nullable|string',       // Added address field
         ]);
 
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
         }
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'phone' => $request->phone,
-            'role_id' => 2, // Default to Rider role
-        ]);
+        DB::beginTransaction();
 
-        Auth::login($user);
+        try {
+            // Create user
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'phone' => $request->phone,
+                'address' => $request->address,
+                'role_id' => 2, // Rider role
+                'is_active' => true,
+            ]);
 
-        return redirect()->route('login')->with('success', 'Welcome! Your account has been created successfully.');
+            // Create rider profile (REQUIRED for riders)
+            Rider::create([
+                'user_id' => $user->id,
+                'employee_id' => 'RID' . str_pad($user->id, 5, '0', STR_PAD_LEFT),
+                'vehicle_type' => 'bike',
+                'status' => 'available',
+                'max_weight_capacity' => 50,
+                'max_size_capacity' => 100,
+                'is_verified' => true,
+                'joined_date' => now(),
+            ]);
+
+            DB::commit();
+
+            // DO NOT auto-login - redirect to login page with success message
+            return redirect()->route('login')
+                ->with('success', 'Registration successful! Please login with your credentials.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Registration failed: ' . $e->getMessage()])->withInput();
+        }
     }
 
     public function logout(Request $request)
