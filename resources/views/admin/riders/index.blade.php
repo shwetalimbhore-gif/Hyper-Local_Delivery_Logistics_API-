@@ -20,15 +20,8 @@
             </div>
         @endif
 
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {{ session('error') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
-
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover" id="ridersTable">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -45,17 +38,15 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($riders as $rider)
+                    @foreach($riders as $rider)
                     <tr>
                         <td>{{ $rider->id }}</td>
                         <td><span class="fw-bold">{{ $rider->employee_id }}</span></td>
-                        <td>{{ $rider->user->name }}</td>
-                        <td>{{ $rider->user->email }}</td>
-                        <td>{{ $rider->user->phone }}</td>
-                        <td>{{ $rider->hub->name ?? 'N/A' }}</td>
-                        <td>
-                            <span class="badge bg-info">{{ ucfirst($rider->vehicle_type) }}</span>
-                        </td>
+                        <td>{{ $rider->user->name }}</small></td>
+                        <td>{{ $rider->user->email }}</small></td>
+                        <td>{{ $rider->user->phone }}</small></td>
+                        <td>{{ $rider->hub->name ?? 'N/A' }}</small></td>
+                        <td><span class="badge bg-info">{{ ucfirst($rider->vehicle_type) }}</span></small></td>
                         <td>
                             @if($rider->status == 'available')
                                 <span class="badge bg-success">Available</span>
@@ -64,14 +55,14 @@
                             @else
                                 <span class="badge bg-secondary">Offline</span>
                             @endif
-                        </td>
-                        <td>{{ $rider->total_deliveries }}</td>
+                         </small>
+                        <td>{{ $rider->total_deliveries }}</small></td>
                         <td>
                             <div class="d-flex align-items-center">
                                 <span class="me-1">{{ number_format($rider->rating, 1) }}</span>
                                 <iconify-icon icon="solar:star-bold" class="text-warning"></iconify-icon>
                             </div>
-                        </td>
+                         </small>
                         <td>
                             <div class="btn-group" role="group">
                                 <a href="{{ route('admin.riders.show', $rider->id) }}" class="btn btn-sm btn-info" title="View">
@@ -84,62 +75,32 @@
                                     <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
                                 </button>
                             </div>
-                        </td>
+                         </small>
                     </tr>
-                    @empty
-                        <tr>
-                            <td colspan="11" class="text-center py-4">
-                                <iconify-icon icon="solar:bicycle-line-duotone" class="fs-1 text-muted"></iconify-icon>
-                                <p class="mt-2 text-muted">No riders found</p>
-                                <a href="{{ route('admin.riders.create') }}" class="btn btn-primary btn-sm">Add First Rider</a>
-                            </td>
-                        </tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
             </table>
-        </div>
-
-        <div class="mt-3">
-            {{ $riders->links() }}
         </div>
     </div>
 </div>
 
-<!-- Delete Confirmation Modal (Centered) -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="deleteModalLabel">
-                    <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
-                    Confirm Delete
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <div class="text-center">
-                    <iconify-icon icon="solar:danger-circle-line-duotone" class="fs-1 text-danger mb-3"></iconify-icon>
-                    <h5 class="mb-3">Are you sure you want to delete this rider?</h5>
-                    <p class="text-muted" id="deleteRiderInfo"></p>
-                    <div class="alert alert-warning">
-                        <iconify-icon icon="solar:info-circle-line-duotone"></iconify-icon>
-                        <strong>Warning:</strong> This will also delete the rider's user account and all associated data.
-                    </div>
-                    <p class="text-danger small">⚠️ This action cannot be undone!</p>
-                </div>
-            </div>
-            <div class="modal-footer justify-content-center">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <iconify-icon icon="solar:close-circle-line-duotone"></iconify-icon>
-                    Cancel
-                </button>
-                <form id="deleteForm" method="POST" style="display: inline;">
+            <div class="modal-body text-center">
+                <iconify-icon icon="solar:danger-circle-line-duotone" class="fs-1 text-danger mb-3"></iconify-icon>
+                <h5>Are you sure?</h5>
+                <p id="deleteRiderInfo"></p>
+                <form id="deleteForm" method="POST">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-danger">
-                        <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
-                        Yes, Delete Rider
-                    </button>
+                    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 </form>
             </div>
         </div>
@@ -147,39 +108,33 @@
 </div>
 @endsection
 
-@push('styles')
-<style>
-    .table th {
-        font-weight: 600;
-        color: #555;
-        border-top: none;
-    }
-    .badge {
-        padding: 5px 10px;
-        font-size: 12px;
-        font-weight: 500;
-    }
-    .btn-group .btn {
-        padding: 0.25rem 0.5rem;
-    }
-    .modal-dialog-centered {
-        display: flex;
-        align-items: center;
-        min-height: calc(100% - 1rem);
-    }
-</style>
-@endpush
-
 @push('scripts')
 <script>
-    function showDeleteModal(riderId, riderName, employeeId) {
-        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        document.getElementById('deleteRiderInfo').innerHTML = `
-            <strong>${riderName}</strong><br>
-            <small class="text-muted">Employee ID: ${employeeId}</small>
-        `;
-        document.getElementById('deleteForm').action = `/admin/riders/${riderId}`;
-        modal.show();
+    $(document).ready(function() {
+        $('#ridersTable').DataTable({
+            responsive: true,
+            order: [[0, 'desc']],
+            pageLength: 15,
+            lengthMenu: [[10, 15, 25, 50, -1], [10, 15, 25, 50, "All"]],
+            language: {
+                search: "Search:",
+                lengthMenu: "Show _MENU_ entries",
+                info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                zeroRecords: "No riders found"
+            },
+            dom: 'Bfrtip',
+            buttons: [
+                { extend: 'excel', text: 'Excel', className: 'btn btn-success btn-sm' },
+                { extend: 'pdf', text: 'PDF', className: 'btn btn-danger btn-sm' },
+                { extend: 'print', text: 'Print', className: 'btn btn-secondary btn-sm' }
+            ]
+        });
+    });
+
+    function showDeleteModal(id, name, employeeId) {
+        $('#deleteRiderInfo').html(`<strong>${name}</strong><br><small>Employee ID: ${employeeId}</small>`);
+        $('#deleteForm').attr('action', `/admin/riders/${id}`);
+        $('#deleteModal').modal('show');
     }
 </script>
 @endpush
