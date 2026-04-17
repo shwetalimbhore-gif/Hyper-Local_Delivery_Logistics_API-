@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Parcel extends Model
 {
-    use HasFactory;
+    use HasFactory , SoftDeletes;
 
     protected $fillable = [
         'tracking_number',
@@ -41,6 +42,7 @@ class Parcel extends Model
         'failure_reason',
         'notes',
         'created_by',
+        'deleted_by',
     ];
 
     protected $casts = [
@@ -53,6 +55,7 @@ class Parcel extends Model
         'delivered_at' => 'datetime',
         'failed_delivery_at' => 'datetime',
         'returned_at' => 'datetime',
+        'deleted_at' => 'datetime',  // This allows for soft deletes if implemented
     ];
 
     /**
@@ -93,6 +96,11 @@ class Parcel extends Model
     public function statusHistories()
     {
         return $this->hasMany(ParcelStatusHistory::class);
+    }
+
+    public function deleter()
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
     }
 
     /**

@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Rider extends Model
 {
-    use HasFactory;
+    use HasFactory , SoftDeletes;
 
     protected $fillable = [
         'user_id',
@@ -29,6 +30,7 @@ class Rider extends Model
         'earnings',
         'is_verified',
         'joined_date',
+        'deleted_by',
     ];
 
     protected $casts = [
@@ -40,6 +42,7 @@ class Rider extends Model
         'earnings' => 'decimal:2',
         'is_verified' => 'boolean',
         'joined_date' => 'date',
+        'deleted_at' => 'datetime',    // This allows for soft deletes if implemented
     ];
 
     /**
@@ -64,6 +67,11 @@ class Rider extends Model
     public function assignedParcels()
     {
         return $this->hasMany(Parcel::class, 'assigned_rider_id');
+    }
+
+     public function deleter()
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
     }
 
     /**

@@ -84,7 +84,7 @@ class RiderController extends Controller
             DB::commit();
 
             return redirect()->route('admin.riders.index')
-                ->with('success', 'Rider created successfully! Password: ' . $validated['password']);
+                ->with('success', 'Rider created successfully! Password: ' );    //. $validated['password']
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -165,24 +165,108 @@ class RiderController extends Controller
     }
 
     /**
-     * Remove the specified rider from storage.
+     * Display trashed riders.
      */
-    public function destroy(Rider $rider)
+    public function trash()
+    {
+        $riders = Rider::onlyTrashed()
+            ->with(['user', 'hub', 'deleter'])
+            ->latest('deleted_at')
+            ->paginate(15);
+
+        return view('admin.riders.trash', compact('riders'));
+    }
+
+    /**
+     * Remove the specified rider from storage (soft delete).
+     */
+    public function destroy(Rider $rider , $id)
     {
         try {
-            DB::beginTransaction();
+            // Check if rider has active parcels
+            $activeParcels = $rider->assignedParcels()
+                ->whereHas('status', function($q) {
+                    $q->whereNotIn('slug', ['delivered', 'cancelled']);
+                })->count();
 
-            // Delete user (this will cascade to rider due to foreign key)
-            $rider->user->delete();
+            if ($activeParcels > 0) {
+                return redirect()->route('admin.riders.index')
+                    ->with('error', 'Cannot delete rider with active deliveries. Please reassign their parcels first.');
+            }
 
-            DB::commit();
+            // Soft delete the rider
+            $rider->deleted_by = auth()->id();
+            $rider->save();
+            $rider->delete();
+
+            // Also soft delete the associated user
+            if ($rider->user) {
+                $rider->user->deleted_by = auth()->id();
+                $rider->user->save();
+                $rider->user->delete();
+            }
 
             return redirect()->route('admin.riders.index')
-                ->with('success', 'Rider deleted successfully');
+                ->with('success', 'Rider moved to trash successfully.');
 
         } catch (\Exception $e) {
-            DB::rollBack();
             return back()->withErrors(['error' => 'Failed to delete rider: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Restore a soft deleted rider.
+     */
+    public function restore($id)
+    {
+        try {
+            $rider = Rider::withTrashed()->findOrFail($id);
+
+            // Restore the rider
+            $rider->restore();
+
+            // Restore the associated user
+            if ($rider->user) {
+                $rider->user->restore();
+            }
+
+            return redirect()->route('admin.riders.trash')
+                ->with('success', 'Rider restored successfully.');
+
+        } catch (\Exception $e) {
+            return redirect()->route('admin.riders.trash')
+                ->with('error', 'Failed to restore rider: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Permanently delete a soft deleted rider.
+     */
+    public function forceDelete($id)
+    {
+        try {
+            $rider = Rider::withTrashed()->findOrFail($id);
+
+            // Check if rider has any parcels
+            if ($rider->assignedParcels()->count() > 0) {
+                return redirect()->route('admin.riders.trash')
+                    ->with('error', 'Cannot permanently delete rider who has delivery history.');
+            }
+
+            // Permanently delete the rider
+            $rider->forceDelete();
+
+            // Permanently delete the associated user
+            if ($rider->user) {
+                $rider->user->forceDelete();
+            }
+
+            return redirect()->route('admin.riders.trash')
+                ->with('success', 'Rider permanently deleted.');
+
+        } catch (\Exception $e) {
+            return redirect()->route('admin.riders.trash')
+                ->with('error', 'Failed to permanently delete rider: ' . $e->getMessage());
         }
     }
 }

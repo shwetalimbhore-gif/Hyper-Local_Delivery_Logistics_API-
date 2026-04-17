@@ -111,28 +111,83 @@ class HubController extends Controller
         }
     }
 
+  /**
+     * Display trashed hubs.
+     */
+    public function trash()
+    {
+        $hubs = Hub::onlyTrashed()
+            ->with(['deleter'])
+            ->latest('deleted_at')
+            ->paginate(15);
+
+        return view('admin.hubs.trash', compact('hubs'));
+    }
+
     /**
-     * Remove the specified hub from storage.
+     * Remove the specified hub from storage (soft delete).
      */
     public function destroy(Hub $hub)
     {
         try {
-            // Check if hub has any riders or parcels
+            // Check if hub has any riders
             if ($hub->riders()->count() > 0) {
-                return back()->withErrors(['error' => 'Cannot delete hub because it has assigned riders.']);
+                return redirect()->route('admin.hubs.index')
+                    ->with('error', 'Cannot delete hub because it has assigned riders. Please reassign or delete the riders first.');
             }
 
+            // Check if hub has any parcels
             if ($hub->sourceParcels()->count() > 0) {
-                return back()->withErrors(['error' => 'Cannot delete hub because it has associated parcels.']);
+                return redirect()->route('admin.hubs.index')
+                    ->with('error', 'Cannot delete hub because it has associated parcels. Please reassign or delete the parcels first.');
             }
 
+            // Soft delete the hub
+            $hub->deleted_by = auth()->id();
+            $hub->save();
             $hub->delete();
 
             return redirect()->route('admin.hubs.index')
-                ->with('success', 'Hub deleted successfully!');
+                ->with('success', 'Hub moved to trash successfully.');
 
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Failed to delete hub: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Restore a soft deleted hub.
+     */
+    public function restore($id)
+    {
+        try {
+            $hub = Hub::withTrashed()->findOrFail($id);
+            $hub->restore();
+
+            return redirect()->route('admin.hubs.trash')
+                ->with('success', 'Hub restored successfully.');
+
+        } catch (\Exception $e) {
+            return redirect()->route('admin.hubs.trash')
+                ->with('error', 'Failed to restore hub: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Permanently delete a soft deleted hub.
+     */
+    public function forceDelete($id)
+    {
+        try {
+            $hub = Hub::withTrashed()->findOrFail($id);
+            $hub->forceDelete();
+
+            return redirect()->route('admin.hubs.trash')
+                ->with('success', 'Hub permanently deleted.');
+
+        } catch (\Exception $e) {
+            return redirect()->route('admin.hubs.trash')
+                ->with('error', 'Failed to permanently delete hub: ' . $e->getMessage());
         }
     }
 

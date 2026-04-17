@@ -44,7 +44,7 @@ class DashboardController extends Controller
      */
     public function fetchNotifications()
     {
-        $notifications = Notification::where('user_id', Auth::id())
+        $notifications = Notification::where('user_id', \Auth::id())
             ->latest()
             ->take(20)
             ->get()
@@ -59,7 +59,7 @@ class DashboardController extends Controller
                 ];
             });
 
-        $unreadCount = Notification::where('user_id', Auth::id())
+        $unreadCount = Notification::where('user_id', \Auth::id())
             ->where('is_read', false)
             ->count();
 
@@ -75,7 +75,7 @@ class DashboardController extends Controller
     public function markNotificationRead(Request $request)
     {
         $notification = Notification::where('id', $request->id)
-            ->where('user_id', Auth::id())
+            ->where('user_id', \Auth::id())
             ->first();
 
         if ($notification) {
@@ -92,7 +92,7 @@ class DashboardController extends Controller
      */
     public function markAllNotificationsRead()
     {
-        Notification::where('user_id', Auth::id())
+        Notification::where('user_id', \Auth::id())
             ->where('is_read', false)
             ->update(['is_read' => true]);
 

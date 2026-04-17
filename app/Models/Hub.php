@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Hub extends Model
 {
-    use HasFactory;
+    use HasFactory , SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -17,10 +18,12 @@ class Hub extends Model
         'email',
         'manager_name',
         'is_active',
+        'deleted_by',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',  // This ensures is_active is treated as boolean
+        'deleted_at' => 'datetime', // This allows for soft deletes if implemented
     ];
 
     /**
@@ -45,6 +48,11 @@ class Hub extends Model
     public function currentParcels()
     {
         return $this->hasMany(Parcel::class, 'current_hub_id');
+    }
+
+     public function deleter()
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
     }
 
     /**

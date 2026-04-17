@@ -48,31 +48,66 @@
                             </a>
                         </li>
 
-                        <!-- Orders/Parcels -->
-                        <li class="sidebar-item">
-                            <a class="sidebar-link {{ request()->routeIs('admin.parcels.*') ? 'active' : '' }}"
-                               href="{{ route('admin.parcels.index') }}">
+                            <li class="sidebar-item">
+                            <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                                 <iconify-icon icon="solar:box-line-duotone"></iconify-icon>
                                 <span class="hide-menu">Parcels</span>
                             </a>
+                            <ul aria-expanded="false" class="collapse first-level">
+                                <li class="sidebar-item">
+                                    <a class="sidebar-link" href="{{ route('admin.parcels.index') }}">
+                                        <iconify-icon icon="solar:box-line-duotone"></iconify-icon>
+                                        <span class="hide-menu">All Parcels</span>
+                                    </a>
+                                </li>
+                                <li class="sidebar-item">
+                                    <a class="sidebar-link" href="{{ route('admin.parcels.trash') }}">
+                                        <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
+                                        <span class="hide-menu">Trash</span>
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
 
-                        <!-- Riders -->
+                            <!-- Riders Dropdown -->
                         <li class="sidebar-item">
-                            <a class="sidebar-link {{ request()->routeIs('admin.riders.*') ? 'active' : '' }}"
-                               href="{{ route('admin.riders.index') }}">
+                            <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                                 <iconify-icon icon="solar:bicycle-line-duotone"></iconify-icon>
                                 <span class="hide-menu">Riders</span>
                             </a>
+                            <ul aria-expanded="false" class="collapse first-level">
+                                <li class="sidebar-item">
+                                    <a class="sidebar-link" href="{{ route('admin.riders.index') }}">
+                                        <span class="hide-menu">All Riders</span>
+                                    </a>
+                                </li>
+                                <li class="sidebar-item">
+                                    <a class="sidebar-link" href="{{ route('admin.riders.trash') }}">
+                                        <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
+                                        <span class="hide-menu">Trash</span>
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
-
-                        <!-- Hubs -->
+                            <!-- Hubs Dropdown -->
                         <li class="sidebar-item">
-                            <a class="sidebar-link {{ request()->routeIs('admin.hubs.*') ? 'active' : '' }}"
-                               href="{{ route('admin.hubs.index') }}">
+                            <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                                 <iconify-icon icon="solar:warehouse-line-duotone"></iconify-icon>
                                 <span class="hide-menu">Hubs</span>
                             </a>
+                            <ul aria-expanded="false" class="collapse first-level">
+                                <li class="sidebar-item">
+                                    <a class="sidebar-link" href="{{ route('admin.hubs.index') }}">
+                                        <span class="hide-menu">All Hubs</span>
+                                    </a>
+                                </li>
+                                <li class="sidebar-item">
+                                    <a class="sidebar-link" href="{{ route('admin.hubs.trash') }}">
+                                        <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
+                                        <span class="hide-menu">Trash</span>
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
 
                         <li>
@@ -200,6 +235,28 @@
     </div>
 
 
+
+
+
+    <!-- Scripts -->
+    <script src="{{ asset('assets/libs/jquery/dist/jquery.min.js') }}"></script>
+    <script src="{{ asset('assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ asset('assets/js/sidebarmenu.js') }}"></script>
+    <script src="{{ asset('assets/js/app.min.js') }}"></script>
+    <script src="{{ asset('assets/libs/simplebar/dist/simplebar.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
     <script>
         // Fetch notifications
         function fetchNotifications() {
@@ -313,26 +370,6 @@
         setInterval(fetchNotifications, 10000);
     </script>
 
-
-    <!-- Scripts -->
-    <script src="{{ asset('assets/libs/jquery/dist/jquery.min.js') }}"></script>
-    <script src="{{ asset('assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{ asset('assets/js/sidebarmenu.js') }}"></script>
-    <script src="{{ asset('assets/js/app.min.js') }}"></script>
-    <script src="{{ asset('assets/libs/simplebar/dist/simplebar.js') }}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-
-    <!-- DataTables JS -->
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
     @stack('scripts')
 </body>
 

@@ -7,10 +7,16 @@
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h5 class="card-title mb-0">All Parcels</h5>
-            <a href="{{ route('admin.parcels.create') }}" class="btn btn-primary">
-                <iconify-icon icon="solar:add-circle-line-duotone"></iconify-icon>
-                Create New Parcel
-            </a>
+            <div>
+                <a href="{{ route('admin.parcels.trash') }}" class="btn btn-secondary me-2">
+                    <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
+                    Trash
+                </a>
+                <a href="{{ route('admin.parcels.create') }}" class="btn btn-primary">
+                    <iconify-icon icon="solar:add-circle-line-duotone"></iconify-icon>
+                    Create New Parcel
+                </a>
+            </div>
         </div>
 
         @if(session('success'))
@@ -38,8 +44,8 @@
                 <tbody>
                     @foreach($parcels as $parcel)
                     <tr>
-                        <td>{{ $parcel->id }}</td>
-                        <td><span class="fw-bold">{{ $parcel->tracking_number }}</span></td>
+                        <td>{{ $parcel->id }}</small></td>
+                        <td><span class="fw-bold">{{ $parcel->tracking_number }}</span></small></td>
                         <td>{{ $parcel->sender_name }}</small></td>
                         <td>{{ $parcel->receiver_name }}</small></td>
                         <td>{{ $parcel->weight }} kg</small></td>
@@ -76,19 +82,53 @@
                                 <a href="{{ route('admin.parcels.edit', $parcel->id) }}" class="btn btn-sm btn-warning" title="Edit">
                                     <iconify-icon icon="solar:pen-line-duotone"></iconify-icon>
                                 </a>
-                                <button type="button" class="btn btn-sm btn-danger" title="Delete" onclick="confirmDelete({{ $parcel->id }})">
+                                <button type="button" class="btn btn-sm btn-danger" title="Move to Trash" onclick="confirmSoftDelete({{ $parcel->id }}, '{{ $parcel->tracking_number }}')">
                                     <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
                                 </button>
-                                <form id="delete-form-{{ $parcel->id }}" action="{{ route('admin.parcels.destroy', $parcel->id) }}" method="POST" style="display: none;">
-                                    @csrf
-                                    @method('DELETE')
-                                </form>
                             </div>
                          </small>
                     </tr>
                     @endforeach
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- Soft Delete Confirmation Modal -->
+<div class="modal fade" id="softDeleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">
+                    <iconify-icon icon="solar:info-circle-line-duotone"></iconify-icon>
+                    Move to Trash
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <iconify-icon icon="solar:trash-bin-trash-line-duotone" class="fs-1 text-warning mb-3"></iconify-icon>
+                <h5 class="mb-3">Move this parcel to trash?</h5>
+                <p id="softDeleteMessage" class="mb-2"></p>
+                <div class="alert alert-info small">
+                    <iconify-icon icon="solar:info-circle-line-duotone"></iconify-icon>
+                    You can restore this parcel later from the trash.
+                </div>
+                <form id="softDeleteForm" method="POST">
+                    @csrf
+                    @method('DELETE')
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-warning px-4">
+                            <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
+                            Move to Trash
+                        </button>
+                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
+                            <iconify-icon icon="solar:close-circle-line-duotone"></iconify-icon>
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -117,7 +157,7 @@
     $(document).ready(function() {
         $('#parcelsTable').DataTable({
             responsive: true,
-            order: [[0, 'desc']], // Order by ID descending
+            order: [[0, 'desc']],
             pageLength: 15,
             lengthMenu: [[10, 15, 25, 50, -1], [10, 15, 25, 50, "All"]],
             language: {
@@ -156,10 +196,10 @@
         });
     });
 
-    function confirmDelete(id) {
-        if (confirm('Are you sure you want to delete this parcel?')) {
-            document.getElementById('delete-form-' + id).submit();
-        }
+    function confirmSoftDelete(id, trackingNumber) {
+        $('#softDeleteMessage').html(`Parcel <strong>${trackingNumber}</strong> will be moved to trash.`);
+        $('#softDeleteForm').attr('action', `/admin/parcels/${id}`);
+        $('#softDeleteModal').modal('show');
     }
 </script>
 @endpush

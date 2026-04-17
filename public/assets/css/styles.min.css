@@ -16615,16 +16615,15 @@ textarea.form-control-lg {
   width: 100%;
   background: #f8fafd;
   padding: 0 10px;
-  top: 72px;
 }
 @media (max-width: 991.98px) {
   .app-header {
-    top: 150px;
+    /* top: 150px; */
   }
 }
 @media (max-width: 575.98px) {
   .app-header {
-    top: 160px;
+    /* top: 160px; */
   }
 }
 .app-header .container-fluid, .app-header .container-sm, .app-header .container-md, .app-header .container-lg, .app-header .container-xl, .app-header .container-xxl {
@@ -16700,18 +16699,18 @@ textarea.form-control-lg {
 .body-wrapper .container-fluid, .body-wrapper .container-sm, .body-wrapper .container-md, .body-wrapper .container-lg, .body-wrapper .container-xl, .body-wrapper .container-xxl {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 30px;
+  /* padding: 30px; */
   transition: 0.2s ease-in;
-  padding-top: 180px;
+  padding-top:10px;
 }
 @media (max-width: 991.98px) {
   .body-wrapper .container-fluid, .body-wrapper .container-sm, .body-wrapper .container-md, .body-wrapper .container-lg, .body-wrapper .container-xl, .body-wrapper .container-xxl {
-    padding-top: 250px;
+    /* padding-top: 250px; */
   }
 }
 @media (max-width: 575.98px) {
   .body-wrapper .container-fluid, .body-wrapper .container-sm, .body-wrapper .container-md, .body-wrapper .container-lg, .body-wrapper .container-xl, .body-wrapper .container-xxl {
-    padding-top: 260px;
+    /* padding-top: 260px; */
   }
 }
 
@@ -16726,10 +16725,9 @@ textarea.form-control-lg {
 
 #main-wrapper[data-layout=vertical][data-sidebar-position=fixed] .left-sidebar {
   position: fixed;
-  top: 72px;
 }
 #main-wrapper[data-layout=vertical][data-header-position=fixed] .app-header {
-  position: fixed;
+  /* position: fixed; */
   z-index: 10;
 }
 #main-wrapper[data-layout=vertical][data-header-position=fixed] .body-wrapper > .container-fluid, #main-wrapper[data-layout=vertical][data-header-position=fixed] .body-wrapper > .container-sm, #main-wrapper[data-layout=vertical][data-header-position=fixed] .body-wrapper > .container-md, #main-wrapper[data-layout=vertical][data-header-position=fixed] .body-wrapper > .container-lg, #main-wrapper[data-layout=vertical][data-header-position=fixed] .body-wrapper > .container-xl, #main-wrapper[data-layout=vertical][data-header-position=fixed] .body-wrapper > .container-xxl {
@@ -16741,7 +16739,7 @@ textarea.form-control-lg {
     width: 100%;
   }
   #main-wrapper[data-layout=vertical][data-header-position=fixed] .app-header {
-    width: calc(100% - 260px);
+    /* width: calc(100% - 260px); */
   }
   #main-wrapper[data-layout=vertical][data-sidebartype=full] .body-wrapper {
     margin-left: 260px;

@@ -55,15 +55,29 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    Route::get('/parcels/trash', [ParcelController::class, 'trash'])->name('parcels.trash');
     // Parcel Management
     Route::resource('parcels', ParcelController::class);
 
+    Route::post('/parcels/{id}/restore', [ParcelController::class, 'restore'])->name('parcels.restore');
+    Route::delete('/parcels/{id}/force-delete', [ParcelController::class, 'forceDelete'])->name('parcels.force-delete');
+
+    Route::get('/riders/trash', [RiderController::class, 'trash'])->name('riders.trash');
     // Rider Management
     Route::resource('riders', RiderController::class);
 
+    // Rider Soft Delete Routes
+    Route::post('/riders/{id}/restore', [RiderController::class, 'restore'])->name('riders.restore');
+    Route::delete('/riders/{id}/force-delete', [RiderController::class, 'forceDelete'])->name('riders.force-delete');
+
+    // Hub Soft Delete Routes
+    Route::get('/hubs/trash', [HubController::class, 'trash'])->name('hubs.trash');
     // Hub Management
     Route::resource('hubs', HubController::class);
     Route::get('/hubs/{hub}/toggle-status', [HubController::class, 'toggleStatus'])->name('hubs.toggle-status');
+
+    Route::post('/hubs/{id}/restore', [HubController::class, 'restore'])->name('hubs.restore');
+    Route::delete('/hubs/{id}/force-delete', [HubController::class, 'forceDelete'])->name('hubs.force-delete');
 
     Route::get('/notifications/fetch', [DashboardController::class, 'fetchNotifications'])->name('notifications.fetch');
     Route::post('/notification/read', [DashboardController::class, 'markNotificationRead'])->name('notification.read');

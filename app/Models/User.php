@@ -19,7 +19,7 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-         'role_id',
+        'role_id',
         'name',
         'email',
         'password',
@@ -52,6 +52,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
+            'deleted_at' => 'datetime',     // This allows for soft deletes if implemented
         ];
     }
 

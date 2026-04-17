@@ -181,33 +181,92 @@ class ParcelController extends Controller
             ->with('success', 'Parcel updated successfully');
     }
 
-    public function destroy(Parcel $parcel)
+    /**
+     * Display trashed parcels (soft deleted)
+     */
+    public function trash()
     {
-        $parcel->delete();
+        $parcels = Parcel::onlyTrashed()
+            ->with(['status', 'assignedRider.user'])
+            ->latest('deleted_at')
+            ->paginate(15);
 
-        return redirect()->route('admin.parcels.index')
-            ->with('success', 'Parcel deleted successfully');
+        return view('admin.parcels.trash', compact('parcels'));
     }
 
     /**
- * Generate unique tracking number.
- */
-private function generateTrackingNumber()
-{
-    $prefix = 'HLD';
-    $date = now()->format('Ymd');
-    $random = strtoupper(substr(uniqid(), -6));
-    $sequence = str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
+     * Remove the specified parcel from storage (soft delete).
+     */
+    public function destroy(Parcel $parcel)
+    {
+        try {
+            // Soft delete the parcel
+            $parcel->delete();
 
-    $trackingNumber = $prefix . $date . $random . $sequence;
+            return redirect()->route('admin.parcels.index')
+                ->with('success', 'Parcel moved to trash successfully.');
 
-    while (Parcel::where('tracking_number', $trackingNumber)->exists()) {
-        $random = strtoupper(substr(uniqid(), -6));
-        $trackingNumber = $prefix . $date . $random . $sequence;
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Failed to delete parcel: ' . $e->getMessage()]);
+        }
     }
 
-    return $trackingNumber;
-}
+    /**
+     * Restore a soft deleted parcel.
+     */
+    public function restore($id)
+    {
+        try {
+            $parcel = Parcel::withTrashed()->findOrFail($id);
+            $parcel->restore();
+
+            return redirect()->route('admin.parcels.trash')
+                ->with('success', 'Parcel restored successfully.');
+
+        } catch (\Exception $e) {
+            return redirect()->route('admin.parcels.trash')
+                ->with('error', 'Failed to restore parcel: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Permanently delete a soft deleted parcel.
+     */
+    public function forceDelete($id)
+    {
+        try {
+            $parcel = Parcel::withTrashed()->findOrFail($id);
+            $parcel->forceDelete();
+
+            return redirect()->route('admin.parcels.trash')
+                ->with('success', 'Parcel permanently deleted.');
+
+        } catch (\Exception $e) {
+            return redirect()->route('admin.parcels.trash')
+                ->with('error', 'Failed to permanently delete parcel: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Generate unique tracking number.
+     */
+    private function generateTrackingNumber()
+    {
+        $prefix = 'HLD';
+        $date = now()->format('Ymd');
+        $random = strtoupper(substr(uniqid(), -6));
+        $sequence = str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
+
+        $trackingNumber = $prefix . $date . $random . $sequence;
+
+        while (Parcel::where('tracking_number', $trackingNumber)->exists()) {
+            $random = strtoupper(substr(uniqid(), -6));
+            $trackingNumber = $prefix . $date . $random . $sequence;
+        }
+
+        return $trackingNumber;
+    }
+
 
     /**
      * Send notification to rider when assigned.
