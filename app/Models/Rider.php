@@ -30,7 +30,7 @@ class Rider extends Model
         'earnings',
         'is_verified',
         'joined_date',
-        'deleted_by',
+
     ];
 
     protected $casts = [

@@ -47,9 +47,9 @@ class AuthController extends Controller
         ])->onlyInput('email');
     }
 
-    /**
-     * Redirect users based on their role
-     */
+
+     //Redirect users based on their role
+
     private function redirectBasedOnRole()
     {
         $user = Auth::user();
@@ -92,6 +92,9 @@ class AuthController extends Controller
         DB::beginTransaction();
 
         try {
+
+            \Log::info('Registration started for email: ' . $request->email);
+
             // Create user
             $user = User::create([
                 'name' => $request->name,
@@ -103,8 +106,10 @@ class AuthController extends Controller
                 'is_active' => true,
             ]);
 
+            \Log::info('User created with ID: ' . $user->id);
+
             // Create rider profile (REQUIRED for riders)
-            Rider::create([
+            $rider = Rider::create([
                 'user_id' => $user->id,
                 'employee_id' => 'RID' . str_pad($user->id, 5, '0', STR_PAD_LEFT),
                 'vehicle_type' => 'bike',
@@ -114,6 +119,8 @@ class AuthController extends Controller
                 'is_verified' => true,
                 'joined_date' => now(),
             ]);
+
+            \Log::info('Rider created with ID: ' . ($rider ? $rider->id : 'null'));
 
             DB::commit();
 
@@ -127,6 +134,7 @@ class AuthController extends Controller
         }
     }
 
+    //logout request
     public function logout(Request $request)
     {
         Auth::logout();
