@@ -36,7 +36,7 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover" id="trashTable">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -45,29 +45,27 @@
                         <th>Email</th>
                         <th>Phone</th>
                         <th>Hub</th>
-                        <th>Deleted By</th>
                         <th>Deleted At</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($riders as $rider)
-                    <tr>
+                    <tr id="rider-row-{{ $rider->id }}">
                         <td>{{ $rider->id }}</small></td>
                         <td><span class="fw-bold">{{ $rider->employee_id }}</span></small></td>
                         <td>{{ $rider->user->name ?? 'N/A' }}</small></td>
                         <td>{{ $rider->user->email ?? 'N/A' }}</small></td>
                         <td>{{ $rider->user->phone ?? 'N/A' }}</small></td>
                         <td>{{ $rider->hub->name ?? 'N/A' }}</small></td>
-                        <td>{{ $rider->deleter->name ?? 'System' }}</small></td>
-                        <td>{{ $rider->deleted_at->format('d M Y h:i A') }}</small></small></td>
+                        <td>{{ $rider->deleted_at ? $rider->deleted_at->format('d M Y h:i A') : 'N/A' }}</small></small></td>
                         <td>
                             <div class="btn-group" role="group">
-                                <button type="button" class="btn btn-sm btn-success" onclick="showRestoreModal({{ $rider->id }}, '{{ $rider->employee_id }}')" title="Restore">
+                                <button type="button" class="btn btn-sm btn-success" onclick="restoreRider({{ $rider->id }}, '{{ addslashes($rider->user->name) }}')" title="Restore">
                                     <iconify-icon icon="solar:refresh-line-duotone"></iconify-icon>
                                     Restore
                                 </button>
-                                <button type="button" class="btn btn-sm btn-danger" onclick="showForceDeleteModal({{ $rider->id }}, '{{ $rider->employee_id }}')" title="Permanently Delete">
+                                <button type="button" class="btn btn-sm btn-danger" onclick="forceDeleteRider({{ $rider->id }}, '{{ $rider->employee_id }}')" title="Permanently Delete">
                                     <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
                                     Permanent Delete
                                 </button>
@@ -76,7 +74,7 @@
                     </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center py-5">
+                            <td colspan="8" class="text-center py-5">
                                 <iconify-icon icon="solar:trash-bin-trash-line-duotone" class="fs-1 text-muted"></iconify-icon>
                                 <p class="mt-3 text-muted">No deleted riders found</p>
                                 <a href="{{ route('admin.riders.index') }}" class="btn btn-primary btn-sm">View Active Riders</a>
@@ -93,65 +91,27 @@
     </div>
 </div>
 
-<!-- Restore Confirmation Modal -->
-<div class="modal fade" id="restoreModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title">Restore Rider</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center">
-                <iconify-icon icon="solar:refresh-circle-line-duotone" class="fs-1 text-success mb-3"></iconify-icon>
-                <h5>Restore this rider?</h5>
-                <p id="restoreMessage"></p>
-                <form id="restoreForm" method="POST">
-                    @csrf
-                    <button type="submit" class="btn btn-success">Yes, Restore</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Permanent Delete Confirmation Modal -->
-<div class="modal fade" id="forceDeleteModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Permanently Delete Rider</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center">
-                <iconify-icon icon="solar:danger-circle-line-duotone" class="fs-1 text-danger mb-3"></iconify-icon>
-                <h5>Are you absolutely sure?</h5>
-                <p id="forceDeleteMessage"></p>
-                <div class="alert alert-warning">
-                    <strong>Warning:</strong> This action cannot be undone.
-                </div>
-                <form id="forceDeleteForm" method="POST">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-danger">Yes, Permanently Delete</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
-    function showRestoreModal(id, employeeId) {
-        $('#restoreMessage').html(`Rider <strong>${employeeId}</strong> will be restored.`);
-        $('#restoreForm').attr('action', `/admin/riders/${id}/restore`);
-        $('#restoreModal').modal('show');
+    function restoreRider(id, name) {
+        if(confirm(`Restore rider "${name}"?`)) {
+            document.getElementById(`restore-form-${id}`).submit();
+        }
     }
 
-    function showForceDeleteModal(id, employeeId) {
-        $('#forceDeleteMessage').html(`Rider <strong>${employeeId}</strong> will be permanently deleted.`);
-        $('#forceDeleteForm').attr('action', `/admin/riders/${id}/force-delete`);
-        $('#forceDeleteModal').modal('show');
+    function forceDeleteRider(id, employeeId) {
+        if(confirm(`Permanently delete rider ${employeeId}? This action cannot be undone.`)) {
+            document.getElementById(`force-delete-form-${id}`).submit();
+        }
     }
 </script>
+
+@foreach($riders as $rider)
+<form id="restore-form-{{ $rider->id }}" action="{{ route('admin.riders.restore', $rider->id) }}" method="POST" style="display: none;">
+    @csrf
+</form>
+<form id="force-delete-form-{{ $rider->id }}" action="{{ route('admin.riders.force-delete', $rider->id) }}" method="POST" style="display: none;">
+    @csrf
+    @method('DELETE')
+</form>
+@endforeach
 @endsection

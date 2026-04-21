@@ -9,6 +9,7 @@
     <link rel="shortcut icon" type="image/png" href="{{ asset('assets/images/logos/favicon.png') }}" />
     <link rel="stylesheet" href="{{ asset('assets/css/styles.min.css') }}" />
 
+    <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap5.min.css">
@@ -34,6 +35,7 @@
 
                 <nav class="sidebar-nav scroll-sidebar" data-simplebar="">
                     <ul id="sidebarnav">
+                        <!-- Navigation Header -->
                         <li class="nav-small-cap">
                             <iconify-icon icon="solar:menu-dots-linear" class="nav-small-cap-icon fs-4"></iconify-icon>
                             <span class="hide-menu">Navigation</span>
@@ -48,15 +50,17 @@
                             </a>
                         </li>
 
-                            <li class="sidebar-item">
-                            <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                        <!-- Parcels Dropdown -->
+                        <li class="sidebar-item">
+                            <a class="sidebar-link has-arrow {{ request()->routeIs('admin.parcels.*') ? 'active' : '' }}"
+                               href="javascript:void(0)" aria-expanded="false">
                                 <iconify-icon icon="solar:box-line-duotone"></iconify-icon>
                                 <span class="hide-menu">Parcels</span>
                             </a>
                             <ul aria-expanded="false" class="collapse first-level">
                                 <li class="sidebar-item">
                                     <a class="sidebar-link" href="{{ route('admin.parcels.index') }}">
-                                        <iconify-icon icon="solar:box-line-duotone"></iconify-icon>
+                                        <iconify-icon icon="solar:list-line-duotone"></iconify-icon>
                                         <span class="hide-menu">All Parcels</span>
                                     </a>
                                 </li>
@@ -69,15 +73,17 @@
                             </ul>
                         </li>
 
-                            <!-- Riders Dropdown -->
+                        <!-- Riders Dropdown -->
                         <li class="sidebar-item">
-                            <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                            <a class="sidebar-link has-arrow {{ request()->routeIs('admin.riders.*') ? 'active' : '' }}"
+                               href="javascript:void(0)" aria-expanded="false">
                                 <iconify-icon icon="solar:bicycle-line-duotone"></iconify-icon>
                                 <span class="hide-menu">Riders</span>
                             </a>
                             <ul aria-expanded="false" class="collapse first-level">
                                 <li class="sidebar-item">
                                     <a class="sidebar-link" href="{{ route('admin.riders.index') }}">
+                                        <iconify-icon icon="solar:list-line-duotone"></iconify-icon>
                                         <span class="hide-menu">All Riders</span>
                                     </a>
                                 </li>
@@ -89,15 +95,18 @@
                                 </li>
                             </ul>
                         </li>
-                            <!-- Hubs Dropdown -->
+
+                        <!-- Hubs Dropdown -->
                         <li class="sidebar-item">
-                            <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                            <a class="sidebar-link has-arrow {{ request()->routeIs('admin.hubs.*') ? 'active' : '' }}"
+                               href="javascript:void(0)" aria-expanded="false">
                                 <iconify-icon icon="solar:warehouse-line-duotone"></iconify-icon>
                                 <span class="hide-menu">Hubs</span>
                             </a>
                             <ul aria-expanded="false" class="collapse first-level">
                                 <li class="sidebar-item">
                                     <a class="sidebar-link" href="{{ route('admin.hubs.index') }}">
+                                        <iconify-icon icon="solar:list-line-duotone"></iconify-icon>
                                         <span class="hide-menu">All Hubs</span>
                                     </a>
                                 </li>
@@ -110,11 +119,12 @@
                             </ul>
                         </li>
 
+                        <!-- Divider -->
                         <li>
                             <span class="sidebar-divider lg"></span>
                         </li>
 
-                        <!-- Reports -->
+                        <!-- Reports Section -->
                         <li class="nav-small-cap">
                             <iconify-icon icon="solar:menu-dots-linear" class="nav-small-cap-icon fs-4"></iconify-icon>
                             <span class="hide-menu">Reports</span>
@@ -122,7 +132,7 @@
 
                         <li class="sidebar-item">
                             <a class="sidebar-link {{ request()->routeIs('admin.reports.earnings') ? 'active' : '' }}"
-                            href="{{ route('admin.reports.earnings') }}">
+                               href="{{ route('admin.reports.earnings') }}">
                                 <iconify-icon icon="solar:chart-line-duotone"></iconify-icon>
                                 <span class="hide-menu">Earnings</span>
                             </a>
@@ -130,7 +140,7 @@
 
                         <li class="sidebar-item">
                             <a class="sidebar-link {{ request()->routeIs('admin.reports.delivery') ? 'active' : '' }}"
-                            href="{{ route('admin.reports.delivery') }}">
+                               href="{{ route('admin.reports.delivery') }}">
                                 <iconify-icon icon="solar:document-text-line-duotone"></iconify-icon>
                                 <span class="hide-menu">Delivery Reports</span>
                             </a>
@@ -141,7 +151,7 @@
         </aside>
         <!-- Sidebar End -->
 
-        <!-- Main wrapper -->
+        <!-- Main Wrapper -->
         <div class="body-wrapper">
             <!-- Header Start -->
             <header class="app-header">
@@ -156,57 +166,70 @@
 
                     <div class="navbar-collapse justify-content-end px-0" id="navbarNav">
                         <ul class="navbar-nav flex-row ms-auto align-items-center justify-content-end">
-                            <!-- Notifications Dropdown with Real-time Updates -->
-                        <li class="nav-item dropdown">
-                            <a class="nav-link position-relative" href="javascript:void(0)" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                <iconify-icon icon="solar:bell-linear" class="fs-6"></iconify-icon>
-                                <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 10px;">
-                                    0
-                                </span>
-                            </a>
-                            <div class="dropdown-menu dropdown-menu-end dropdown-menu-animate-up" aria-labelledby="notificationDropdown" style="width: 380px;">
-                                <div class="message-body">
-                                    <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0">Notifications</h6>
-                                        <button type="button" id="markAllReadBtn" class="btn btn-sm btn-link text-decoration-none">
-                                            Mark all as read
-                                        </button>
-                                    </div>
-                                    <div id="notificationList" style="max-height: 400px; overflow-y: auto;">
-                                        <div class="text-center py-4">
-                                            <div class="spinner-border text-primary" role="status">
-                                                <span class="visually-hidden">Loading...</span>
+
+                            <!-- Notifications Dropdown -->
+                            <li class="nav-item dropdown">
+                                <a class="nav-link position-relative" href="javascript:void(0)" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <iconify-icon icon="solar:bell-linear" class="fs-6"></iconify-icon>
+                                    @php
+                                        $unreadCount = App\Models\Notification::where('user_id', Auth::id())->where('is_read', false)->count();
+                                    @endphp
+                                    @if($unreadCount > 0)
+                                        <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 10px;">
+                                            {{ $unreadCount }}
+                                        </span>
+                                    @else
+                                        <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 10px;">
+                                            0
+                                        </span>
+                                    @endif
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end dropdown-menu-animate-up" aria-labelledby="notificationDropdown" style="width: 380px;">
+                                    <div class="message-body">
+                                        <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0">Notifications</h6>
+                                            <button type="button" id="markAllReadBtn" class="btn btn-sm btn-link text-decoration-none">
+                                                Mark all as read
+                                            </button>
+                                        </div>
+                                        <div id="notificationList" style="max-height: 400px; overflow-y: auto;">
+                                            <div class="text-center py-4">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </li>
-                            <!-- User Profile -->
+                            </li>
+
+                            <!-- User Profile Dropdown -->
                             <li class="nav-item dropdown">
                                 <a class="nav-link" href="javascript:void(0)" id="drop2" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <img src="{{ asset('assets/images/profile/user-1.jpg') }}" alt="" width="35" height="35" class="rounded-circle">
+                                    <img src="{{ Auth::user()->profile_image ? asset('storage/' . Auth::user()->profile_image) : asset('assets/images/profile/user-1.jpg') }}"
+                                         alt="Profile" width="35" height="35" class="rounded-circle" style="object-fit: cover;">
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end dropdown-menu-animate-up" aria-labelledby="drop2">
                                     <div class="message-body">
                                         <div class="px-3 py-2 border-bottom">
                                             <h6 class="mb-0">{{ Auth::user()->name }}</h6>
                                             <small class="text-muted">{{ Auth::user()->email }}</small>
+                                            <br>
+                                            <small class="text-muted">{{ Auth::user()->role->name ?? 'Administrator' }}</small>
                                         </div>
-                                        <a href="javascript:void(0)" class="d-flex align-items-center gap-2 dropdown-item">
+
+                                        <a href="{{ route('admin.profile.index') }}" class="d-flex align-items-center gap-2 dropdown-item">
                                             <i class="ti ti-user fs-6"></i>
-                                            <p class="mb-0 fs-3">My Profile</p>
+                                            <span class="mb-0 fs-3">My Profile</span>
                                         </a>
-                                        <a href="javascript:void(0)" class="d-flex align-items-center gap-2 dropdown-item">
-                                            <i class="ti ti-settings fs-6"></i>
-                                            <p class="mb-0 fs-3">Settings</p>
-                                        </a>
+
                                         <div class="dropdown-divider"></div>
+
                                         <form method="POST" action="{{ route('logout') }}" class="d-block">
                                             @csrf
                                             <button type="submit" class="dropdown-item d-flex align-items-center gap-2 text-danger">
                                                 <i class="ti ti-logout fs-6"></i>
-                                                <p class="mb-0 fs-3">Logout</p>
+                                                <span class="mb-0 fs-3">Logout</span>
                                             </button>
                                         </form>
                                     </div>
@@ -231,12 +254,8 @@
                 <p class="mb-0 fs-4">© {{ date('Y') }} HyperLocal Delivery System. All rights reserved.</p>
             </div>
         </div>
-        <!-- Main wrapper End -->
+        <!-- Main Wrapper End -->
     </div>
-
-
-
-
 
     <!-- Scripts -->
     <script src="{{ asset('assets/libs/jquery/dist/jquery.min.js') }}"></script>
@@ -245,8 +264,6 @@
     <script src="{{ asset('assets/js/app.min.js') }}"></script>
     <script src="{{ asset('assets/libs/simplebar/dist/simplebar.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 
     <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
@@ -257,6 +274,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
         // Fetch notifications
         function fetchNotifications() {
@@ -322,7 +343,7 @@
             }
         }
 
-        // Get notification icon based on type
+        // Get notification icon
         function getNotificationIcon(type) {
             switch(type) {
                 case 'success':
@@ -365,9 +386,11 @@
             });
         });
 
-        // Fetch notifications every 10 seconds
-        fetchNotifications();
-        setInterval(fetchNotifications, 10000);
+        // Fetch notifications on page load and every 10 seconds
+        $(document).ready(function() {
+            fetchNotifications();
+            setInterval(fetchNotifications, 10000);
+        });
     </script>
 
     @stack('scripts')

@@ -12,27 +12,18 @@ use Illuminate\Support\Facades\DB;
 
 class RiderController extends Controller
 {
-    /**
-     * Display a listing of riders.
-     */
     public function index()
     {
         $riders = Rider::with(['user', 'hub'])->latest()->paginate(15);
         return view('admin.riders.index', compact('riders'));
     }
 
-    /**
-     * Show the form for creating a new rider.
-     */
     public function create()
     {
         $hubs = Hub::where('is_active', true)->get();
         return view('admin.riders.create', compact('hubs'));
     }
 
-    /**
-     * Store a newly created rider in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -54,9 +45,8 @@ class RiderController extends Controller
         try {
             DB::beginTransaction();
 
-            // Create user account
             $user = User::create([
-                'role_id' => 2, // Rider role
+                'role_id' => 2,
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
@@ -65,7 +55,6 @@ class RiderController extends Controller
                 'is_active' => true,
             ]);
 
-            // Create rider profile
             Rider::create([
                 'user_id' => $user->id,
                 'hub_id' => $validated['hub_id'],
@@ -84,7 +73,7 @@ class RiderController extends Controller
             DB::commit();
 
             return redirect()->route('admin.riders.index')
-                ->with('success', 'Rider created successfully! Password: ' );    //. $validated['password']
+                ->with('success', 'Rider created successfully! Password: ' . $validated['password']);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -92,31 +81,26 @@ class RiderController extends Controller
         }
     }
 
-    /**
-     * Display the specified rider.
-     */
-    public function show(Rider $rider)
+    public function show($id)  // Changed from show(Rider $rider)
     {
-        $rider->load(['user', 'hub', 'assignedParcels' => function($q) {
+        $rider = Rider::with(['user', 'hub', 'assignedParcels' => function($q) {
             $q->latest()->limit(10);
-        }]);
+        }])->findOrFail($id);
+
         return view('admin.riders.show', compact('rider'));
     }
 
-    /**
-     * Show the form for editing the specified rider.
-     */
-    public function edit(Rider $rider)
+    public function edit($id)  // Changed from edit(Rider $rider)
     {
+        $rider = Rider::findOrFail($id);
         $hubs = Hub::where('is_active', true)->get();
         return view('admin.riders.edit', compact('rider', 'hubs'));
     }
 
-    /**
-     * Update the specified rider in storage.
-     */
-    public function update(Request $request, Rider $rider)
+    public function update(Request $request, $id)  // Changed to $id
     {
+        $rider = Rider::findOrFail($id);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
@@ -134,14 +118,12 @@ class RiderController extends Controller
         try {
             DB::beginTransaction();
 
-            // Update user
             $rider->user->update([
                 'name' => $validated['name'],
                 'phone' => $validated['phone'],
                 'address' => $validated['address'] ?? null,
             ]);
 
-            // Update rider profile
             $rider->update([
                 'hub_id' => $validated['hub_id'],
                 'vehicle_type' => $validated['vehicle_type'],
@@ -164,25 +146,14 @@ class RiderController extends Controller
         }
     }
 
-    /**
-     * Display trashed riders.
-     */
-    public function trash()
-    {
-        $riders = Rider::onlyTrashed()
-            ->with(['user', 'hub', 'deleter'])
-            ->latest('deleted_at')
-            ->paginate(15);
-
-        return view('admin.riders.trash', compact('riders'));
-    }
-
-    /**
+        /**
      * Remove the specified rider from storage (soft delete).
      */
-    public function destroy(Rider $rider , $id)
+    public function destroy($id)
     {
         try {
+            $rider = Rider::findOrFail($id);
+
             // Check if rider has active parcels
             $activeParcels = $rider->assignedParcels()
                 ->whereHas('status', function($q) {
@@ -194,15 +165,11 @@ class RiderController extends Controller
                     ->with('error', 'Cannot delete rider with active deliveries. Please reassign their parcels first.');
             }
 
-            // Soft delete the rider
-            $rider->deleted_by = auth()->id();
-            $rider->save();
+            // SOFT DELETE - This only sets deleted_at timestamp, does NOT remove from database
             $rider->delete();
 
             // Also soft delete the associated user
             if ($rider->user) {
-                $rider->user->deleted_by = auth()->id();
-                $rider->user->save();
                 $rider->user->delete();
             }
 
@@ -210,22 +177,35 @@ class RiderController extends Controller
                 ->with('success', 'Rider moved to trash successfully.');
 
         } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Failed to delete rider: ' . $e->getMessage()]);
+            return redirect()->route('admin.riders.index')
+                ->with('error', 'Failed to delete rider: ' . $e->getMessage());
         }
     }
 
     /**
+     * Display trashed riders (soft deleted).
+     */
+    public function trash()
+    {
+        // ONLY get soft deleted records (where deleted_at is NOT NULL)
+        $riders = Rider::onlyTrashed()
+            ->with(['user', 'hub'])
+            ->latest('deleted_at')
+            ->paginate(15);
+
+        return view('admin.riders.trash', compact('riders'));
+    }
+
+   /**
      * Restore a soft deleted rider.
      */
     public function restore($id)
     {
         try {
             $rider = Rider::withTrashed()->findOrFail($id);
-
-            // Restore the rider
             $rider->restore();
 
-            // Restore the associated user
+            // Also restore the associated user
             if ($rider->user) {
                 $rider->user->restore();
             }

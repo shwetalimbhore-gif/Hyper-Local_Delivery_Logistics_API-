@@ -83,14 +83,20 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/notification/read', [DashboardController::class, 'markNotificationRead'])->name('notification.read');
     Route::post('/notifications/read-all', [DashboardController::class, 'markAllNotificationsRead'])->name('notifications.read-all');
 
-
-
     // Reports Routes
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/earnings', [App\Http\Controllers\Admin\ReportController::class, 'earnings'])->name('earnings');
         Route::get('/delivery', [App\Http\Controllers\Admin\ReportController::class, 'delivery'])->name('delivery');
         Route::get('/earnings/export', [App\Http\Controllers\Admin\ReportController::class, 'exportEarnings'])->name('earnings.export');
         Route::get('/delivery/export', [App\Http\Controllers\Admin\ReportController::class, 'exportDelivery'])->name('delivery.export');
+    });
+
+    // Admin Profile Routes
+    Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\ProfileController::class, 'index'])->name('index');
+        Route::post('/update', [App\Http\Controllers\Admin\ProfileController::class, 'update'])->name('update');
+        Route::post('/update-picture', [App\Http\Controllers\Admin\ProfileController::class, 'updatePicture'])->name('update-picture');
+        Route::post('/change-password', [App\Http\Controllers\Admin\ProfileController::class, 'changePassword'])->name('change-password');
     });
 });
 

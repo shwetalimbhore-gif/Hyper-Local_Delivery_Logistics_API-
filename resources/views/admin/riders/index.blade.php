@@ -7,15 +7,28 @@
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h5 class="card-title mb-0">All Riders</h5>
-            <a href="{{ route('admin.riders.create') }}" class="btn btn-primary">
-                <iconify-icon icon="solar:add-circle-line-duotone"></iconify-icon>
-                Add New Rider
-            </a>
+            <div>
+                <a href="{{ route('admin.riders.trash') }}" class="btn btn-secondary me-2">
+                    <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
+                    Trash
+                </a>
+                <a href="{{ route('admin.riders.create') }}" class="btn btn-primary">
+                    <iconify-icon icon="solar:add-circle-line-duotone"></iconify-icon>
+                    Add New Rider
+                </a>
+            </div>
         </div>
 
         @if(session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         @endif
@@ -40,13 +53,26 @@
                 <tbody>
                     @foreach($riders as $rider)
                     <tr>
-                        <td>{{ $rider->id }}</td>
-                        <td><span class="fw-bold">{{ $rider->employee_id }}</span></td>
+                        <td>{{ $rider->id }}</small></td>
+                        <td><span class="fw-bold">{{ $rider->employee_id }}</span></small></td>
                         <td>{{ $rider->user->name }}</small></td>
                         <td>{{ $rider->user->email }}</small></td>
                         <td>{{ $rider->user->phone }}</small></td>
                         <td>{{ $rider->hub->name ?? 'N/A' }}</small></td>
-                        <td><span class="badge bg-info">{{ ucfirst($rider->vehicle_type) }}</span></small></td>
+                        <td>
+                            @php
+                                $vehicleBadge = '';
+                                switch($rider->vehicle_type) {
+                                    case 'bike': $vehicleBadge = 'bg-primary'; break;
+                                    case 'scooter': $vehicleBadge = 'bg-info'; break;
+                                    case 'bicycle': $vehicleBadge = 'bg-success'; break;
+                                    case 'car': $vehicleBadge = 'bg-warning'; break;
+                                    case 'truck': $vehicleBadge = 'bg-danger'; break;
+                                    default: $vehicleBadge = 'bg-secondary';
+                                }
+                            @endphp
+                            <span class="badge {{ $vehicleBadge }}">{{ ucfirst($rider->vehicle_type) }}</span>
+                         </small>
                         <td>
                             @if($rider->status == 'available')
                                 <span class="badge bg-success">Available</span>
@@ -71,7 +97,7 @@
                                 <a href="{{ route('admin.riders.edit', $rider->id) }}" class="btn btn-sm btn-warning" title="Edit">
                                     <iconify-icon icon="solar:pen-line-duotone"></iconify-icon>
                                 </a>
-                                <button type="button" class="btn btn-sm btn-danger" title="Delete" onclick="showDeleteModal({{ $rider->id }}, '{{ $rider->user->name }}', '{{ $rider->employee_id }}')">
+                                <button type="button" class="btn btn-sm btn-danger" title="Move to Trash" onclick="confirmSoftDelete({{ $rider->id }}, '{{ addslashes($rider->user->name) }}', '{{ $rider->employee_id }}')">
                                     <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
                                 </button>
                             </div>
@@ -84,29 +110,62 @@
     </div>
 </div>
 
-<!-- Delete Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
+<!-- Soft Delete Confirmation Modal -->
+<div class="modal fade" id="softDeleteModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Confirm Delete</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">
+                    <iconify-icon icon="solar:info-circle-line-duotone"></iconify-icon>
+                    Move to Trash
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body text-center">
-                <iconify-icon icon="solar:danger-circle-line-duotone" class="fs-1 text-danger mb-3"></iconify-icon>
-                <h5>Are you sure?</h5>
-                <p id="deleteRiderInfo"></p>
-                <form id="deleteForm" method="POST">
+            <div class="modal-body text-center py-4">
+                <iconify-icon icon="solar:trash-bin-trash-line-duotone" class="fs-1 text-warning mb-3"></iconify-icon>
+                <h5 class="mb-3">Move this rider to trash?</h5>
+                <p id="softDeleteMessage" class="mb-2"></p>
+                <div class="alert alert-info small">
+                    <iconify-icon icon="solar:info-circle-line-duotone"></iconify-icon>
+                    You can restore this rider later from the trash.
+                </div>
+                <form id="softDeleteForm" method="POST">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-danger">Yes, Delete</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-warning px-4">
+                            <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
+                            Move to Trash
+                        </button>
+                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
+                            <iconify-icon icon="solar:close-circle-line-duotone"></iconify-icon>
+                            Cancel
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter {
+        margin-bottom: 15px;
+    }
+    .dataTables_wrapper .dataTables_paginate {
+        margin-top: 15px;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+    .btn-group .btn {
+        padding: 0.25rem 0.5rem;
+    }
+</style>
+@endpush
 
 @push('scripts')
 <script>
@@ -120,21 +179,42 @@
                 search: "Search:",
                 lengthMenu: "Show _MENU_ entries",
                 info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                zeroRecords: "No riders found"
+                infoEmpty: "Showing 0 to 0 of 0 entries",
+                zeroRecords: "No records found",
+                paginate: {
+                    first: "First",
+                    last: "Last",
+                    next: "Next",
+                    previous: "Previous"
+                }
             },
             dom: 'Bfrtip',
             buttons: [
-                { extend: 'excel', text: 'Excel', className: 'btn btn-success btn-sm' },
-                { extend: 'pdf', text: 'PDF', className: 'btn btn-danger btn-sm' },
-                { extend: 'print', text: 'Print', className: 'btn btn-secondary btn-sm' }
+                {
+                    extend: 'excel',
+                    text: '<iconify-icon icon="solar:file-text-line-duotone"></iconify-icon> Excel',
+                    className: 'btn btn-success btn-sm',
+                    title: 'Riders_Report'
+                },
+                {
+                    extend: 'pdf',
+                    text: '<iconify-icon icon="solar:file-text-line-duotone"></iconify-icon> PDF',
+                    className: 'btn btn-danger btn-sm',
+                    title: 'Riders_Report'
+                },
+                {
+                    extend: 'print',
+                    text: '<iconify-icon icon="solar:printer-line-duotone"></iconify-icon> Print',
+                    className: 'btn btn-secondary btn-sm'
+                }
             ]
         });
     });
 
-    function showDeleteModal(id, name, employeeId) {
-        $('#deleteRiderInfo').html(`<strong>${name}</strong><br><small>Employee ID: ${employeeId}</small>`);
-        $('#deleteForm').attr('action', `/admin/riders/${id}`);
-        $('#deleteModal').modal('show');
+    function confirmSoftDelete(id, name, employeeId) {
+        $('#softDeleteMessage').html(`Rider <strong>${name}</strong> (${employeeId}) will be moved to trash.`);
+        $('#softDeleteForm').attr('action', `/admin/riders/${id}`);
+        $('#softDeleteModal').modal('show');
     }
 </script>
 @endpush
