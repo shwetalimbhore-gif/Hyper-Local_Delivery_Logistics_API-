@@ -90,26 +90,32 @@ class RiderController extends Controller
     }
 
     /**
-     * Display rider's parcels - ONLY assigned to this rider
+     * Display rider's parcels (only assigned to this rider)
      */
     public function parcels(Request $request)
     {
         $riderId = $this->getRiderId();
         $statusFilter = $request->get('status');
-
+        
         // Query only parcels assigned to this rider ID
-        $parcels = Parcel::where('assigned_rider_id', $riderId)
-            ->with(['status', 'sourceHub'])
-            ->when($statusFilter, function($q) use ($statusFilter) {
-                return $q->whereHas('status', function($sq) use ($statusFilter) {
-                    $sq->where('slug', $statusFilter);
-                });
-            })
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
-
-        $statuses = ParcelStatus::where('is_rider_updatable', true)->get();
-
+        $query = Parcel::where('assigned_rider_id', $riderId)
+            ->with(['status', 'sourceHub']);
+        
+        // Apply status filter if selected
+        if ($statusFilter && $statusFilter != 'all') {
+            $query->whereHas('status', function($q) use ($statusFilter) {
+                $q->where('slug', $statusFilter);
+            });
+        }
+        
+        $parcels = $query->orderBy('created_at', 'desc')->paginate(15);
+        
+        // Get all statuses for filter dropdown
+        $statuses = ParcelStatus::where('is_rider_updatable', true)
+            ->orWhereIn('slug', ['delivered', 'failed-delivery', 'returned-to-hub', 'assigned'])
+            ->orderBy('sequence_order')
+            ->get();
+        
         return view('rider.parcels', compact('parcels', 'statuses', 'statusFilter'));
     }
 

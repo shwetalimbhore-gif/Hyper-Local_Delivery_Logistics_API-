@@ -7,15 +7,33 @@
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h5 class="card-title mb-0">My Parcels</h5>
+            
+            <!-- Filter Dropdown -->
             <div class="dropdown">
-                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <iconify-icon icon="solar:filter-line-duotone"></iconify-icon>
                     Filter by Status
+                    @if($statusFilter && $statusFilter != 'all')
+                        <span class="badge bg-primary ms-1">{{ ucfirst(str_replace('-', ' ', $statusFilter)) }}</span>
+                    @endif
                 </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item filter-status" href="#" data-status="">All</a></li>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a class="dropdown-item {{ !$statusFilter || $statusFilter == 'all' ? 'active bg-primary text-white' : '' }}" 
+                           href="{{ route('rider.parcels.index') }}">
+                            <iconify-icon icon="solar:list-line-duotone"></iconify-icon>
+                            All Parcels
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
                     @foreach($statuses as $status)
-                        <li><a class="dropdown-item filter-status" href="#" data-status="{{ $status->slug }}">{{ $status->display_name }}</a></li>
+                        <li>
+                            <a class="dropdown-item {{ $statusFilter == $status->slug ? 'active bg-primary text-white' : '' }}" 
+                               href="{{ route('rider.parcels.index', ['status' => $status->slug]) }}">
+                                <span class="badge me-2" style="background-color: {{ $status->color_code }}; width: 10px; height: 10px; display: inline-block; border-radius: 50%;"></span>
+                                {{ $status->display_name }}
+                            </a>
+                        </li>
                     @endforeach
                 </ul>
             </div>
@@ -25,6 +43,21 @@
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ session('success') }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+
+        @if($statusFilter && $statusFilter != 'all')
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <iconify-icon icon="solar:filter-line-duotone"></iconify-icon>
+                Showing parcels with status: <strong>{{ ucfirst(str_replace('-', ' ', $statusFilter)) }}</strong>
+                <a href="{{ route('rider.parcels.index') }}" class="float-end text-decoration-none">Clear Filter</a>
             </div>
         @endif
 
@@ -43,8 +76,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($parcels as $parcel)
-                    <tr>
+                    @forelse($parcels as $parcel)
+                    <tr id="parcel-row-{{ $parcel->id }}">
                         <td>{{ $parcel->id }}</small></td>
                         <td><span class="fw-bold">{{ $parcel->tracking_number }}</span></small></td>
                         <td>{{ $parcel->receiver_name }}</small></td>
@@ -72,12 +105,12 @@
                                 $canUpdate = in_array($status->slug, ['assigned', 'picked-up', 'out-for-delivery', 'failed-delivery']);
                             @endphp
                             @if($canUpdate)
-                                <button type="button" class="btn btn-sm btn-primary update-status-btn"
+                                <button type="button" class="btn btn-sm btn-primary update-status-btn" 
                                         data-parcel-id="{{ $parcel->id }}"
                                         data-tracking="{{ $parcel->tracking_number }}"
                                         data-current-status="{{ $status->slug }}"
                                         data-current-status-name="{{ $status->display_name }}"
-                                        data-bs-toggle="modal"
+                                        data-bs-toggle="modal" 
                                         data-bs-target="#updateStatusModal">
                                     <iconify-icon icon="solar:refresh-line-duotone"></iconify-icon>
                                     Update
@@ -85,24 +118,41 @@
                             @else
                                 <button class="btn btn-sm btn-secondary" disabled>
                                     <iconify-icon icon="solar:lock-line-duotone"></iconify-icon>
-                                    No Action
+                                    Completed
                                 </button>
                             @endif
                          </small>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <iconify-icon icon="solar:box-line-duotone" class="fs-1 text-muted"></iconify-icon>
+                            <p class="mt-3 text-muted">No parcels found</p>
+                            @if($statusFilter && $statusFilter != 'all')
+                                <a href="{{ route('rider.parcels.index') }}" class="btn btn-primary btn-sm">Clear Filter</a>
+                            @endif
+                        </small>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
+        </div>
+
+        <div class="mt-3">
+            {{ $parcels->links() }}
         </div>
     </div>
 </div>
 
-<!-- Update Status Modal (same as before) -->
+<!-- Update Status Modal -->
 <div class="modal fade" id="updateStatusModal" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">Update Parcel Status</h5>
+                <h5 class="modal-title">
+                    <iconify-icon icon="solar:refresh-line-duotone"></iconify-icon>
+                    Update Parcel Status
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -116,18 +166,18 @@
                         <span id="modalCurrentStatus" class="badge"></span>
                     </div>
                 </div>
-
+                
                 <form id="updateStatusForm">
                     @csrf
                     <input type="hidden" name="parcel_id" id="parcelId">
-
+                    
                     <div class="mb-3">
                         <label class="form-label fw-bold">New Status <span class="text-danger">*</span></label>
                         <select name="status_id" id="statusSelect" class="form-select form-select-lg" required>
                             <option value="">-- Select New Status --</option>
                         </select>
                     </div>
-
+                    
                     <div class="mb-3" id="failureReasonDiv" style="display: none;">
                         <label class="form-label fw-bold">Failure Reason <span class="text-danger">*</span></label>
                         <select name="failure_reason" id="failureReason" class="form-select">
@@ -140,13 +190,13 @@
                             <option value="Refused by Receiver">Refused by Receiver</option>
                         </select>
                     </div>
-
+                    
                     <div class="mb-3">
                         <label class="form-label">Additional Notes</label>
-                        <textarea name="notes" id="statusNotes" class="form-control" rows="2"
+                        <textarea name="notes" id="statusNotes" class="form-control" rows="2" 
                                   placeholder="Any additional information..."></textarea>
                     </div>
-
+                    
                     <div id="statusMessage" class="alert" style="display: none;"></div>
                 </form>
             </div>
@@ -162,42 +212,37 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
-        var table = $('#riderParcelsTable').DataTable({
-            responsive: true,
-            order: [[0, 'desc']],
-            pageLength: 15,
-            lengthMenu: [[10, 15, 25, 50, -1], [10, 15, 25, 50, "All"]],
-            language: {
-                search: "Search:",
-                lengthMenu: "Show _MENU_ entries",
-                info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                zeroRecords: "No parcels found"
-            }
-        });
-
-        // Filter by status
-        $('.filter-status').click(function(e) {
-            e.preventDefault();
-            var status = $(this).data('status');
-            window.location.href = "{{ route('rider.parcels.index') }}?status=" + status;
-        });
+        // Initialize DataTable (optional)
+        if ($.fn.DataTable) {
+            $('#riderParcelsTable').DataTable({
+                responsive: true,
+                order: [[0, 'desc']],
+                pageLength: 15,
+                language: {
+                    search: "Search:",
+                    lengthMenu: "Show _MENU_ entries",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                    zeroRecords: "No parcels found"
+                }
+            });
+        }
     });
-
-    // Status update logic (same as before)
+    
+    // Update status modal logic
     let currentParcelId = null;
-
+    
     $('.update-status-btn').click(function() {
         currentParcelId = $(this).data('parcel-id');
         let trackingNumber = $(this).data('tracking');
         let currentStatusName = $(this).data('current-status-name');
-
+        
         $('#modalTrackingNumber').text(trackingNumber);
         $('#modalCurrentStatus').text(currentStatusName).removeClass().addClass('badge bg-secondary');
         $('#parcelId').val(currentParcelId);
         $('#statusMessage').hide();
         $('#failureReasonDiv').hide();
         $('#statusSelect').html('<option value="">Loading...</option>');
-
+        
         $.ajax({
             url: `/rider/parcels/${currentParcelId}/available-statuses`,
             method: 'GET',
@@ -205,13 +250,21 @@
                 let select = $('#statusSelect');
                 select.empty();
                 select.append('<option value="">-- Select New Status --</option>');
-                response.forEach(function(status) {
-                    select.append(`<option value="${status.id}" data-slug="${status.slug}">${status.display_name}</option>`);
-                });
+                if(response.length === 0) {
+                    select.append('<option disabled>No status updates available</option>');
+                } else {
+                    response.forEach(function(status) {
+                        select.append(`<option value="${status.id}" data-slug="${status.slug}">${status.display_name}</option>`);
+                    });
+                }
+            },
+            error: function() {
+                $('#statusSelect').html('<option disabled>Error loading statuses</option>');
+                showMessage('Failed to load statuses', 'danger');
             }
         });
     });
-
+    
     $('#statusSelect').change(function() {
         let selectedSlug = $(this).find('option:selected').data('slug');
         if (selectedSlug === 'failed-delivery') {
@@ -220,23 +273,25 @@
             $('#failureReasonDiv').slideUp();
         }
     });
-
+    
     $('#submitStatusUpdate').click(function() {
         let statusId = $('#statusSelect').val();
         let failureReason = $('#failureReason').val();
         let notes = $('#statusNotes').val();
         let selectedSlug = $('#statusSelect').find('option:selected').data('slug');
-
+        
         if (!statusId) {
             showMessage('Please select a status', 'danger');
             return;
         }
-
+        
         if (selectedSlug === 'failed-delivery' && !failureReason) {
             showMessage('Please select a failure reason', 'danger');
             return;
         }
-
+        
+        $('#submitStatusUpdate').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Updating...');
+        
         $.ajax({
             url: `/rider/parcels/${currentParcelId}/update-status`,
             method: 'POST',
@@ -256,14 +311,15 @@
             },
             error: function(xhr) {
                 showMessage(xhr.responseJSON?.error || 'Failed to update status', 'danger');
+                $('#submitStatusUpdate').prop('disabled', false).html('Update Status');
             }
         });
     });
-
+    
     function showMessage(message, type) {
         let alertDiv = $('#statusMessage');
         alertDiv.removeClass('alert-info alert-success alert-danger').addClass(`alert-${type}`);
-        alertDiv.html(message);
+        alertDiv.html(`<iconify-icon icon="solar:${type === 'success' ? 'check-circle' : 'danger-circle'}-line-duotone"></iconify-icon> ${message}`);
         alertDiv.show();
         setTimeout(function() { alertDiv.fadeOut(); }, 3000);
     }
