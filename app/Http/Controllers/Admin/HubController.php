@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Hub;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class HubController extends Controller
 {
@@ -42,14 +41,13 @@ class HubController extends Controller
         ]);
 
         try {
-            // Ensure is_active is properly set (checkbox returns 1 or 0)
             $validated['is_active'] = $request->has('is_active') ? true : false;
-
+            
             $hub = Hub::create($validated);
-
+            
             return redirect()->route('admin.hubs.index')
                 ->with('success', 'Hub created successfully! Hub Code: ' . $hub->code);
-
+                
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Failed to create hub: ' . $e->getMessage()]);
         }
@@ -65,10 +63,10 @@ class HubController extends Controller
         }, 'sourceParcels' => function($q) {
             $q->latest()->limit(10);
         }]);
-
+        
         $riderCount = $hub->riders()->count();
         $parcelCount = $hub->sourceParcels()->count();
-
+        
         return view('admin.hubs.show', compact('hub', 'riderCount', 'parcelCount'));
     }
 
@@ -96,22 +94,53 @@ class HubController extends Controller
         ]);
 
         try {
-            // FIXED: Properly handle the is_active checkbox value
-            // When checkbox is checked, it sends value "1" or "on"
-            // When unchecked, the hidden input sends "0"
             $validated['is_active'] = $request->has('is_active') && $request->input('is_active') == 1;
-
+            
             $hub->update($validated);
-
+            
             return redirect()->route('admin.hubs.index')
                 ->with('success', 'Hub updated successfully! Status is now ' . ($hub->is_active ? 'ACTIVE' : 'INACTIVE'));
-
+                
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Failed to update hub: ' . $e->getMessage()]);
         }
     }
 
-  /**
+    /**
+     * SOFT DELETE - Remove the specified hub from storage.
+     */
+    public function destroy($id)
+    {
+        try {
+            $hub = Hub::findOrFail($id);
+            
+            // Check if hub has any riders
+            if ($hub->riders()->count() > 0) {
+                return redirect()->route('admin.hubs.index')
+                    ->with('error', 'Cannot delete hub because it has assigned riders. Please reassign or delete the riders first.');
+            }
+            
+            // Check if hub has any parcels
+            if ($hub->sourceParcels()->count() > 0) {
+                return redirect()->route('admin.hubs.index')
+                    ->with('error', 'Cannot delete hub because it has associated parcels. Please reassign or delete the parcels first.');
+            }
+            
+            // Soft delete the hub
+            // $hub->deleted_by = auth()->id();
+            $hub->save();
+            $hub->delete();
+            
+            return redirect()->route('admin.hubs.index')
+                ->with('success', 'Hub moved to trash successfully.');
+                
+        } catch (\Exception $e) {
+            return redirect()->route('admin.hubs.index')
+                ->with('error', 'Failed to delete hub: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Display trashed hubs.
      */
     public function trash()
@@ -120,39 +149,8 @@ class HubController extends Controller
             ->with(['deleter'])
             ->latest('deleted_at')
             ->paginate(15);
-
+        
         return view('admin.hubs.trash', compact('hubs'));
-    }
-
-    /**
-     * Remove the specified hub from storage (soft delete).
-     */
-    public function destroy(Hub $hub)
-    {
-        try {
-            // Check if hub has any riders
-            if ($hub->riders()->count() > 0) {
-                return redirect()->route('admin.hubs.index')
-                    ->with('error', 'Cannot delete hub because it has assigned riders. Please reassign or delete the riders first.');
-            }
-
-            // Check if hub has any parcels
-            if ($hub->sourceParcels()->count() > 0) {
-                return redirect()->route('admin.hubs.index')
-                    ->with('error', 'Cannot delete hub because it has associated parcels. Please reassign or delete the parcels first.');
-            }
-
-            // Soft delete the hub
-            $hub->deleted_by = auth()->id();
-            $hub->save();
-            $hub->delete();
-
-            return redirect()->route('admin.hubs.index')
-                ->with('success', 'Hub moved to trash successfully.');
-
-        } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Failed to delete hub: ' . $e->getMessage()]);
-        }
     }
 
     /**
@@ -163,10 +161,10 @@ class HubController extends Controller
         try {
             $hub = Hub::withTrashed()->findOrFail($id);
             $hub->restore();
-
+            
             return redirect()->route('admin.hubs.trash')
                 ->with('success', 'Hub restored successfully.');
-
+                
         } catch (\Exception $e) {
             return redirect()->route('admin.hubs.trash')
                 ->with('error', 'Failed to restore hub: ' . $e->getMessage());
@@ -181,10 +179,10 @@ class HubController extends Controller
         try {
             $hub = Hub::withTrashed()->findOrFail($id);
             $hub->forceDelete();
-
+            
             return redirect()->route('admin.hubs.trash')
                 ->with('success', 'Hub permanently deleted.');
-
+                
         } catch (\Exception $e) {
             return redirect()->route('admin.hubs.trash')
                 ->with('error', 'Failed to permanently delete hub: ' . $e->getMessage());
@@ -198,7 +196,7 @@ class HubController extends Controller
     {
         $hub->is_active = !$hub->is_active;
         $hub->save();
-
+        
         $status = $hub->is_active ? 'activated' : 'deactivated';
         return redirect()->route('admin.hubs.index')
             ->with('success', "Hub {$status} successfully!");

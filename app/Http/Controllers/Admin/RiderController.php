@@ -146,36 +146,36 @@ class RiderController extends Controller
         }
     }
 
-        /**
+       /**
      * Remove the specified rider from storage (soft delete).
      */
     public function destroy($id)
     {
         try {
             $rider = Rider::findOrFail($id);
-
+            
             // Check if rider has active parcels
             $activeParcels = $rider->assignedParcels()
                 ->whereHas('status', function($q) {
                     $q->whereNotIn('slug', ['delivered', 'cancelled']);
                 })->count();
-
+            
             if ($activeParcels > 0) {
                 return redirect()->route('admin.riders.index')
                     ->with('error', 'Cannot delete rider with active deliveries. Please reassign their parcels first.');
             }
-
-            // SOFT DELETE - This only sets deleted_at timestamp, does NOT remove from database
+            
+            // SOFT DELETE - This sets deleted_at timestamp
             $rider->delete();
-
+            
             // Also soft delete the associated user
             if ($rider->user) {
                 $rider->user->delete();
             }
-
+            
             return redirect()->route('admin.riders.index')
                 ->with('success', 'Rider moved to trash successfully.');
-
+                
         } catch (\Exception $e) {
             return redirect()->route('admin.riders.index')
                 ->with('error', 'Failed to delete rider: ' . $e->getMessage());
@@ -187,12 +187,12 @@ class RiderController extends Controller
      */
     public function trash()
     {
-        // ONLY get soft deleted records (where deleted_at is NOT NULL)
+        // ONLY get soft deleted records
         $riders = Rider::onlyTrashed()
             ->with(['user', 'hub'])
             ->latest('deleted_at')
             ->paginate(15);
-
+        
         return view('admin.riders.trash', compact('riders'));
     }
 
@@ -204,15 +204,15 @@ class RiderController extends Controller
         try {
             $rider = Rider::withTrashed()->findOrFail($id);
             $rider->restore();
-
+            
             // Also restore the associated user
             if ($rider->user) {
                 $rider->user->restore();
             }
-
+            
             return redirect()->route('admin.riders.trash')
                 ->with('success', 'Rider restored successfully.');
-
+                
         } catch (\Exception $e) {
             return redirect()->route('admin.riders.trash')
                 ->with('error', 'Failed to restore rider: ' . $e->getMessage());
@@ -226,24 +226,24 @@ class RiderController extends Controller
     {
         try {
             $rider = Rider::withTrashed()->findOrFail($id);
-
+            
             // Check if rider has any parcels
             if ($rider->assignedParcels()->count() > 0) {
                 return redirect()->route('admin.riders.trash')
                     ->with('error', 'Cannot permanently delete rider who has delivery history.');
             }
-
+            
             // Permanently delete the rider
             $rider->forceDelete();
-
+            
             // Permanently delete the associated user
             if ($rider->user) {
                 $rider->user->forceDelete();
             }
-
+            
             return redirect()->route('admin.riders.trash')
                 ->with('success', 'Rider permanently deleted.');
-
+                
         } catch (\Exception $e) {
             return redirect()->route('admin.riders.trash')
                 ->with('error', 'Failed to permanently delete rider: ' . $e->getMessage());

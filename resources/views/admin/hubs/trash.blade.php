@@ -23,6 +23,18 @@
             </div>
         @endif
 
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+
+        <div class="alert alert-info">
+            <iconify-icon icon="solar:info-circle-line-duotone"></iconify-icon>
+            <strong>Note:</strong> Hubs in trash are not permanently deleted. You can restore them or permanently delete them.
+        </div>
+
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead>
@@ -42,14 +54,14 @@
                         <td><span class="fw-bold">{{ $hub->code }}</span></small></td>
                         <td>{{ $hub->name }}</small></td>
                         <td>{{ $hub->manager_name ?? 'N/A' }}</small></td>
-                        <td>{{ $hub->deleted_at->format('d M Y h:i A') }}</small></small></td>
+                        <td>{{ $hub->deleted_at ? $hub->deleted_at->format('d M Y h:i A') : 'N/A' }}</small></small></td>
                         <td>
                             <div class="btn-group" role="group">
-                                <button type="button" class="btn btn-sm btn-success" onclick="restoreHub({{ $hub->id }}, '{{ $hub->code }}')">
+                                <button type="button" class="btn btn-sm btn-success" onclick="restoreHub({{ $hub->id }}, '{{ $hub->code }}')" title="Restore">
                                     <iconify-icon icon="solar:refresh-line-duotone"></iconify-icon>
                                     Restore
                                 </button>
-                                <button type="button" class="btn btn-sm btn-danger" onclick="forceDeleteHub({{ $hub->id }}, '{{ $hub->code }}')">
+                                <button type="button" class="btn btn-sm btn-danger" onclick="forceDeleteHub({{ $hub->id }}, '{{ $hub->code }}')" title="Permanently Delete">
                                     <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
                                     Permanent Delete
                                 </button>
@@ -61,6 +73,7 @@
                             <td colspan="6" class="text-center py-5">
                                 <iconify-icon icon="solar:trash-bin-trash-line-duotone" class="fs-1 text-muted"></iconify-icon>
                                 <p class="mt-3 text-muted">No deleted hubs found</p>
+                                <a href="{{ route('admin.hubs.index') }}" class="btn btn-primary btn-sm">View Active Hubs</a>
                             </small>
                         </tr>
                     @endforelse
@@ -80,7 +93,7 @@
             document.getElementById(`restore-form-${id}`).submit();
         }
     }
-
+    
     function forceDeleteHub(id, code) {
         if(confirm(`Permanently delete hub ${code}? This action cannot be undone.`)) {
             document.getElementById(`force-delete-form-${id}`).submit();

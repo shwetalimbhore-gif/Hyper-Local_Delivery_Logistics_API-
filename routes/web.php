@@ -75,10 +75,11 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/parcels/find-rider', [ParcelController::class, 'findBestRider'])->name('parcels.find-rider');
     Route::post('/parcels/auto-assign-all', [ParcelController::class, 'autoAssignAll'])->name('parcels.auto-assign-all');
 
+
     // Rider Management
     Route::get('/riders/trash', [RiderController::class, 'trash'])->name('riders.trash');
     Route::resource('riders', RiderController::class);
-
+    
     // Rider Soft Delete Routes
     Route::post('/riders/{id}/restore', [RiderController::class, 'restore'])->name('riders.restore');
     Route::delete('/riders/{id}/force-delete', [RiderController::class, 'forceDelete'])->name('riders.force-delete');
@@ -91,6 +92,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     Route::post('/hubs/{id}/restore', [HubController::class, 'restore'])->name('hubs.restore');
     Route::delete('/hubs/{id}/force-delete', [HubController::class, 'forceDelete'])->name('hubs.force-delete');
+
 
     Route::get('/notifications/fetch', [DashboardController::class, 'fetchNotifications'])->name('notifications.fetch');
     Route::post('/notification/read', [DashboardController::class, 'markNotificationRead'])->name('notification.read');
