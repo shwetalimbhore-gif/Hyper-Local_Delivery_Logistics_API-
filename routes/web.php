@@ -14,6 +14,15 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 
 use App\Http\Controllers\Rider\RiderController as RiderRiderController;
+use App\Http\Controllers\TrackingController;
+
+// Tracking Routes (public - no authentication required)
+Route::prefix('track')->name('tracking.')->group(function () {
+    Route::get('/', [TrackingController::class, 'index'])->name('index');
+    Route::post('/track', [TrackingController::class, 'track'])->name('track');
+    Route::post('/status', [TrackingController::class, 'getStatus'])->name('status');
+});
+
 
 // Test mail route
 Route::get('/test-mail', function () {
@@ -133,7 +142,6 @@ Route::middleware(['auth'])->prefix('rider')->name('rider.')->group(function () 
 
 
 
-// Route::get('/dashboard');
 
 // Home route - redirect based on auth status
 Route::get('/', function () {

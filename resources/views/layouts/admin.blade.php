@@ -203,6 +203,11 @@
                                 </div>
                             </li>
 
+                            <a href="{{ route('tracking.index') }}" class="btn btn-gradient me-2" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; padding: 6px 15px;">
+                                <iconify-icon icon="solar:map-point-line-duotone" class="me-1"></iconify-icon>
+                                Track Parcel
+                            </a>
+
                             <!-- User Profile Dropdown -->
                             <li class="nav-item dropdown">
                                 <a class="nav-link" href="javascript:void(0)" id="drop2" data-bs-toggle="dropdown" aria-expanded="false">
@@ -253,6 +258,7 @@
             <div class="py-6 px-6 text-center">
                 <p class="mb-0 fs-4">© {{ date('Y') }} HyperLocal Delivery System. All rights reserved.</p>
             </div>
+
         </div>
         <!-- Main Wrapper End -->
     </div>
