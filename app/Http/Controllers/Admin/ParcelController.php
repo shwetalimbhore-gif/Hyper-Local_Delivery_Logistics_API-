@@ -28,9 +28,9 @@ class ParcelController extends Controller
         return view('admin.parcels.create', compact('hubs'));
     }
 
-   /**
- * Store a newly created parcel in storage.
- */
+    /**
+     * Store a newly created parcel in storage.
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -58,30 +58,50 @@ class ParcelController extends Controller
         $validated['tracking_number'] = $this->generateTrackingNumber();
         $validated['created_by'] = Auth::id();
 
-        // Check if rider is assigned
-        if (!empty($validated['assigned_rider_id'])) {
+        // AUTO-ASSIGN: If no rider manually selected, try to auto-assign
+        if (empty($validated['assigned_rider_id'])) {
+            $bestRider = Rider::findBestRiderForParcel(
+                $validated['weight'],
+                $validated['size'],
+                $validated['source_hub_id']
+            );
+
+            if ($bestRider) {
+                $validated['assigned_rider_id'] = $bestRider->id;
+                $validated['status_id'] = ParcelStatus::where('slug', 'assigned')->first()->id;
+                $validated['assigned_at'] = now();
+
+                // Update rider status to busy
+                $bestRider->status = 'busy';
+                $bestRider->save();
+
+                // Send notification to rider
+                $this->sendNotificationToRider($bestRider->id, $validated['tracking_number']);
+
+                $autoAssignedMessage = " Auto-assigned to rider: " . $bestRider->user->name;
+            } else {
+                $validated['status_id'] = ParcelStatus::where('slug', 'pending')->first()->id;
+                $autoAssignedMessage = " No rider available. Parcel is pending assignment.";
+            }
+        } else {
+            // Manual assignment
             $validated['status_id'] = ParcelStatus::where('slug', 'assigned')->first()->id;
             $validated['assigned_at'] = now();
 
-            // Update rider status to busy
+            // Update rider status
             $rider = Rider::find($validated['assigned_rider_id']);
             if ($rider) {
                 $rider->status = 'busy';
                 $rider->save();
+                $this->sendNotificationToRider($rider->id, $validated['tracking_number']);
             }
-        } else {
-            $validated['status_id'] = ParcelStatus::where('slug', 'pending')->first()->id;
+            $autoAssignedMessage = "";
         }
 
         $parcel = Parcel::create($validated);
 
-        // Send notification to rider if assigned
-        if (!empty($validated['assigned_rider_id'])) {
-            $this->sendNotificationToRider($validated['assigned_rider_id'], $parcel);
-        }
-
         return redirect()->route('admin.parcels.index')
-            ->with('success', 'Parcel created successfully. Tracking #: ' . $parcel->tracking_number);
+            ->with('success', 'Parcel created successfully. Tracking #: ' . $parcel->tracking_number . $autoAssignedMessage);
     }
     public function show(Parcel $parcel)
     {
@@ -269,9 +289,9 @@ class ParcelController extends Controller
 
 
     /**
-     * Send notification to rider when assigned.
+     * Send notification to rider when assigned
      */
-    private function sendNotificationToRider($riderId, $parcel)
+    private function sendNotificationToRider($riderId, $trackingNumber)
     {
         $rider = Rider::with('user')->find($riderId);
 
@@ -279,11 +299,88 @@ class ParcelController extends Controller
             Notification::create([
                 'user_id' => $rider->user->id,
                 'title' => 'New Parcel Assigned',
-                'message' => "Parcel #{$parcel->tracking_number} has been assigned to you. Please check your dashboard.",
+                'message' => "Parcel #{$trackingNumber} has been assigned to you. Please check your dashboard.",
                 'type' => 'info',
-                'data' => ['parcel_id' => $parcel->id, 'tracking_number' => $parcel->tracking_number],
                 'is_read' => false,
             ]);
         }
     }
+
+    /**
+     * Find the best rider for a parcel (API endpoint)
+     */
+    public function findBestRider(Request $request)
+    {
+        $request->validate([
+            'weight' => 'required|numeric|min:0.1',
+            'size' => 'required|numeric|min:0.1',
+            'hub_id' => 'nullable|exists:hubs,id',
+        ]);
+
+        $bestRider = Rider::findBestRiderForParcel(
+            $request->weight,
+            $request->size,
+            $request->hub_id
+        );
+
+        if ($bestRider) {
+            return response()->json([
+                'success' => true,
+                'rider' => [
+                    'id' => $bestRider->id,
+                    'name' => $bestRider->user->name,
+                    'employee_id' => $bestRider->employee_id,
+                    'max_weight_capacity' => $bestRider->max_weight_capacity,
+                    'max_size_capacity' => $bestRider->max_size_capacity,
+                    'status' => $bestRider->status,
+                ]
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'No available rider found'
+        ]);
+    }
+
+    /**
+     * Auto-assign all pending parcels
+     */
+    public function autoAssignAll()
+    {
+        $pendingParcels = Parcel::where('status_id', ParcelStatus::where('slug', 'pending')->first()->id)
+            ->whereNull('assigned_rider_id')
+            ->get();
+
+        $assignedCount = 0;
+        $failedCount = 0;
+
+        foreach ($pendingParcels as $parcel) {
+            $bestRider = Rider::findBestRiderForParcel(
+                $parcel->weight,
+                $parcel->size,
+                $parcel->source_hub_id
+            );
+
+            if ($bestRider) {
+                $parcel->assigned_rider_id = $bestRider->id;
+                $parcel->status_id = ParcelStatus::where('slug', 'assigned')->first()->id;
+                $parcel->assigned_at = now();
+                $parcel->save();
+
+                $bestRider->status = 'busy';
+                $bestRider->save();
+
+                $this->sendNotificationToRider($bestRider->id, $parcel->tracking_number);
+                $assignedCount++;
+            } else {
+                $failedCount++;
+            }
+        }
+
+        return redirect()->route('admin.parcels.index')
+            ->with('success', "Auto-assignment complete! Assigned: {$assignedCount}, Failed: {$failedCount}");
+    }
+
+
 }

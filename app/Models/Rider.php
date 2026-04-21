@@ -134,4 +134,30 @@ class Rider extends Model
         }
         return round(($this->successful_deliveries / $this->total_deliveries) * 100, 2);
     }
+
+    /**
+     * Find available riders for a parcel based on weight and size
+     */
+    public static function findAvailableRidersForParcel($weight, $size, $hubId = null)
+    {
+        $query = self::where('status', 'available')
+            ->where('max_weight_capacity', '>=', $weight)
+            ->where('max_size_capacity', '>=', $size);
+
+        if ($hubId) {
+            $query->where('hub_id', $hubId);
+        }
+
+        return $query->orderBy('total_deliveries', 'asc') // Least busy first
+            ->orderBy('rating', 'desc') // Higher rating first
+            ->get();
+    }
+
+    /**
+     * Get the best rider for a parcel
+     */
+    public static function findBestRiderForParcel($weight, $size, $hubId = null)
+    {
+        return self::findAvailableRidersForParcel($weight, $size, $hubId)->first();
+    }
 }

@@ -55,24 +55,28 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    Route::get('/parcels/trash', [ParcelController::class, 'trash'])->name('parcels.trash');
     // Parcel Management
+    Route::get('/parcels/trash', [ParcelController::class, 'trash'])->name('parcels.trash');
     Route::resource('parcels', ParcelController::class);
 
     Route::post('/parcels/{id}/restore', [ParcelController::class, 'restore'])->name('parcels.restore');
     Route::delete('/parcels/{id}/force-delete', [ParcelController::class, 'forceDelete'])->name('parcels.force-delete');
 
-    Route::get('/riders/trash', [RiderController::class, 'trash'])->name('riders.trash');
+    // Auto-assign routes - ADD THESE
+    Route::post('/parcels/find-rider', [ParcelController::class, 'findBestRider'])->name('parcels.find-rider');
+    Route::post('/parcels/auto-assign-all', [ParcelController::class, 'autoAssignAll'])->name('parcels.auto-assign-all');
+
     // Rider Management
+    Route::get('/riders/trash', [RiderController::class, 'trash'])->name('riders.trash');
     Route::resource('riders', RiderController::class);
 
     // Rider Soft Delete Routes
     Route::post('/riders/{id}/restore', [RiderController::class, 'restore'])->name('riders.restore');
     Route::delete('/riders/{id}/force-delete', [RiderController::class, 'forceDelete'])->name('riders.force-delete');
 
+    // Hub Management
     // Hub Soft Delete Routes
     Route::get('/hubs/trash', [HubController::class, 'trash'])->name('hubs.trash');
-    // Hub Management
     Route::resource('hubs', HubController::class);
     Route::get('/hubs/{hub}/toggle-status', [HubController::class, 'toggleStatus'])->name('hubs.toggle-status');
 

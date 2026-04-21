@@ -8,6 +8,13 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h5 class="card-title mb-0">All Parcels</h5>
             <div>
+                <form action="{{ route('admin.parcels.auto-assign-all') }}" method="POST" class="d-inline" onsubmit="return confirm('Auto-assign all pending parcels?')">
+                    @csrf
+                    <button type="submit" class="btn btn-info me-2">
+                        <iconify-icon icon="solar:magic-stick-line-duotone"></iconify-icon>
+                        Auto-Assign All
+                    </button>
+                </form>
                 <a href="{{ route('admin.parcels.trash') }}" class="btn btn-secondary me-2">
                     <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
                     Trash
@@ -18,6 +25,8 @@
                 </a>
             </div>
         </div>
+    </div>
+</div>
 
         @if(session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
