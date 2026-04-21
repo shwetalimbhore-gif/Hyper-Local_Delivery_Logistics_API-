@@ -313,17 +313,23 @@ class RiderController extends Controller
         return response()->json($availableStatuses);
     }
 
-        /**
-     * Display rider earnings - ONLY for this rider
+    /**
+     * Display rider earnings
      */
     public function earnings(Request $request)
     {
-        $riderId = $this->getRiderId();
         $rider = Auth::user()->rider;
-
+        $riderId = $rider->id;
+        
+        // Get period filter
         $period = $request->get('period', 'monthly');
-
+        
+        // Calculate date range based on period
         switch ($period) {
+            case 'daily':
+                $startDate = now()->startOfDay();
+                $endDate = now()->endOfDay();
+                break;
             case 'weekly':
                 $startDate = now()->startOfWeek();
                 $endDate = now()->endOfWeek();
@@ -340,41 +346,92 @@ class RiderController extends Controller
                 $startDate = now()->startOfMonth();
                 $endDate = now()->endOfMonth();
         }
-
-        // Only this rider's earnings from deliveries
-        $deliveryEarnings = Parcel::where('assigned_rider_id', $riderId)
+        
+        // Custom date range
+        if ($request->get('start_date') && $request->get('end_date')) {
+            $startDate = \Carbon\Carbon::parse($request->get('start_date'))->startOfDay();
+            $endDate = \Carbon\Carbon::parse($request->get('end_date'))->endOfDay();
+            $period = 'custom';
+        }
+        
+        // DYNAMIC TOTAL EARNINGS (Calculated from all completed deliveries)
+        $totalEarnings = Parcel::where('assigned_rider_id', $riderId)
+            ->where('status_id', function($q) {
+                $q->select('id')->from('parcel_statuses')->where('slug', 'delivered');
+            })
+            ->sum(DB::raw('delivery_charge * 0.7'));  // 70% commission on all delivered parcels
+        
+        // Earnings for selected period (delivery charge sum)
+        $periodEarnings = Parcel::where('assigned_rider_id', $riderId)
+            ->where('status_id', function($q) {
+                $q->select('id')->from('parcel_statuses')->where('slug', 'delivered');
+            })
             ->whereBetween('delivered_at', [$startDate, $endDate])
             ->sum('delivery_charge');
-
-        // Payments collected by this rider (cash on delivery)
-        $paymentsCollected = Payment::where('collected_by', Auth::id())
-            ->whereBetween('collected_at', [$startDate, $endDate])
-            ->sum('amount');
-
+        
+        // Rider's commission (70% of delivery charge) for the period
+        $commissionEarnings = $periodEarnings * 0.7;
+        
+        // Number of deliveries in this period
+        $deliveriesCount = Parcel::where('assigned_rider_id', $riderId)
+            ->where('status_id', function($q) {
+                $q->select('id')->from('parcel_statuses')->where('slug', 'delivered');
+            })
+            ->whereBetween('delivered_at', [$startDate, $endDate])
+            ->count();
+        
+        // Total deliveries all time
+        $totalDeliveries = Parcel::where('assigned_rider_id', $riderId)
+            ->where('status_id', function($q) {
+                $q->select('id')->from('parcel_statuses')->where('slug', 'delivered');
+            })
+            ->count();
+        
         // Daily earnings chart data
         $dailyEarnings = Parcel::where('assigned_rider_id', $riderId)
+            ->where('status_id', function($q) {
+                $q->select('id')->from('parcel_statuses')->where('slug', 'delivered');
+            })
             ->whereBetween('delivered_at', [$startDate, $endDate])
-            ->select(DB::raw('DATE(delivered_at) as date'), DB::raw('SUM(delivery_charge * 0.7) as total'))
+            ->select(DB::raw('DATE(delivered_at) as date'), DB::raw('COUNT(*) as count'), DB::raw('SUM(delivery_charge * 0.7) as total'))
             ->groupBy('date')
             ->orderBy('date', 'ASC')
             ->get();
-
+        
         // Earnings history with pagination
         $earningsHistory = Parcel::where('assigned_rider_id', $riderId)
-            ->whereNotNull('delivered_at')
+            ->where('status_id', function($q) {
+                $q->select('id')->from('parcel_statuses')->where('slug', 'delivered');
+            })
             ->with(['status', 'sourceHub'])
             ->orderBy('delivered_at', 'desc')
             ->paginate(15);
-
-        // Total earnings from rider table
-        $totalEarnings = $rider->earnings ?? 0;
-
+        
+        // Monthly earnings summary (for chart)
+        $monthlyEarnings = Parcel::where('assigned_rider_id', $riderId)
+            ->where('status_id', function($q) {
+                $q->select('id')->from('parcel_statuses')->where('slug', 'delivered');
+            })
+            ->whereYear('delivered_at', now()->year)
+            ->select(DB::raw('MONTH(delivered_at) as month'), DB::raw('SUM(delivery_charge * 0.7) as total'), DB::raw('COUNT(*) as count'))
+            ->groupBy('month')
+            ->orderBy('month', 'ASC')
+            ->get();
+        
+        // Update rider's earnings in riders table (optional - cache the value)
+        // This keeps the riders table updated for quick access elsewhere
+        $rider->earnings = $totalEarnings;
+        $rider->save();
+        
         return view('rider.earnings', compact(
             'totalEarnings',
-            'deliveryEarnings',
-            'paymentsCollected',  // Make sure this is included
+            'totalDeliveries',
+            'periodEarnings',
+            'commissionEarnings',
+            'deliveriesCount',
             'dailyEarnings',
             'earningsHistory',
+            'monthlyEarnings',
             'period',
             'startDate',
             'endDate'
