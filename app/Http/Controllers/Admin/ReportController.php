@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ReportFilterRequest;
 use App\Models\Parcel;
 use App\Models\Rider;
 use App\Models\Payment;
@@ -10,85 +11,161 @@ use App\Models\Hub;
 use App\Models\ParcelStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Yajra\DataTables\Facades\DataTables;
 
 class ReportController extends Controller
 {
     /**
      * Display earnings report dashboard
      */
-    public function earnings(Request $request)
+    public function earnings(ReportFilterRequest $request)
     {
-        // ... your existing earnings method code ...
-    }
+        $validated = $request->validated();
 
-    public function getEarningsData(Request $request){
-        $startDate = $request->get('start_date', now()->startOfMonth());
-        $endDate = $request->get('end_date', now()->endOfMonth());
-        $hubId = $request->get('hub_id');
+        // Get filter values with defaults
+        $period = $validated['period'] ?? 'monthly';
+        $startDate = $validated['start_date'] ?? now()->startOfMonth();
+        $endDate = $validated['end_date'] ?? now()->endOfMonth();
+        $hubId = $validated['hub_id'] ?? null;
+        $riderId = $validated['rider_id'] ?? null;
 
-        $earnings = Parcel::whereHas('status', fn($q) => $q->where('slug', 'delivered'))
-            ->whereBetween('delivered_at', [$startDate, $endDate])
-            ->with(['assignedRider.user', 'sourceHub'])
-            ->select(['id', 'tracking_number', 'sender_name', 'receiver_name', 'delivery_charge', 'delivered_at', 'source_hub_id', 'assigned_rider_id', 'payment_method']);
-
-        if ($hubId) {
-            $earnings->where('source_hub_id', $hubId);
+        // Set date range based on period
+        if ($period == 'custom' && $startDate && $endDate) {
+            $startDate = \Carbon\Carbon::parse($startDate)->startOfDay();
+            $endDate = \Carbon\Carbon::parse($endDate)->endOfDay();
+        } else {
+            switch ($period) {
+                case 'daily':
+                    $startDate = now()->startOfDay();
+                    $endDate = now()->endOfDay();
+                    break;
+                case 'weekly':
+                    $startDate = now()->startOfWeek();
+                    $endDate = now()->endOfWeek();
+                    break;
+                case 'monthly':
+                    $startDate = now()->startOfMonth();
+                    $endDate = now()->endOfMonth();
+                    break;
+                case 'yearly':
+                    $startDate = now()->startOfYear();
+                    $endDate = now()->endOfYear();
+                    break;
+                default:
+                    $startDate = now()->startOfMonth();
+                    $endDate = now()->endOfMonth();
+            }
         }
 
-        return DataTables::eloquent($earnings)
-            ->editColumn('delivered_at', fn($row) => $row->delivered_at->format('d M Y'))
-            ->editColumn('delivery_charge', fn($row) => '₹' . number_format($row->delivery_charge, 2))
-            ->addColumn('commission', fn($row) => '₹' . number_format($row->delivery_charge * 0.7, 2))
-            ->addColumn('rider_name', fn($row) => $row->assignedRider->user->name ?? 'N/A')
-            ->addColumn('hub_name', fn($row) => $row->sourceHub->name ?? 'N/A')
-            ->addColumn('status_badge', fn($row) => '<span class="badge bg-success">Delivered</span>')
-            ->rawColumns(['status_badge'])
-            ->toJson();
-    }
+        // Base query for delivered parcels
+        $deliveredQuery = Parcel::whereHas('status', function($q) {
+            $q->where('slug', 'delivered');
+        });
 
-    public function getDeliveryData(Request $request){
-        $startDate = $request->get('start_date', now()->startOfMonth());
-        $endDate = $request->get('end_date', now()->endOfMonth());
-        $hubId = $request->get('hub_id');
-        $statusFilter = $request->get('status');
+        // Apply date filter
+        $deliveredQuery->whereBetween('delivered_at', [$startDate, $endDate]);
 
-        $parcels = Parcel::with(['status', 'assignedRider.user', 'sourceHub'])
+        // Apply hub filter
+        if ($hubId) {
+            $deliveredQuery->where('source_hub_id', $hubId);
+        }
+
+        // Apply rider filter
+        if ($riderId) {
+            $deliveredQuery->where('assigned_rider_id', $riderId);
+        }
+
+        // Total Earnings (from delivered parcels - 70% commission)
+        $totalEarnings = $deliveredQuery->sum(DB::raw('delivery_charge * 0.7'));
+
+        // Total Delivery Charges collected
+        $totalDeliveryCharges = $deliveredQuery->sum('delivery_charge');
+
+        // Total number of deliveries
+        $totalDeliveries = $deliveredQuery->count();
+
+        // Average delivery charge
+        $averageDeliveryCharge = $totalDeliveries > 0 ? $totalDeliveryCharges / $totalDeliveries : 0;
+
+        // Average rider commission per delivery
+        $averageCommission = $totalDeliveries > 0 ? $totalEarnings / $totalDeliveries : 0;
+
+        // Earnings by Payment Method
+        $earningsByMethod = Payment::where('payment_status', 'completed')
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->select(['id', 'tracking_number', 'sender_name', 'receiver_name', 'weight', 'status_id', 'assigned_rider_id', 'source_hub_id', 'created_at', 'delivered_at']);
+            ->select('payment_method', DB::raw('SUM(amount) as total'))
+            ->groupBy('payment_method')
+            ->get();
 
-        if ($hubId) {
-            $parcels->where('source_hub_id', $hubId);
-        }
+        // Earnings by Hub
+        $earningsByHub = Parcel::whereHas('status', function($q) {
+                $q->where('slug', 'delivered');
+            })
+            ->whereBetween('delivered_at', [$startDate, $endDate])
+            ->join('hubs', 'parcels.source_hub_id', '=', 'hubs.id')
+            ->select('hubs.name', 'hubs.code', DB::raw('COUNT(parcels.id) as deliveries'), DB::raw('SUM(parcels.delivery_charge) as total_charges'), DB::raw('SUM(parcels.delivery_charge * 0.7) as total_earnings'))
+            ->groupBy('hubs.id', 'hubs.name', 'hubs.code')
+            ->get();
 
-        if ($statusFilter) {
-            $parcels->whereHas('status', fn($q) => $q->where('slug', $statusFilter));
-        }
+        // Top Performing Riders
+        $topRiders = Parcel::whereHas('status', function($q) {
+                $q->where('slug', 'delivered');
+            })
+            ->whereBetween('delivered_at', [$startDate, $endDate])
+            ->join('riders', 'parcels.assigned_rider_id', '=', 'riders.id')
+            ->join('users', 'riders.user_id', '=', 'users.id')
+            ->select('users.name', 'riders.employee_id', DB::raw('COUNT(parcels.id) as deliveries'), DB::raw('SUM(parcels.delivery_charge) as total_charges'), DB::raw('SUM(parcels.delivery_charge * 0.7) as total_earnings'))
+            ->groupBy('riders.id', 'users.name', 'riders.employee_id')
+            ->orderBy('total_earnings', 'DESC')
+            ->limit(10)
+            ->get();
 
-        return DataTables::eloquent($parcels)
-            ->editColumn('weight', fn($row) => $row->weight . ' kg')
-            ->editColumn('created_at', fn($row) => $row->created_at->format('d M Y'))
-            ->addColumn('status_badge', fn($row) =>
-                '<span class="badge" style="background-color: ' . ($row->status->color_code ?? '#6c757d') . '; color: white;">'
-                . ($row->status->display_name ?? 'Unknown') . '</span>'
-            )
-            ->addColumn('rider_name', fn($row) => $row->assignedRider->user->name ?? 'Unassigned')
-            ->addColumn('hub_name', fn($row) => $row->sourceHub->name ?? 'N/A')
-            ->addColumn('delivered_date', fn($row) => $row->delivered_at ? $row->delivered_at->format('d M Y') : '-')
-            ->rawColumns(['status_badge'])
-            ->toJson();
+        // Daily earnings chart data
+        $dailyEarnings = Parcel::whereHas('status', function($q) {
+                $q->where('slug', 'delivered');
+            })
+            ->whereBetween('delivered_at', [$startDate, $endDate])
+            ->select(DB::raw('DATE(delivered_at) as date'), DB::raw('COUNT(*) as deliveries'), DB::raw('SUM(delivery_charge * 0.7) as earnings'))
+            ->groupBy('date')
+            ->orderBy('date', 'ASC')
+            ->get();
+
+        // Get filters data
+        $hubs = Hub::where('is_active', true)->get();
+        $riders = Rider::with('user')->get();
+
+        return view('admin.reports.earnings', compact(
+            'totalEarnings',
+            'totalDeliveryCharges',
+            'totalDeliveries',
+            'averageDeliveryCharge',
+            'averageCommission',
+            'earningsByMethod',
+            'earningsByHub',
+            'topRiders',
+            'dailyEarnings',
+            'period',
+            'startDate',
+            'endDate',
+            'hubId',
+            'riderId',
+            'hubs',
+            'riders'
+        ));
     }
+
     /**
      * Display delivery reports dashboard
      */
-    public function delivery(Request $request)
+    public function delivery(ReportFilterRequest $request)
     {
-        // Get filter inputs
-        $period = $request->get('period', 'monthly');
-        $startDate = $request->get('start_date');
-        $endDate = $request->get('end_date');
-        $hubId = $request->get('hub_id');
-        $riderId = $request->get('rider_id');
+        $validated = $request->validated();
+
+        // Get filter values with defaults
+        $period = $validated['period'] ?? 'monthly';
+        $startDate = $validated['start_date'] ?? now()->startOfMonth();
+        $endDate = $validated['end_date'] ?? now()->endOfMonth();
+        $hubId = $validated['hub_id'] ?? null;
+        $riderId = $validated['rider_id'] ?? null;
 
         // Set date range based on period
         if ($period == 'custom' && $startDate && $endDate) {
@@ -259,7 +336,54 @@ class ReportController extends Controller
      */
     public function exportEarnings(Request $request)
     {
-        // ... your existing exportEarnings code ...
+        $startDate = $request->get('start_date', now()->startOfMonth()->format('Y-m-d'));
+        $endDate = $request->get('end_date', now()->format('Y-m-d'));
+        $hubId = $request->get('hub_id');
+
+        $query = Parcel::whereHas('status', function($q) {
+                $q->where('slug', 'delivered');
+            })
+            ->whereBetween('delivered_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->with(['assignedRider.user', 'sourceHub']);
+
+        if ($hubId) {
+            $query->where('source_hub_id', $hubId);
+        }
+
+        $parcels = $query->get();
+
+        $filename = "earnings_report_" . $startDate . "_to_" . $endDate . ".csv";
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+
+        $callback = function() use ($parcels) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, [
+                'Date', 'Tracking Number', 'Sender', 'Receiver',
+                'Delivery Charge', 'Rider Commission (70%)', 'Rider Name',
+                'Hub', 'Payment Method'
+            ]);
+
+            foreach ($parcels as $parcel) {
+                fputcsv($file, [
+                    $parcel->delivered_at->format('Y-m-d'),
+                    $parcel->tracking_number,
+                    $parcel->sender_name,
+                    $parcel->receiver_name,
+                    $parcel->delivery_charge,
+                    $parcel->delivery_charge * 0.7,
+                    $parcel->assignedRider->user->name ?? 'N/A',
+                    $parcel->sourceHub->name ?? 'N/A',
+                    $parcel->payment_method ?? 'cash',
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     /**

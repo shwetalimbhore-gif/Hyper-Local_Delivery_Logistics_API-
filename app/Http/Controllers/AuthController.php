@@ -9,6 +9,7 @@ use App\Models\Rider;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -93,7 +94,7 @@ class AuthController extends Controller
 
         try {
 
-            \Log::info('Registration started for email: ' . $request->email);
+            Log::info('Registration started for email: ' . $request->email);
 
             // Create user
             $user = User::create([
@@ -106,7 +107,7 @@ class AuthController extends Controller
                 'is_active' => true,
             ]);
 
-            \Log::info('User created with ID: ' . $user->id);
+            Log::info('User created with ID: ' . $user->id);
 
             // Create rider profile (REQUIRED for riders)
             $rider = Rider::create([
@@ -120,7 +121,7 @@ class AuthController extends Controller
                 'joined_date' => now(),
             ]);
 
-            \Log::info('Rider created with ID: ' . ($rider ? $rider->id : 'null'));
+            Log::info('Rider created with ID: ' . ($rider ? $rider->id : 'null'));
 
             DB::commit();
 

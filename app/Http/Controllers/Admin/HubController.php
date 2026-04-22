@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Hub;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
+use App\Http\Requests\Admin\HubStoreRequest;
+use App\Http\Requests\Admin\HubUpdateRequest;
 
 class HubController extends Controller
 {
@@ -52,33 +54,18 @@ class HubController extends Controller
     }
 
     /**
-     * Store a newly created hub in storage.
+     * Store a newly created hub (Using FormRequest)
      */
-    public function store(Request $request)
+    public function store(HubStoreRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => 'required|string|max:20|unique:hubs,code',
-            'address' => 'required|string',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
-            'manager_name' => 'nullable|string|max:255',
-            'is_active' => 'boolean',
-        ]);
+        $validated = $request->validated();
+        $validated['is_active'] = $request->has('is_active');
 
-        try {
-            $validated['is_active'] = $request->has('is_active') ? true : false;
+        $hub = Hub::create($validated);
 
-            $hub = Hub::create($validated);
-
-            return redirect()->route('admin.hubs.index')
-                ->with('success', 'Hub created successfully! Hub Code: ' . $hub->code);
-
-        } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Failed to create hub: ' . $e->getMessage()]);
-        }
+        return redirect()->route('admin.hubs.index')
+            ->with('success', 'Hub created successfully! Code: ' . $hub->code);
     }
-
     /**
      * Display the specified hub.
      */
@@ -104,32 +91,19 @@ class HubController extends Controller
         return view('admin.hubs.edit', compact('hub'));
     }
 
-    /**
-     * Update the specified hub in storage.
+     /**
+     * Update the specified hub (Using FormRequest)
      */
-    public function update(Request $request, Hub $hub)
+    public function update(HubUpdateRequest $request, $id)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => 'required|string|max:20|unique:hubs,code,' . $hub->id,
-            'address' => 'required|string',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
-            'manager_name' => 'nullable|string|max:255',
-            'is_active' => 'boolean',
-        ]);
+        $hub = Hub::findOrFail($id);
+        $validated = $request->validated();
+        $validated['is_active'] = $request->has('is_active');
 
-        try {
-            $validated['is_active'] = $request->has('is_active') && $request->input('is_active') == 1;
+        $hub->update($validated);
 
-            $hub->update($validated);
-
-            return redirect()->route('admin.hubs.index')
-                ->with('success', 'Hub updated successfully! Status is now ' . ($hub->is_active ? 'ACTIVE' : 'INACTIVE'));
-
-        } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Failed to update hub: ' . $e->getMessage()]);
-        }
+        return redirect()->route('admin.hubs.index')
+            ->with('success', 'Hub updated successfully');
     }
 
     /**

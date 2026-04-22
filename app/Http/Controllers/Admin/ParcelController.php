@@ -11,6 +11,8 @@ use App\Models\ParcelStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
+use App\Http\Requests\Admin\ParcelStoreRequest;
+use App\Http\Requests\Admin\ParcelUpdateRequest;
 
 class ParcelController extends Controller
 {
@@ -59,84 +61,28 @@ class ParcelController extends Controller
     }
 
     /**
-     * Store a newly created parcel in storage.
+     * Store a newly created parcel (Using FormRequest)
      */
-    public function store(Request $request)
+    public function store(ParcelStoreRequest $request)
     {
-        $validated = $request->validate([
-            'sender_name' => 'required|string|max:255',
-            'sender_phone' => 'required|string|max:20',
-            'sender_email' => 'nullable|email',
-            'sender_address' => 'required|string',
-            'receiver_name' => 'required|string|max:255',
-            'receiver_phone' => 'required|string|max:20',
-            'receiver_email' => 'nullable|email',
-            'receiver_address' => 'required|string',
-            'parcel_name' => 'required|string|max:255',
-            'parcel_description' => 'nullable|string',
-            'weight' => 'required|numeric|min:0.1',
-            'size' => 'required|numeric|min:0.1',
-            'parcel_type' => 'nullable|string',
-            'delivery_charge' => 'required|numeric|min:0',
-            'payment_method' => 'nullable|string',
-            'source_hub_id' => 'required|exists:hubs,id',
-            'assigned_rider_id' => 'nullable|exists:riders,id',
-            'notes' => 'nullable|string',
-        ]);
+        // FormRequest automatically validates
+        $validated = $request->validated();
 
-        // Generate tracking number
-        $validated['tracking_number'] = $this->generateTrackingNumber();
+        $validated['tracking_number'] = Parcel::generateTrackingNumber();
         $validated['created_by'] = Auth::id();
 
-        // AUTO-ASSIGN: If no rider manually selected, try to auto-assign
-        if (empty($validated['assigned_rider_id'])) {
-            $bestRider = Rider::findBestRiderForParcel(
-                $validated['weight'],
-                $validated['size'],
-                $validated['source_hub_id']
-            );
-
-            if ($bestRider) {
-                $validated['assigned_rider_id'] = $bestRider->id;
-                $validated['status_id'] = ParcelStatus::where('slug', 'assigned')->first()->id;
-                $validated['assigned_at'] = now();
-
-                // Update rider status to busy
-                $bestRider->status = 'busy';
-                $bestRider->save();
-
-                // Send notification to rider
-                $this->sendNotificationToRider($bestRider->id, $validated['tracking_number']);
-
-                $autoAssignedMessage = " Auto-assigned to rider: " . $bestRider->user->name;
-            } else {
-                $validated['status_id'] = ParcelStatus::where('slug', 'pending')->first()->id;
-                $autoAssignedMessage = " No rider available. Parcel is pending assignment.";
-            }
-        } else {
-            // Manual assignment
+        // Auto-assign logic
+        if (!empty($validated['assigned_rider_id'])) {
             $validated['status_id'] = ParcelStatus::where('slug', 'assigned')->first()->id;
             $validated['assigned_at'] = now();
-
-            // Update rider status
-            $rider = Rider::find($validated['assigned_rider_id']);
-            if ($rider) {
-                $rider->status = 'busy';
-                $rider->save();
-                $this->sendNotificationToRider($rider->id, $validated['tracking_number']);
-            }
-            $autoAssignedMessage = "";
+        } else {
+            $validated['status_id'] = ParcelStatus::where('slug', 'pending')->first()->id;
         }
 
         $parcel = Parcel::create($validated);
 
         return redirect()->route('admin.parcels.index')
-            ->with('success', 'Parcel created successfully. Tracking #: ' . $parcel->tracking_number . $autoAssignedMessage);
-    }
-    public function show(Parcel $parcel)
-    {
-        $parcel->load(['status', 'assignedRider.user', 'sourceHub', 'statusHistories.updater']);
-        return view('admin.parcels.show', compact('parcel'));
+            ->with('success', 'Parcel created successfully. Tracking #: ' . $parcel->tracking_number);
     }
 
     public function edit(Parcel $parcel)
@@ -149,88 +95,16 @@ class ParcelController extends Controller
     }
 
     /**
-     * Update the specified parcel in storage.
+     * Update the specified parcel (Using FormRequest)
      */
-    public function update(Request $request, Parcel $parcel)
+    public function update(ParcelUpdateRequest $request, Parcel $parcel)
     {
-        $validated = $request->validate([
-            'sender_name' => 'required|string|max:255',
-            'sender_phone' => 'required|string|max:20',
-            'sender_address' => 'required|string',
-            'receiver_name' => 'required|string|max:255',
-            'receiver_phone' => 'required|string|max:20',
-            'receiver_address' => 'required|string',
-            'parcel_name' => 'required|string|max:255',
-            'weight' => 'required|numeric|min:0.1',
-            'size' => 'required|numeric|min:0.1',
-            'delivery_charge' => 'required|numeric|min:0',
-            'source_hub_id' => 'required|exists:hubs,id',
-            'assigned_rider_id' => 'nullable|exists:riders,id',
-            'status_id' => 'required|exists:parcel_statuses,id',
-            'notes' => 'nullable|string',
-        ]);
-
-        $oldRiderId = $parcel->assigned_rider_id;
-        $newRiderId = $validated['assigned_rider_id'] ?? null;
-
-        // Handle rider assignment status change
-        if ($newRiderId && $oldRiderId != $newRiderId) {
-            // New rider assigned
-            $validated['status_id'] = ParcelStatus::where('slug', 'assigned')->first()->id;
-            $validated['assigned_at'] = now();
-
-            // Update old rider status back to available if they have no other active parcels
-            if ($oldRiderId) {
-                $oldRider = Rider::find($oldRiderId);
-                if ($oldRider) {
-                    $activeParcels = Parcel::where('assigned_rider_id', $oldRiderId)
-                        ->whereHas('status', function($q) {
-                            $q->whereNotIn('slug', ['delivered', 'cancelled', 'returned_to_sender']);
-                        })->count();
-
-                    if ($activeParcels == 0) {
-                        $oldRider->status = 'available';
-                        $oldRider->save();
-                    }
-                }
-            }
-
-            // Update new rider status to busy
-            $newRider = Rider::find($newRiderId);
-            if ($newRider) {
-                $newRider->status = 'busy';
-                $newRider->save();
-            }
-
-            // Send notification to new rider
-            $this->sendNotificationToRider($newRiderId, $parcel);
-
-        } elseif (!$newRiderId && $oldRiderId) {
-            // Rider removed (unassigned)
-            $validated['status_id'] = ParcelStatus::where('slug', 'pending')->first()->id;
-            $validated['assigned_at'] = null;
-
-            // Update rider status
-            $oldRider = Rider::find($oldRiderId);
-            if ($oldRider) {
-                $activeParcels = Parcel::where('assigned_rider_id', $oldRiderId)
-                    ->whereHas('status', function($q) {
-                        $q->whereNotIn('slug', ['delivered', 'cancelled', 'returned_to_sender']);
-                    })->count();
-
-                if ($activeParcels == 0) {
-                    $oldRider->status = 'available';
-                    $oldRider->save();
-                }
-            }
-        }
-
+        $validated = $request->validated();
         $parcel->update($validated);
 
         return redirect()->route('admin.parcels.index')
             ->with('success', 'Parcel updated successfully');
     }
-
     /**
      * Display trashed parcels (soft deleted)
      */

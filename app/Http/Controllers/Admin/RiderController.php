@@ -10,7 +10,9 @@ use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\Admin\RiderStoreRequest;
+use App\Http\Requests\Admin\RiderUpdateRequest;
+
 
 class RiderController extends Controller
 {
@@ -101,53 +103,35 @@ class RiderController extends Controller
     }
 
     /**
-     * Store a newly created rider in storage.
+     * Store a newly created rider (Using FormRequest)
      */
-    public function store(Request $request)
+    public function store(RiderStoreRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'phone' => 'required|string|max:20',
-            'address' => 'nullable|string',
-            'password' => 'required|string|min:8',
-            'hub_id' => 'required|exists:hubs,id',
-            'employee_id' => 'required|string|unique:riders,employee_id',
-            'vehicle_type' => 'required|in:bike,scooter,bicycle,car,truck',
-            'vehicle_number' => 'nullable|string|max:50',
-            'vehicle_model' => 'nullable|string|max:100',
-            'license_number' => 'nullable|string|max:50',
-            'max_weight_capacity' => 'nullable|numeric|min:0',
-            'max_size_capacity' => 'nullable|numeric|min:0',
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
-        }
+        $validated = $request->validated();
 
         DB::beginTransaction();
 
         try {
             $user = User::create([
                 'role_id' => 2,
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'phone' => $request->phone,
-                'address' => $request->address,
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'phone' => $validated['phone'],
+                'address' => $validated['address'] ?? null,
                 'is_active' => true,
             ]);
 
             Rider::create([
                 'user_id' => $user->id,
-                'hub_id' => $request->hub_id,
-                'employee_id' => $request->employee_id,
-                'vehicle_type' => $request->vehicle_type,
-                'vehicle_number' => $request->vehicle_number,
-                'vehicle_model' => $request->vehicle_model,
-                'license_number' => $request->license_number,
-                'max_weight_capacity' => $request->max_weight_capacity ?? 50,
-                'max_size_capacity' => $request->max_size_capacity ?? 100,
+                'hub_id' => $validated['hub_id'],
+                'employee_id' => $validated['employee_id'],
+                'vehicle_type' => $validated['vehicle_type'],
+                'vehicle_number' => $validated['vehicle_number'] ?? null,
+                'vehicle_model' => $validated['vehicle_model'] ?? null,
+                'license_number' => $validated['license_number'] ?? null,
+                'max_weight_capacity' => $validated['max_weight_capacity'] ?? 50,
+                'max_size_capacity' => $validated['max_size_capacity'] ?? 100,
                 'status' => 'available',
                 'is_verified' => true,
                 'joined_date' => now(),
@@ -156,11 +140,11 @@ class RiderController extends Controller
             DB::commit();
 
             return redirect()->route('admin.riders.index')
-                ->with('success', 'Rider created successfully! Password: ' . $request->password);
+                ->with('success', 'Rider created successfully! Password: ' . $validated['password']);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Failed to create rider: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Failed to create rider: ' . $e->getMessage()]);
         }
     }
 
@@ -186,49 +170,32 @@ class RiderController extends Controller
         return view('admin.riders.edit', compact('rider', 'hubs'));
     }
 
-    /**
-     * Update the specified rider in storage.
+   /**
+     * Update the specified rider (Using FormRequest)
      */
-    public function update(Request $request, $id)
+    public function update(RiderUpdateRequest $request, $id)
     {
         $rider = Rider::findOrFail($id);
-
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'address' => 'nullable|string',
-            'hub_id' => 'required|exists:hubs,id',
-            'vehicle_type' => 'required|in:bike,scooter,bicycle,car,truck',
-            'vehicle_number' => 'nullable|string|max:50',
-            'vehicle_model' => 'nullable|string|max:100',
-            'license_number' => 'nullable|string|max:50',
-            'max_weight_capacity' => 'nullable|numeric|min:0',
-            'max_size_capacity' => 'nullable|numeric|min:0',
-            'status' => 'required|in:available,busy,offline',
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
-        }
+        $validated = $request->validated();
 
         DB::beginTransaction();
 
         try {
             $rider->user->update([
-                'name' => $request->name,
-                'phone' => $request->phone,
-                'address' => $request->address,
+                'name' => $validated['name'],
+                'phone' => $validated['phone'],
+                'address' => $validated['address'] ?? null,
             ]);
 
             $rider->update([
-                'hub_id' => $request->hub_id,
-                'vehicle_type' => $request->vehicle_type,
-                'vehicle_number' => $request->vehicle_number,
-                'vehicle_model' => $request->vehicle_model,
-                'license_number' => $request->license_number,
-                'max_weight_capacity' => $request->max_weight_capacity,
-                'max_size_capacity' => $request->max_size_capacity,
-                'status' => $request->status,
+                'hub_id' => $validated['hub_id'],
+                'vehicle_type' => $validated['vehicle_type'],
+                'vehicle_number' => $validated['vehicle_number'] ?? null,
+                'vehicle_model' => $validated['vehicle_model'] ?? null,
+                'license_number' => $validated['license_number'] ?? null,
+                'max_weight_capacity' => $validated['max_weight_capacity'],
+                'max_size_capacity' => $validated['max_size_capacity'],
+                'status' => $validated['status'],
             ]);
 
             DB::commit();
@@ -238,10 +205,9 @@ class RiderController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Failed to update rider: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Failed to update rider: ' . $e->getMessage()]);
         }
     }
-
     /**
      * Remove the specified rider from storage (soft delete).
      */

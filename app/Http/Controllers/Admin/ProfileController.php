@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ProfileUpdateRequest;
+use App\Http\Requests\Admin\ProfilePictureRequest;
+use App\Http\Requests\Admin\ChangePasswordRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 
 class ProfileController extends Controller
 {
@@ -22,25 +24,11 @@ class ProfileController extends Controller
     }
 
     /**
-     * Update admin profile information
+     * Update admin profile information (Using FormRequest)
      */
-    public function update(Request $request)
+    public function update(ProfileUpdateRequest $request)
     {
         $admin = Auth::user();
-
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $admin->id,
-            'phone' => 'required|string|max:20',
-            'address' => 'nullable|string|max:500',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
 
         try {
             $admin->update([
@@ -65,22 +53,11 @@ class ProfileController extends Controller
     }
 
     /**
-     * Update profile picture
+     * Update profile picture (Using FormRequest)
      */
-    public function updatePicture(Request $request)
+    public function updatePicture(ProfilePictureRequest $request)
     {
         $admin = Auth::user();
-
-        $validator = Validator::make($request->all(), [
-            'profile_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
 
         try {
             // Delete old image if exists
@@ -90,7 +67,6 @@ class ProfileController extends Controller
 
             // Upload new image
             $imagePath = $request->file('profile_image')->store('profile_images', 'public');
-
             $admin->profile_image = $imagePath;
             $admin->save();
 
@@ -109,23 +85,11 @@ class ProfileController extends Controller
     }
 
     /**
-     * Change password
+     * Change password (Using FormRequest)
      */
-    public function changePassword(Request $request)
+    public function changePassword(ChangePasswordRequest $request)
     {
         $admin = Auth::user();
-
-        $validator = Validator::make($request->all(), [
-            'current_password' => 'required',
-            'new_password' => 'required|string|min:8|confirmed',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
 
         // Check current password
         if (!Hash::check($request->current_password, $admin->password)) {
