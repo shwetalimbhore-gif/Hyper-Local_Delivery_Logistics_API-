@@ -191,30 +191,4 @@
     </div>
 </div>
 
-@push('scripts')
-    <script>
-        $(document).ready(function() {
-            $('#riderSelect').change(function() {
-                let riderId = $(this).val();
-
-                if (riderId) {
-                    showMessage('Status will be automatically set to "Assigned" when you create this parcel.', 'info');
-                }
-            });
-
-            function showMessage(message, type) {
-                let alertDiv = $('#autoStatusMessage');
-                if (alertDiv.length === 0) {
-                    $('.card-body').prepend(`<div id="autoStatusMessage" class="alert alert-${type} alert-dismissible fade show" role="alert">${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`);
-                } else {
-                    alertDiv.removeClass('alert-info alert-success').addClass(`alert-${type}`).html(`${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`);
-                }
-
-                setTimeout(function() {
-                    $('#autoStatusMessage').fadeOut();
-                }, 3000);
-            }
-        });
-    </script>
-@endpush
 @endsection

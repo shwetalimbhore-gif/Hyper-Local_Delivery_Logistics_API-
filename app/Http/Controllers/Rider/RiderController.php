@@ -13,6 +13,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Yajra\DataTables\Facades\DataTables;
 
 class RiderController extends Controller
 {
@@ -96,26 +97,26 @@ class RiderController extends Controller
     {
         $riderId = $this->getRiderId();
         $statusFilter = $request->get('status');
-        
+
         // Query only parcels assigned to this rider ID
         $query = Parcel::where('assigned_rider_id', $riderId)
             ->with(['status', 'sourceHub']);
-        
+
         // Apply status filter if selected
         if ($statusFilter && $statusFilter != 'all') {
             $query->whereHas('status', function($q) use ($statusFilter) {
                 $q->where('slug', $statusFilter);
             });
         }
-        
+
         $parcels = $query->orderBy('created_at', 'desc')->paginate(15);
-        
+
         // Get all statuses for filter dropdown
         $statuses = ParcelStatus::where('is_rider_updatable', true)
             ->orWhereIn('slug', ['delivered', 'failed-delivery', 'returned-to-hub', 'assigned'])
             ->orderBy('sequence_order')
             ->get();
-        
+
         return view('rider.parcels', compact('parcels', 'statuses', 'statusFilter'));
     }
 
@@ -320,10 +321,10 @@ class RiderController extends Controller
     {
         $rider = Auth::user()->rider;
         $riderId = $rider->id;
-        
+
         // Get period filter
         $period = $request->get('period', 'monthly');
-        
+
         // Calculate date range based on period
         switch ($period) {
             case 'daily':
@@ -346,21 +347,21 @@ class RiderController extends Controller
                 $startDate = now()->startOfMonth();
                 $endDate = now()->endOfMonth();
         }
-        
+
         // Custom date range
         if ($request->get('start_date') && $request->get('end_date')) {
             $startDate = \Carbon\Carbon::parse($request->get('start_date'))->startOfDay();
             $endDate = \Carbon\Carbon::parse($request->get('end_date'))->endOfDay();
             $period = 'custom';
         }
-        
+
         // DYNAMIC TOTAL EARNINGS (Calculated from all completed deliveries)
         $totalEarnings = Parcel::where('assigned_rider_id', $riderId)
             ->where('status_id', function($q) {
                 $q->select('id')->from('parcel_statuses')->where('slug', 'delivered');
             })
             ->sum(DB::raw('delivery_charge * 0.7'));  // 70% commission on all delivered parcels
-        
+
         // Earnings for selected period (delivery charge sum)
         $periodEarnings = Parcel::where('assigned_rider_id', $riderId)
             ->where('status_id', function($q) {
@@ -368,10 +369,10 @@ class RiderController extends Controller
             })
             ->whereBetween('delivered_at', [$startDate, $endDate])
             ->sum('delivery_charge');
-        
+
         // Rider's commission (70% of delivery charge) for the period
         $commissionEarnings = $periodEarnings * 0.7;
-        
+
         // Number of deliveries in this period
         $deliveriesCount = Parcel::where('assigned_rider_id', $riderId)
             ->where('status_id', function($q) {
@@ -379,14 +380,14 @@ class RiderController extends Controller
             })
             ->whereBetween('delivered_at', [$startDate, $endDate])
             ->count();
-        
+
         // Total deliveries all time
         $totalDeliveries = Parcel::where('assigned_rider_id', $riderId)
             ->where('status_id', function($q) {
                 $q->select('id')->from('parcel_statuses')->where('slug', 'delivered');
             })
             ->count();
-        
+
         // Daily earnings chart data
         $dailyEarnings = Parcel::where('assigned_rider_id', $riderId)
             ->where('status_id', function($q) {
@@ -397,7 +398,7 @@ class RiderController extends Controller
             ->groupBy('date')
             ->orderBy('date', 'ASC')
             ->get();
-        
+
         // Earnings history with pagination
         $earningsHistory = Parcel::where('assigned_rider_id', $riderId)
             ->where('status_id', function($q) {
@@ -406,7 +407,7 @@ class RiderController extends Controller
             ->with(['status', 'sourceHub'])
             ->orderBy('delivered_at', 'desc')
             ->paginate(15);
-        
+
         // Monthly earnings summary (for chart)
         $monthlyEarnings = Parcel::where('assigned_rider_id', $riderId)
             ->where('status_id', function($q) {
@@ -417,12 +418,12 @@ class RiderController extends Controller
             ->groupBy('month')
             ->orderBy('month', 'ASC')
             ->get();
-        
+
         // Update rider's earnings in riders table (optional - cache the value)
         // This keeps the riders table updated for quick access elsewhere
         $rider->earnings = $totalEarnings;
         $rider->save();
-        
+
         return view('rider.earnings', compact(
             'totalEarnings',
             'totalDeliveries',
@@ -577,5 +578,59 @@ class RiderController extends Controller
 
         return isset($allowedTransitions[$currentStatusSlug]) &&
                in_array($newStatusSlug, $allowedTransitions[$currentStatusSlug]);
+    }
+
+    /**
+     * Rider Parcels DataTable - Server Side
+     */
+    public function getParcelsDataTable(Request $request)
+    {
+        $riderId = $this->getRiderId();
+
+        if ($request->ajax()) {
+            $parcels = Parcel::where('assigned_rider_id', $riderId)
+                ->with(['status', 'sourceHub'])
+                ->select('parcels.*');
+
+            return DataTables::of($parcels)
+                ->addColumn('status_badge', function($parcel) {
+                    $color = $parcel->status->color_code ?? '#6c757d';
+                    return '<span class="badge" style="background-color: ' . $color . '; color: white; padding: 5px 10px;">'
+                        . ($parcel->status->display_name ?? 'Unknown') . '</span>';
+                })
+                ->addColumn('receiver_info', function($parcel) {
+                    return '<strong>' . $parcel->receiver_name . '</strong><br>
+                            <small class="text-muted">' . $parcel->receiver_phone . '</small>';
+                })
+                ->addColumn('address_short', function($parcel) {
+                    return \Illuminate\Support\Str::limit($parcel->receiver_address, 40);
+                })
+                ->addColumn('action', function($parcel) {
+                    $canUpdate = in_array($parcel->status->slug, ['assigned', 'picked-up', 'out-for-delivery', 'failed-delivery']);
+
+                    if ($canUpdate) {
+                        return '<button type="button" class="btn btn-sm btn-primary update-status-btn"
+                                    data-parcel-id="' . $parcel->id . '"
+                                    data-tracking="' . $parcel->tracking_number . '"
+                                    data-current-status="' . $parcel->status->slug . '"
+                                    data-current-status-name="' . $parcel->status->display_name . '"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#updateStatusModal">
+                                    <iconify-icon icon="solar:refresh-line-duotone"></iconify-icon> Update
+                                </button>';
+                    } else {
+                        return '<button class="btn btn-sm btn-secondary" disabled>
+                                    <iconify-icon icon="solar:lock-line-duotone"></iconify-icon> Completed
+                                </button>';
+                    }
+                })
+                ->editColumn('weight', function($parcel) {
+                    return $parcel->weight . ' kg';
+                })
+                ->rawColumns(['status_badge', 'receiver_info', 'action'])
+                ->make(true);
+        }
+
+        return view('rider.parcels_datatable');
     }
 }

@@ -9,6 +9,7 @@ use App\Models\Hub;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Yajra\DataTables\Facades\DataTables;
 
 class RiderController extends Controller
 {
@@ -153,29 +154,29 @@ class RiderController extends Controller
     {
         try {
             $rider = Rider::findOrFail($id);
-            
+
             // Check if rider has active parcels
             $activeParcels = $rider->assignedParcels()
                 ->whereHas('status', function($q) {
                     $q->whereNotIn('slug', ['delivered', 'cancelled']);
                 })->count();
-            
+
             if ($activeParcels > 0) {
                 return redirect()->route('admin.riders.index')
                     ->with('error', 'Cannot delete rider with active deliveries. Please reassign their parcels first.');
             }
-            
+
             // SOFT DELETE - This sets deleted_at timestamp
             $rider->delete();
-            
+
             // Also soft delete the associated user
             if ($rider->user) {
                 $rider->user->delete();
             }
-            
+
             return redirect()->route('admin.riders.index')
                 ->with('success', 'Rider moved to trash successfully.');
-                
+
         } catch (\Exception $e) {
             return redirect()->route('admin.riders.index')
                 ->with('error', 'Failed to delete rider: ' . $e->getMessage());
@@ -192,7 +193,7 @@ class RiderController extends Controller
             ->with(['user', 'hub'])
             ->latest('deleted_at')
             ->paginate(15);
-        
+
         return view('admin.riders.trash', compact('riders'));
     }
 
@@ -204,15 +205,15 @@ class RiderController extends Controller
         try {
             $rider = Rider::withTrashed()->findOrFail($id);
             $rider->restore();
-            
+
             // Also restore the associated user
             if ($rider->user) {
                 $rider->user->restore();
             }
-            
+
             return redirect()->route('admin.riders.trash')
                 ->with('success', 'Rider restored successfully.');
-                
+
         } catch (\Exception $e) {
             return redirect()->route('admin.riders.trash')
                 ->with('error', 'Failed to restore rider: ' . $e->getMessage());
@@ -226,27 +227,100 @@ class RiderController extends Controller
     {
         try {
             $rider = Rider::withTrashed()->findOrFail($id);
-            
+
             // Check if rider has any parcels
             if ($rider->assignedParcels()->count() > 0) {
                 return redirect()->route('admin.riders.trash')
                     ->with('error', 'Cannot permanently delete rider who has delivery history.');
             }
-            
+
             // Permanently delete the rider
             $rider->forceDelete();
-            
+
             // Permanently delete the associated user
             if ($rider->user) {
                 $rider->user->forceDelete();
             }
-            
+
             return redirect()->route('admin.riders.trash')
                 ->with('success', 'Rider permanently deleted.');
-                
+
         } catch (\Exception $e) {
             return redirect()->route('admin.riders.trash')
                 ->with('error', 'Failed to permanently delete rider: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Riders DataTable - Server Side
+     */
+    public function getDataTable(Request $request)
+    {
+        if ($request->ajax()) {
+            $riders = Rider::with(['user', 'hub'])
+                ->select('riders.*');
+
+            return DataTables::of($riders)
+                ->addColumn('full_name', function($rider) {
+                    return $rider->user->name ?? 'N/A';
+                })
+                ->addColumn('email', function($rider) {
+                    return $rider->user->email ?? 'N/A';
+                })
+                ->addColumn('phone', function($rider) {
+                    return $rider->user->phone ?? 'N/A';
+                })
+                ->addColumn('hub_name', function($rider) {
+                    return $rider->hub->name ?? 'N/A';
+                })
+                ->addColumn('vehicle_badge', function($rider) {
+                    $colors = [
+                        'bike' => 'bg-primary',
+                        'scooter' => 'bg-info',
+                        'bicycle' => 'bg-success',
+                        'car' => 'bg-warning',
+                        'truck' => 'bg-danger'
+                    ];
+                    $color = $colors[$rider->vehicle_type] ?? 'bg-secondary';
+                    return '<span class="badge ' . $color . '">' . ucfirst($rider->vehicle_type) . '</span>';
+                })
+                ->addColumn('status_badge', function($rider) {
+                    if ($rider->status == 'available') {
+                        return '<span class="badge bg-success">Available</span>';
+                    } elseif ($rider->status == 'busy') {
+                        return '<span class="badge bg-warning">Busy</span>';
+                    } else {
+                        return '<span class="badge bg-secondary">Offline</span>';
+                    }
+                })
+                ->addColumn('rating_display', function($rider) {
+                    return '<div class="d-flex align-items-center">
+                                <span class="me-1">' . number_format($rider->rating, 1) . '</span>
+                                <iconify-icon icon="solar:star-bold" class="text-warning"></iconify-icon>
+                            </div>';
+                })
+                ->addColumn('action', function($rider) {
+                    return '
+                        <div class="btn-group" role="group">
+                            <a href="' . route('admin.riders.show', $rider->id) . '" class="btn btn-sm btn-info" title="View">
+                                <iconify-icon icon="solar:eye-line-duotone"></iconify-icon>
+                            </a>
+                            <a href="' . route('admin.riders.edit', $rider->id) . '" class="btn btn-sm btn-warning" title="Edit">
+                                <iconify-icon icon="solar:pen-line-duotone"></iconify-icon>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-danger" title="Delete" onclick="confirmDeleteRider(' . $rider->id . ')">
+                                <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
+                            </button>
+                        </div>
+                    ';
+                })
+                ->editColumn('total_deliveries', function($rider) {
+                    return '<span class="fw-bold">' . $rider->total_deliveries . '</span>';
+                })
+                ->rawColumns(['vehicle_badge', 'status_badge', 'rating_display', 'action', 'total_deliveries'])
+                ->make(true);
+        }
+
+        return view('admin.riders.datatable');
     }
 }

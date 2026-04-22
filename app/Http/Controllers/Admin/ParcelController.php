@@ -10,6 +10,7 @@ use App\Models\Rider;
 use App\Models\ParcelStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Yajra\DataTables\Facades\DataTables;
 
 class ParcelController extends Controller
 {
@@ -382,5 +383,50 @@ class ParcelController extends Controller
             ->with('success', "Auto-assignment complete! Assigned: {$assignedCount}, Failed: {$failedCount}");
     }
 
+    /**
+     * Parcels DataTable - Server Side
+     * Add this method to your existing ParcelController
+     */
+    public function getDataTable(Request $request)
+    {
+        if ($request->ajax()) {
+            $parcels = Parcel::with(['status', 'assignedRider.user', 'sourceHub'])
+                ->select('parcels.*');
 
+            return DataTables::of($parcels)
+                ->addColumn('status_badge', function($parcel) {
+                    $color = $parcel->status->color_code ?? '#6c757d';
+                    return '<span class="badge" style="background-color: ' . $color . '; color: white; padding: 5px 10px;">'
+                        . ($parcel->status->display_name ?? 'Unknown') . '</span>';
+                })
+                ->addColumn('rider_name', function($parcel) {
+                    return $parcel->assignedRider->user->name ?? '<span class="text-muted">Unassigned</span>';
+                })
+                ->addColumn('created_date', function($parcel) {
+                    return $parcel->created_at->format('d M Y');
+                })
+                ->addColumn('action', function($parcel) {
+                    return '
+                        <div class="btn-group" role="group">
+                            <a href="' . route('admin.parcels.show', $parcel->id) . '" class="btn btn-sm btn-info" title="View">
+                                <iconify-icon icon="solar:eye-line-duotone"></iconify-icon>
+                            </a>
+                            <a href="' . route('admin.parcels.edit', $parcel->id) . '" class="btn btn-sm btn-warning" title="Edit">
+                                <iconify-icon icon="solar:pen-line-duotone"></iconify-icon>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-danger" title="Delete" onclick="confirmDelete(' . $parcel->id . ')">
+                                <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
+                            </button>
+                        </div>
+                    ';
+                })
+                ->editColumn('weight', function($parcel) {
+                    return $parcel->weight . ' kg';
+                })
+                ->rawColumns(['status_badge', 'rider_name', 'action'])
+                ->make(true);
+        }
+
+        return view('admin.parcels.datatable');
+    }
 }

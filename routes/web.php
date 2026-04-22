@@ -64,6 +64,11 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // DataTable Routes (add inside admin group)
+    Route::get('/parcels/datatable', [ParcelController::class, 'getDataTable'])->name('parcels.datatable');
+    Route::get('/riders/datatable', [RiderController::class, 'getDataTable'])->name('riders.datatable');
+    Route::get('/hubs/datatable', [HubController::class, 'getDataTable'])->name('hubs.datatable');
+
     // Parcel Management
     Route::get('/parcels/trash', [ParcelController::class, 'trash'])->name('parcels.trash');
     Route::resource('parcels', ParcelController::class);
@@ -79,7 +84,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     // Rider Management
     Route::get('/riders/trash', [RiderController::class, 'trash'])->name('riders.trash');
     Route::resource('riders', RiderController::class);
-    
+
     // Rider Soft Delete Routes
     Route::post('/riders/{id}/restore', [RiderController::class, 'restore'])->name('riders.restore');
     Route::delete('/riders/{id}/force-delete', [RiderController::class, 'forceDelete'])->name('riders.force-delete');
