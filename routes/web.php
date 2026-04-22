@@ -64,12 +64,13 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // DataTable Routes (add inside admin group)
-    Route::get('/parcels/datatable', [ParcelController::class, 'getDataTable'])->name('parcels.datatable');
-    Route::get('/riders/datatable', [RiderController::class, 'getDataTable'])->name('riders.datatable');
-    Route::get('/hubs/datatable', [HubController::class, 'getDataTable'])->name('hubs.datatable');
+    // // DataTable Routes (add inside admin group)
+    // Route::get('/parcels/data', [ParcelController::class, 'getDataTable'])->name('parcels.datatable');
+    // Route::get('/riders/data', [RiderController::class, 'getDataTable'])->name('riders.datatable');
+    // Route::get('/hubs/data', [HubController::class, 'getDataTable'])->name('hubs.datatable');
 
     // Parcel Management
+    Route::get('/parcels/data', [ParcelController::class, 'getData'])->name('parcels.data');
     Route::get('/parcels/trash', [ParcelController::class, 'trash'])->name('parcels.trash');
     Route::resource('parcels', ParcelController::class);
 
@@ -82,6 +83,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
 
     // Rider Management
+    Route::get('/riders/data', [RiderController::class, 'getData'])->name('riders.data');
     Route::get('/riders/trash', [RiderController::class, 'trash'])->name('riders.trash');
     Route::resource('riders', RiderController::class);
 
@@ -91,6 +93,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     // Hub Management
     // Hub Soft Delete Routes
+    Route::get('/hubs/data', [HubController::class, 'getData'])->name('hubs.data');
     Route::get('/hubs/trash', [HubController::class, 'trash'])->name('hubs.trash');
     Route::resource('hubs', HubController::class);
     Route::get('/hubs/{hub}/toggle-status', [HubController::class, 'toggleStatus'])->name('hubs.toggle-status');
@@ -127,6 +130,7 @@ Route::middleware(['auth'])->prefix('rider')->name('rider.')->group(function () 
     Route::get('/dashboard', [RiderRiderController::class, 'dashboard'])->name('dashboard');
 
     // Parcel Management
+    Route::get('/parcels/data', [RiderRiderController::class, 'getParcelsData'])->name('parcels.data');
     Route::get('/parcels', [RiderRiderController::class, 'parcels'])->name('parcels.index');
     Route::post('/parcels/{parcel}/update-status', [RiderRiderController::class, 'updateParcelStatus'])->name('parcels.update-status');
     Route::get('/parcels/{parcel}/available-statuses', [RiderRiderController::class, 'getAvailableStatuses'])->name('parcels.available-statuses');

@@ -34,7 +34,7 @@
         @endif
 
         <div class="table-responsive">
-            <table class="table table-hover" id="ridersTable">
+            <table class="table table-hover" id="ridersTable" width="100%">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -51,59 +51,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($riders as $rider)
-                    <tr>
-                        <td>{{ $rider->id }}</small></td>
-                        <td><span class="fw-bold">{{ $rider->employee_id }}</span></small></td>
-                        <td>{{ $rider->user->name }}</small></td>
-                        <td>{{ $rider->user->email }}</small></td>
-                        <td>{{ $rider->user->phone }}</small></td>
-                        <td>{{ $rider->hub->name ?? 'N/A' }}</small></td>
-                        <td>
-                            @php
-                                $vehicleBadge = '';
-                                switch($rider->vehicle_type) {
-                                    case 'bike': $vehicleBadge = 'bg-primary'; break;
-                                    case 'scooter': $vehicleBadge = 'bg-info'; break;
-                                    case 'bicycle': $vehicleBadge = 'bg-success'; break;
-                                    case 'car': $vehicleBadge = 'bg-warning'; break;
-                                    case 'truck': $vehicleBadge = 'bg-danger'; break;
-                                    default: $vehicleBadge = 'bg-secondary';
-                                }
-                            @endphp
-                            <span class="badge {{ $vehicleBadge }}">{{ ucfirst($rider->vehicle_type) }}</span>
-                         </small>
-                        <td>
-                            @if($rider->status == 'available')
-                                <span class="badge bg-success">Available</span>
-                            @elseif($rider->status == 'busy')
-                                <span class="badge bg-warning">Busy</span>
-                            @else
-                                <span class="badge bg-secondary">Offline</span>
-                            @endif
-                         </small>
-                        <td>{{ $rider->total_deliveries }}</small></td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <span class="me-1">{{ number_format($rider->rating, 1) }}</span>
-                                <iconify-icon icon="solar:star-bold" class="text-warning"></iconify-icon>
-                            </div>
-                         </small>
-                        <td>
-                            <div class="btn-group" role="group">
-                                <a href="{{ route('admin.riders.show', $rider->id) }}" class="btn btn-sm btn-info" title="View">
-                                    <iconify-icon icon="solar:eye-line-duotone"></iconify-icon>
-                                </a>
-                                <a href="{{ route('admin.riders.edit', $rider->id) }}" class="btn btn-sm btn-warning" title="Edit">
-                                    <iconify-icon icon="solar:pen-line-duotone"></iconify-icon>
-                                </a>
-                                <button type="button" class="btn btn-sm btn-danger" title="Move to Trash" onclick="confirmSoftDelete({{ $rider->id }}, '{{ addslashes($rider->user->name) }}', '{{ $rider->employee_id }}')">
-                                    <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
-                                </button>
-                            </div>
-                         </small>
-                    </tr>
-                    @endforeach
+                    <!-- DataTables will populate this via AJAX -->
                 </tbody>
             </table>
         </div>
@@ -169,52 +117,67 @@
 
 @push('scripts')
 <script>
-    $(document).ready(function() {
-        $('#ridersTable').DataTable({
-            responsive: true,
-            order: [[0, 'desc']],
-            pageLength: 15,
-            lengthMenu: [[10, 15, 25, 50, -1], [10, 15, 25, 50, "All"]],
-            language: {
-                search: "Search:",
-                lengthMenu: "Show _MENU_ entries",
-                info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                infoEmpty: "Showing 0 to 0 of 0 entries",
-                zeroRecords: "No records found",
-                paginate: {
-                    first: "First",
-                    last: "Last",
-                    next: "Next",
-                    previous: "Previous"
-                }
+$(document).ready(function() {
+    $('#ridersTable').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: "{{ route('admin.riders.data') }}",
+        columns: [
+            { data: 'id', name: 'id' },
+            { data: 'employee_id', name: 'employee_id' },
+            { data: 'full_name', name: 'user.name' },
+            { data: 'email', name: 'user.email' },
+            { data: 'phone', name: 'user.phone' },
+            { data: 'hub_name', name: 'hub.name' },
+            { data: 'vehicle_badge', name: 'vehicle_type', orderable: false, searchable: false },
+            { data: 'status_badge', name: 'status', orderable: false, searchable: false },
+            { data: 'total_deliveries', name: 'total_deliveries' },
+            { data: 'rating_display', name: 'rating', orderable: false, searchable: false },
+            { data: 'action', name: 'action', orderable: false, searchable: false }
+        ],
+        order: [[0, 'desc']],
+        pageLength: 15,
+        lengthMenu: [[10, 15, 25, 50, -1], [10, 15, 25, 50, "All"]],
+        language: {
+            search: "Search:",
+            lengthMenu: "Show _MENU_ entries",
+            info: "Showing _START_ to _END_ of _TOTAL_ entries",
+            infoEmpty: "Showing 0 to 0 of 0 entries",
+            zeroRecords: "No records found",
+            paginate: {
+                first: "First",
+                last: "Last",
+                next: "Next",
+                previous: "Previous"
+            }
+        },
+        dom: 'Bfrtip',
+        buttons: [
+            {
+                extend: 'excel',
+                text: '<iconify-icon icon="solar:file-text-line-duotone"></iconify-icon> Excel',
+                className: 'btn btn-success btn-sm',
+                title: 'Riders_Report'
             },
-            dom: 'Bfrtip',
-            buttons: [
-                {
-                    extend: 'excel',
-                    text: '<iconify-icon icon="solar:file-text-line-duotone"></iconify-icon> Excel',
-                    className: 'btn btn-success btn-sm',
-                    title: 'Riders_Report'
-                },
-                {
-                    extend: 'pdf',
-                    text: '<iconify-icon icon="solar:file-text-line-duotone"></iconify-icon> PDF',
-                    className: 'btn btn-danger btn-sm',
-                    title: 'Riders_Report'
-                },
-                {
-                    extend: 'print',
-                    text: '<iconify-icon icon="solar:printer-line-duotone"></iconify-icon> Print',
-                    className: 'btn btn-secondary btn-sm'
-                }
-            ]
-        });
+            {
+                extend: 'pdf',
+                text: '<iconify-icon icon="solar:file-text-line-duotone"></iconify-icon> PDF',
+                className: 'btn btn-danger btn-sm',
+                title: 'Riders_Report'
+            },
+            {
+                extend: 'print',
+                text: '<iconify-icon icon="solar:printer-line-duotone"></iconify-icon> Print',
+                className: 'btn btn-secondary btn-sm'
+            }
+        ]
     });
+});
 
-    function confirmSoftDelete(id, name, employeeId) {
-        $('#softDeleteMessage').html(`Rider <strong>${name}</strong> (${employeeId}) will be moved to trash.`);
-        $('#softDeleteForm').attr('action', `/admin/riders/${id}`);
-        $('#softDeleteModal').modal('show');
-    }
+function confirmSoftDelete(id, name, employeeId) {
+    $('#softDeleteMessage').html(`Rider <strong>${name}</strong> (${employeeId}) will be moved to trash.`);
+    $('#softDeleteForm').attr('action', `/admin/riders/${id}`);
+    $('#softDeleteModal').modal('show');
+}
 </script>
 @endpush

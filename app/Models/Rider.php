@@ -160,4 +160,22 @@ class Rider extends Model
     {
         return self::findAvailableRidersForParcel($weight, $size, $hubId)->first();
     }
+
+     /**
+     * Find the best rider for a parcel based on weight, size, and availability
+     */
+    public static function findBestForParcel($weight, $size, $hubId = null)
+    {
+        $query = self::where('status', 'available')
+            ->where('max_weight_capacity', '>=', $weight)
+            ->where('max_size_capacity', '>=', $size);
+
+        if ($hubId) {
+            $query->where('hub_id', $hubId);
+        }
+
+        return $query->orderBy('total_deliveries', 'asc') // Least busy first
+            ->orderBy('rating', 'desc') // Highest rating first
+            ->first();
+    }
 }

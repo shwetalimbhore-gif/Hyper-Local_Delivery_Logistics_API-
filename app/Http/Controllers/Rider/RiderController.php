@@ -5,20 +5,21 @@ namespace App\Http\Controllers\Rider;
 use App\Http\Controllers\Controller;
 use App\Models\Parcel;
 use App\Models\ParcelStatus;
-use App\Models\ParcelStatusHistory;
-use App\Models\Payment;
-use App\Models\Rider as RiderModel;
 use App\Models\Notification;
 use App\Models\User;
+use App\Models\Payment;
+use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+
 
 class RiderController extends Controller
 {
     /**
-     * Get the authenticated rider's ID
+     * Get authenticated rider's ID
      */
     private function getRiderId()
     {
@@ -30,28 +31,29 @@ class RiderController extends Controller
     }
 
     /**
-     * Rider Dashboard - Only shows data for logged-in rider
+     * Rider Dashboard
      */
     public function dashboard()
     {
         $riderId = $this->getRiderId();
         $rider = Auth::user()->rider;
 
-        // Get counts only for this rider
-        $totalDeliveries = Parcel::where('assigned_rider_id', $riderId)->count();
-        $successfulDeliveries = Parcel::where('assigned_rider_id', $riderId)
+        $totalDeliveries = Parcel::where('assigned_rider_id', $riderId)
             ->whereHas('status', function($q) {
                 $q->where('slug', 'delivered');
             })->count();
-        $failedDeliveries = Parcel::where('assigned_rider_id', $riderId)
-            ->whereHas('status', function($q) {
-                $q->where('slug', 'failed-delivery');
-            })->count();
+
+        $successfulDeliveries = $rider->successful_deliveries;
+        $failedDeliveries = $rider->failed_deliveries;
 
         $successRate = $totalDeliveries > 0 ? round(($successfulDeliveries / $totalDeliveries) * 100, 2) : 0;
-        $totalEarnings = $rider->earnings ?? 0;
 
-        // Active parcels for this rider only
+        $totalEarnings = Parcel::where('assigned_rider_id', $riderId)
+            ->whereHas('status', function($q) {
+                $q->where('slug', 'delivered');
+            })
+            ->sum(DB::raw('delivery_charge * 0.7'));
+
         $activeParcels = Parcel::where('assigned_rider_id', $riderId)
             ->whereHas('status', function($q) {
                 $q->whereNotIn('slug', ['delivered', 'cancelled', 'returned_to_sender']);
@@ -60,7 +62,6 @@ class RiderController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Recent deliveries for this rider only
         $recentDeliveries = Parcel::where('assigned_rider_id', $riderId)
             ->whereHas('status', function($q) {
                 $q->where('slug', 'delivered');
@@ -70,12 +71,10 @@ class RiderController extends Controller
             ->limit(10)
             ->get();
 
-        // Today's deliveries for this rider only
         $todaysDeliveries = Parcel::where('assigned_rider_id', $riderId)
             ->whereDate('delivered_at', today())
             ->count();
 
-        // Weekly earnings for this rider only
         $weeklyEarnings = Parcel::where('assigned_rider_id', $riderId)
             ->where('delivered_at', '>=', now()->startOfWeek())
             ->select(DB::raw('DATE(delivered_at) as date'), DB::raw('SUM(delivery_charge * 0.7) as total'))
@@ -91,63 +90,100 @@ class RiderController extends Controller
     }
 
     /**
-     * Display rider's parcels (only assigned to this rider)
+     * Display rider's parcels page
      */
-    public function parcels(Request $request)
+    public function parcels()
     {
-        $riderId = $this->getRiderId();
-        $statusFilter = $request->get('status');
-
-        // Query only parcels assigned to this rider ID
-        $query = Parcel::where('assigned_rider_id', $riderId)
-            ->with(['status', 'sourceHub']);
-
-        // Apply status filter if selected
-        if ($statusFilter && $statusFilter != 'all') {
-            $query->whereHas('status', function($q) use ($statusFilter) {
-                $q->where('slug', $statusFilter);
-            });
-        }
-
-        $parcels = $query->orderBy('created_at', 'desc')->paginate(15);
-
-        // Get all statuses for filter dropdown
         $statuses = ParcelStatus::where('is_rider_updatable', true)
             ->orWhereIn('slug', ['delivered', 'failed-delivery', 'returned-to-hub', 'assigned'])
             ->orderBy('sequence_order')
             ->get();
 
-        return view('rider.parcels', compact('parcels', 'statuses', 'statusFilter'));
+        return view('rider.parcels', compact('statuses'));
     }
 
     /**
-     * Update parcel status - ONLY if assigned to this rider
+     * Get rider's parcels data for DataTable
+     */
+    public function getParcelsData(Request $request)
+    {
+        try {
+            $riderId = $this->getRiderId();
+
+            $parcels = Parcel::with(['status', 'sourceHub'])
+                ->where('assigned_rider_id', $riderId)
+                ->select('parcels.*');
+
+            return DataTables::eloquent($parcels)
+                ->editColumn('weight', function($parcel) {
+                    return $parcel->weight . ' kg';
+                })
+                ->addColumn('receiver_info', function($parcel) {
+                    return '<strong>' . e($parcel->receiver_name) . '</strong><br>
+                            <small class="text-muted">' . e($parcel->receiver_phone) . '</small>';
+                })
+                ->addColumn('address_short', function($parcel) {
+                    return \Illuminate\Support\Str::limit(e($parcel->receiver_address), 40);
+                })
+                ->addColumn('status_badge', function($parcel) {
+                    $color = $parcel->status->color_code ?? '#6c757d';
+                    return '<span class="badge" style="background-color: ' . $color . '; color: white; padding: 5px 10px;">'
+                        . e($parcel->status->display_name ?? 'Unknown') . '</span>';
+                })
+                ->addColumn('action', function($parcel) {
+                    $canUpdate = in_array($parcel->status->slug, ['assigned', 'picked-up', 'out-for-delivery', 'failed-delivery']);
+
+                    if ($canUpdate) {
+                        return '<button type="button" class="btn btn-sm btn-primary update-status-btn"
+                                    data-parcel-id="' . $parcel->id . '"
+                                    data-tracking="' . e($parcel->tracking_number) . '"
+                                    data-current-status="' . e($parcel->status->slug) . '"
+                                    data-current-status-name="' . e($parcel->status->display_name) . '"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#updateStatusModal">
+                                    <iconify-icon icon="solar:refresh-line-duotone"></iconify-icon> Update
+                                </button>';
+                    }
+                    return '<button class="btn btn-sm btn-secondary" disabled>
+                                <iconify-icon icon="solar:lock-line-duotone"></iconify-icon> Completed
+                            </button>';
+                })
+                ->rawColumns(['receiver_info', 'status_badge', 'action'])
+                ->make(true);
+
+        } catch (\Exception $e) {
+            Log::error('DataTable error: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to load data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update parcel status
      */
     public function updateParcelStatus(Request $request, Parcel $parcel)
     {
         $riderId = $this->getRiderId();
 
-        // CRITICAL: Check if parcel belongs to this rider
         if ($parcel->assigned_rider_id !== $riderId) {
-            return response()->json([
-                'error' => 'Unauthorized - This parcel is not assigned to you'
-            ], 403);
+            return response()->json(['error' => 'Unauthorized - This parcel is not assigned to you'], 403);
         }
 
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'status_id' => 'required|exists:parcel_statuses,id',
             'failure_reason' => 'required_if:status_id,6|nullable|string',
             'notes' => 'nullable|string',
         ]);
 
-        $newStatus = ParcelStatus::find($request->status_id);
-        $oldStatus = $parcel->status;
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
 
-        // Check if status transition is allowed
+        $newStatus = ParcelStatus::find($request->status_id);
+
         if (!$this->canUpdateStatus($parcel, $newStatus)) {
-            return response()->json([
-                'error' => 'Invalid status transition from ' . ($oldStatus->display_name ?? 'Unknown') . ' to ' . $newStatus->display_name
-            ], 400);
+            return response()->json(['error' => 'Invalid status transition'], 400);
         }
 
         DB::beginTransaction();
@@ -156,7 +192,6 @@ class RiderController extends Controller
             $oldStatusId = $parcel->status_id;
             $parcel->status_id = $newStatus->id;
 
-            // Update timestamps based on status
             switch ($newStatus->slug) {
                 case 'picked-up':
                     $parcel->picked_up_at = now();
@@ -182,7 +217,7 @@ class RiderController extends Controller
             $parcel->save();
 
             // Create history record
-            ParcelStatusHistory::create([
+            \App\Models\ParcelStatusHistory::create([
                 'parcel_id' => $parcel->id,
                 'status_id' => $newStatus->id,
                 'from_status_id' => $oldStatusId,
@@ -190,7 +225,6 @@ class RiderController extends Controller
                 'updated_by' => Auth::id(),
             ]);
 
-            // Update rider statistics
             $rider = Auth::user()->rider;
 
             if ($newStatus->slug === 'delivered') {
@@ -200,7 +234,6 @@ class RiderController extends Controller
                 $rider->status = 'available';
                 $rider->save();
 
-                // Create payment record if cash on delivery
                 if ($parcel->payment_method === 'cash' && $parcel->payment_status !== 'paid') {
                     Payment::create([
                         'parcel_id' => $parcel->id,
@@ -214,44 +247,26 @@ class RiderController extends Controller
                     $parcel->save();
                 }
 
-                $this->sendNotificationToAdmins(
-                    '✅ Parcel Delivered',
-                    "Parcel #{$parcel->tracking_number} delivered by {$rider->user->name}",
-                    'success'
-                );
+                $this->sendNotificationToAdmins('✅ Parcel Delivered', "Parcel #{$parcel->tracking_number} delivered by {$rider->user->name}", 'success');
 
             } elseif ($newStatus->slug === 'failed-delivery') {
                 $rider->failed_deliveries++;
                 $rider->total_deliveries++;
                 $rider->save();
 
-                $this->sendNotificationToAdmins(
-                    '❌ Delivery Failed',
-                    "Parcel #{$parcel->tracking_number} failed. Reason: {$request->failure_reason}",
-                    'error'
-                );
+                $this->sendNotificationToAdmins('❌ Delivery Failed', "Parcel #{$parcel->tracking_number} failed. Reason: {$request->failure_reason}", 'error');
 
             } elseif ($newStatus->slug === 'returned-to-hub') {
                 $rider->status = 'available';
                 $rider->save();
 
-                $this->sendNotificationToAdmins(
-                    '🔄 Parcel Returned',
-                    "Parcel #{$parcel->tracking_number} returned to hub by {$rider->user->name}",
-                    'warning'
-                );
+                $this->sendNotificationToAdmins('🔄 Parcel Returned', "Parcel #{$parcel->tracking_number} returned to hub by {$rider->user->name}", 'warning');
+
             } elseif ($newStatus->slug === 'picked-up') {
-                $this->sendNotificationToAdmins(
-                    '📦 Parcel Picked Up',
-                    "Parcel #{$parcel->tracking_number} picked up by {$rider->user->name}",
-                    'info'
-                );
+                $this->sendNotificationToAdmins('📦 Parcel Picked Up', "Parcel #{$parcel->tracking_number} picked up by {$rider->user->name}", 'info');
+
             } elseif ($newStatus->slug === 'out-for-delivery') {
-                $this->sendNotificationToAdmins(
-                    '🚚 Out for Delivery',
-                    "Parcel #{$parcel->tracking_number} is out for delivery with {$rider->user->name}",
-                    'info'
-                );
+                $this->sendNotificationToAdmins('🚚 Out for Delivery', "Parcel #{$parcel->tracking_number} is out for delivery with {$rider->user->name}", 'info');
             }
 
             DB::commit();
@@ -277,13 +292,12 @@ class RiderController extends Controller
     }
 
     /**
-     * Get available statuses - ONLY for parcels assigned to this rider
+     * Get available statuses for a parcel
      */
     public function getAvailableStatuses(Parcel $parcel)
     {
         $riderId = $this->getRiderId();
 
-        // CRITICAL: Check if parcel belongs to this rider
         if ($parcel->assigned_rider_id !== $riderId) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
@@ -315,245 +329,6 @@ class RiderController extends Controller
     }
 
     /**
-     * Display rider earnings
-     */
-    public function earnings(Request $request)
-    {
-        $rider = Auth::user()->rider;
-        $riderId = $rider->id;
-
-        // Get period filter
-        $period = $request->get('period', 'monthly');
-
-        // Calculate date range based on period
-        switch ($period) {
-            case 'daily':
-                $startDate = now()->startOfDay();
-                $endDate = now()->endOfDay();
-                break;
-            case 'weekly':
-                $startDate = now()->startOfWeek();
-                $endDate = now()->endOfWeek();
-                break;
-            case 'monthly':
-                $startDate = now()->startOfMonth();
-                $endDate = now()->endOfMonth();
-                break;
-            case 'yearly':
-                $startDate = now()->startOfYear();
-                $endDate = now()->endOfYear();
-                break;
-            default:
-                $startDate = now()->startOfMonth();
-                $endDate = now()->endOfMonth();
-        }
-
-        // Custom date range
-        if ($request->get('start_date') && $request->get('end_date')) {
-            $startDate = \Carbon\Carbon::parse($request->get('start_date'))->startOfDay();
-            $endDate = \Carbon\Carbon::parse($request->get('end_date'))->endOfDay();
-            $period = 'custom';
-        }
-
-        // DYNAMIC TOTAL EARNINGS (Calculated from all completed deliveries)
-        $totalEarnings = Parcel::where('assigned_rider_id', $riderId)
-            ->where('status_id', function($q) {
-                $q->select('id')->from('parcel_statuses')->where('slug', 'delivered');
-            })
-            ->sum(DB::raw('delivery_charge * 0.7'));  // 70% commission on all delivered parcels
-
-        // Earnings for selected period (delivery charge sum)
-        $periodEarnings = Parcel::where('assigned_rider_id', $riderId)
-            ->where('status_id', function($q) {
-                $q->select('id')->from('parcel_statuses')->where('slug', 'delivered');
-            })
-            ->whereBetween('delivered_at', [$startDate, $endDate])
-            ->sum('delivery_charge');
-
-        // Rider's commission (70% of delivery charge) for the period
-        $commissionEarnings = $periodEarnings * 0.7;
-
-        // Number of deliveries in this period
-        $deliveriesCount = Parcel::where('assigned_rider_id', $riderId)
-            ->where('status_id', function($q) {
-                $q->select('id')->from('parcel_statuses')->where('slug', 'delivered');
-            })
-            ->whereBetween('delivered_at', [$startDate, $endDate])
-            ->count();
-
-        // Total deliveries all time
-        $totalDeliveries = Parcel::where('assigned_rider_id', $riderId)
-            ->where('status_id', function($q) {
-                $q->select('id')->from('parcel_statuses')->where('slug', 'delivered');
-            })
-            ->count();
-
-        // Daily earnings chart data
-        $dailyEarnings = Parcel::where('assigned_rider_id', $riderId)
-            ->where('status_id', function($q) {
-                $q->select('id')->from('parcel_statuses')->where('slug', 'delivered');
-            })
-            ->whereBetween('delivered_at', [$startDate, $endDate])
-            ->select(DB::raw('DATE(delivered_at) as date'), DB::raw('COUNT(*) as count'), DB::raw('SUM(delivery_charge * 0.7) as total'))
-            ->groupBy('date')
-            ->orderBy('date', 'ASC')
-            ->get();
-
-        // Earnings history with pagination
-        $earningsHistory = Parcel::where('assigned_rider_id', $riderId)
-            ->where('status_id', function($q) {
-                $q->select('id')->from('parcel_statuses')->where('slug', 'delivered');
-            })
-            ->with(['status', 'sourceHub'])
-            ->orderBy('delivered_at', 'desc')
-            ->paginate(15);
-
-        // Monthly earnings summary (for chart)
-        $monthlyEarnings = Parcel::where('assigned_rider_id', $riderId)
-            ->where('status_id', function($q) {
-                $q->select('id')->from('parcel_statuses')->where('slug', 'delivered');
-            })
-            ->whereYear('delivered_at', now()->year)
-            ->select(DB::raw('MONTH(delivered_at) as month'), DB::raw('SUM(delivery_charge * 0.7) as total'), DB::raw('COUNT(*) as count'))
-            ->groupBy('month')
-            ->orderBy('month', 'ASC')
-            ->get();
-
-        // Update rider's earnings in riders table (optional - cache the value)
-        // This keeps the riders table updated for quick access elsewhere
-        $rider->earnings = $totalEarnings;
-        $rider->save();
-
-        return view('rider.earnings', compact(
-            'totalEarnings',
-            'totalDeliveries',
-            'periodEarnings',
-            'commissionEarnings',
-            'deliveriesCount',
-            'dailyEarnings',
-            'earningsHistory',
-            'monthlyEarnings',
-            'period',
-            'startDate',
-            'endDate'
-        ));
-    }
-    /**
-     * Display rider profile
-     */
-    public function profile()
-    {
-        $rider = Auth::user()->rider;
-        $user = Auth::user();
-
-        return view('rider.profile', compact('rider', 'user'));
-    }
-
-    /**
-     * Update rider profile
-     */
-    public function updateProfile(Request $request)
-    {
-        $user = Auth::user();
-        $rider = $user->rider;
-
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'address' => 'nullable|string',
-            'vehicle_number' => 'nullable|string|max:50',
-            'vehicle_model' => 'nullable|string|max:100',
-        ]);
-
-        $user->update([
-            'name' => $request->name,
-            'phone' => $request->phone,
-            'address' => $request->address,
-        ]);
-
-        $rider->update([
-            'vehicle_number' => $request->vehicle_number,
-            'vehicle_model' => $request->vehicle_model,
-        ]);
-
-        return redirect()->route('rider.profile')->with('success', 'Profile updated successfully');
-    }
-
-    /**
-     * Update rider profile image
-     */
-    public function updateProfileImage(Request $request)
-    {
-        $user = Auth::user();
-
-        $request->validate([
-            'profile_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
-        ]);
-
-        if ($request->hasFile('profile_image')) {
-            if ($user->profile_image && file_exists(storage_path('app/public/' . $user->profile_image))) {
-                unlink(storage_path('app/public/' . $user->profile_image));
-            }
-
-            $imagePath = $request->file('profile_image')->store('profile_images', 'public');
-            $user->profile_image = $imagePath;
-            $user->save();
-
-            return redirect()->route('rider.profile')->with('success', 'Profile picture updated successfully!');
-        }
-
-        return redirect()->route('rider.profile')->with('error', 'Failed to update profile picture.');
-    }
-
-    /**
-     * Update rider status (available/busy/offline)
-     */
-    public function updateStatus(Request $request)
-    {
-        $rider = Auth::user()->rider;
-        $oldStatus = $rider->status;
-
-        $request->validate([
-            'status' => 'required|in:available,busy,offline'
-        ]);
-
-        $rider->status = $request->status;
-        $rider->save();
-
-        $this->sendNotificationToAdmins(
-            'Rider Status Changed',
-            "Rider {$rider->user->name} changed status from " . ucfirst($oldStatus) . " to " . ucfirst($request->status),
-            'info'
-        );
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Status updated successfully',
-            'status' => $rider->status
-        ]);
-    }
-
-    /**
-     * Send notification to all admins
-     */
-    private function sendNotificationToAdmins($title, $message, $type = 'info')
-    {
-        $admins = User::whereHas('role', function($q) {
-            $q->where('slug', 'admin');
-        })->get();
-
-        foreach ($admins as $admin) {
-            Notification::create([
-                'user_id' => $admin->id,
-                'title' => $title,
-                'message' => $message,
-                'type' => $type,
-                'is_read' => false,
-            ]);
-        }
-    }
-
-    /**
      * Check if status update is allowed
      */
     private function canUpdateStatus($parcel, $newStatus)
@@ -581,56 +356,194 @@ class RiderController extends Controller
     }
 
     /**
-     * Rider Parcels DataTable - Server Side
+     * Send notification to all admins
      */
-    public function getParcelsDataTable(Request $request)
+    private function sendNotificationToAdmins($title, $message, $type = 'info')
+    {
+        $admins = User::whereHas('role', function($q) {
+            $q->where('slug', 'admin');
+        })->get();
+
+        foreach ($admins as $admin) {
+            Notification::create([
+                'user_id' => $admin->id,
+                'title' => $title,
+                'message' => $message,
+                'type' => $type,
+                'is_read' => false,
+            ]);
+        }
+    }
+
+    /**
+     * Display rider earnings page
+     */
+    public function earnings(Request $request)
     {
         $riderId = $this->getRiderId();
+        $rider = Auth::user()->rider;
 
-        if ($request->ajax()) {
-            $parcels = Parcel::where('assigned_rider_id', $riderId)
-                ->with(['status', 'sourceHub'])
-                ->select('parcels.*');
+        $period = $request->get('period', 'monthly');
+        list($startDate, $endDate) = $this->getDateRange($period, $request);
 
-            return DataTables::of($parcels)
-                ->addColumn('status_badge', function($parcel) {
-                    $color = $parcel->status->color_code ?? '#6c757d';
-                    return '<span class="badge" style="background-color: ' . $color . '; color: white; padding: 5px 10px;">'
-                        . ($parcel->status->display_name ?? 'Unknown') . '</span>';
-                })
-                ->addColumn('receiver_info', function($parcel) {
-                    return '<strong>' . $parcel->receiver_name . '</strong><br>
-                            <small class="text-muted">' . $parcel->receiver_phone . '</small>';
-                })
-                ->addColumn('address_short', function($parcel) {
-                    return \Illuminate\Support\Str::limit($parcel->receiver_address, 40);
-                })
-                ->addColumn('action', function($parcel) {
-                    $canUpdate = in_array($parcel->status->slug, ['assigned', 'picked-up', 'out-for-delivery', 'failed-delivery']);
+        $totalEarnings = Parcel::where('assigned_rider_id', $riderId)
+            ->whereHas('status', function($q) {
+                $q->where('slug', 'delivered');
+            })
+            ->sum(DB::raw('delivery_charge * 0.7'));
 
-                    if ($canUpdate) {
-                        return '<button type="button" class="btn btn-sm btn-primary update-status-btn"
-                                    data-parcel-id="' . $parcel->id . '"
-                                    data-tracking="' . $parcel->tracking_number . '"
-                                    data-current-status="' . $parcel->status->slug . '"
-                                    data-current-status-name="' . $parcel->status->display_name . '"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#updateStatusModal">
-                                    <iconify-icon icon="solar:refresh-line-duotone"></iconify-icon> Update
-                                </button>';
-                    } else {
-                        return '<button class="btn btn-sm btn-secondary" disabled>
-                                    <iconify-icon icon="solar:lock-line-duotone"></iconify-icon> Completed
-                                </button>';
-                    }
-                })
-                ->editColumn('weight', function($parcel) {
-                    return $parcel->weight . ' kg';
-                })
-                ->rawColumns(['status_badge', 'receiver_info', 'action'])
-                ->make(true);
+        $periodEarnings = Parcel::where('assigned_rider_id', $riderId)
+            ->whereHas('status', function($q) {
+                $q->where('slug', 'delivered');
+            })
+            ->whereBetween('delivered_at', [$startDate, $endDate])
+            ->sum('delivery_charge');
+
+        $deliveriesCount = Parcel::where('assigned_rider_id', $riderId)
+            ->whereHas('status', function($q) {
+                $q->where('slug', 'delivered');
+            })
+            ->whereBetween('delivered_at', [$startDate, $endDate])
+            ->count();
+
+        $commissionEarnings = $periodEarnings * 0.7;
+        $dailyEarnings = Parcel::getDailyEarningsForRider($riderId, $startDate, $endDate);
+        $earningsHistory = Parcel::getEarningsHistoryForRider($riderId);
+
+        return view('rider.earnings', compact(
+            'totalEarnings', 'periodEarnings', 'commissionEarnings',
+            'deliveriesCount', 'dailyEarnings', 'earningsHistory',
+            'period', 'startDate', 'endDate'
+        ));
+    }
+
+    /**
+     * Display rider profile
+     */
+    public function profile()
+    {
+        $rider = Auth::user()->rider;
+        $user = Auth::user();
+        return view('rider.profile', compact('rider', 'user'));
+    }
+
+    /**
+     * Update rider profile
+     */
+    public function updateProfile(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'address' => 'nullable|string',
+            'vehicle_number' => 'nullable|string|max:50',
+            'vehicle_model' => 'nullable|string|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        return view('rider.parcels_datatable');
+        $user = Auth::user();
+        $rider = $user->rider;
+
+        $user->update([
+            'name' => $request->name,
+            'phone' => $request->phone,
+            'address' => $request->address,
+        ]);
+
+        $rider->update([
+            'vehicle_number' => $request->vehicle_number,
+            'vehicle_model' => $request->vehicle_model,
+        ]);
+
+        return redirect()->route('rider.profile')->with('success', 'Profile updated successfully');
+    }
+
+    /**
+     * Update rider status (available/busy/offline)
+     */
+    public function updateStatus(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|in:available,busy,offline'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $rider = Auth::user()->rider;
+        $oldStatus = $rider->status;
+
+        $rider->status = $request->status;
+        $rider->save();
+
+        $this->sendNotificationToAdmins(
+            'Rider Status Changed',
+            "Rider {$rider->user->name} changed status from " . ucfirst($oldStatus) . " to " . ucfirst($request->status),
+            'info'
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status updated successfully',
+            'status' => $rider->status
+        ]);
+    }
+
+    /**
+     * Update profile image
+     */
+    public function updateProfileImage(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'profile_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator);
+        }
+
+        $user = Auth::user();
+
+        if ($request->hasFile('profile_image')) {
+            if ($user->profile_image && file_exists(storage_path('app/public/' . $user->profile_image))) {
+                unlink(storage_path('app/public/' . $user->profile_image));
+            }
+
+            $imagePath = $request->file('profile_image')->store('profile_images', 'public');
+            $user->profile_image = $imagePath;
+            $user->save();
+
+            return redirect()->route('rider.profile')->with('success', 'Profile picture updated!');
+        }
+
+        return redirect()->route('rider.profile')->with('error', 'Failed to update profile picture');
+    }
+
+    /**
+     * Get date range based on period
+     */
+    private function getDateRange($period, $request)
+    {
+        if ($period === 'custom' && $request->get('start_date') && $request->get('end_date')) {
+            return [
+                \Carbon\Carbon::parse($request->get('start_date'))->startOfDay(),
+                \Carbon\Carbon::parse($request->get('end_date'))->endOfDay()
+            ];
+        }
+
+        switch ($period) {
+            case 'daily':
+                return [now()->startOfDay(), now()->endOfDay()];
+            case 'weekly':
+                return [now()->startOfWeek(), now()->endOfWeek()];
+            case 'yearly':
+                return [now()->startOfYear(), now()->endOfYear()];
+            default:
+                return [now()->startOfMonth(), now()->endOfMonth()];
+        }
     }
 }

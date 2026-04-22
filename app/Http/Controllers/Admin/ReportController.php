@@ -10,6 +10,7 @@ use App\Models\Hub;
 use App\Models\ParcelStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Yajra\DataTables\Facades\DataTables;
 
 class ReportController extends Controller
 {
@@ -21,6 +22,62 @@ class ReportController extends Controller
         // ... your existing earnings method code ...
     }
 
+    public function getEarningsData(Request $request){
+        $startDate = $request->get('start_date', now()->startOfMonth());
+        $endDate = $request->get('end_date', now()->endOfMonth());
+        $hubId = $request->get('hub_id');
+
+        $earnings = Parcel::whereHas('status', fn($q) => $q->where('slug', 'delivered'))
+            ->whereBetween('delivered_at', [$startDate, $endDate])
+            ->with(['assignedRider.user', 'sourceHub'])
+            ->select(['id', 'tracking_number', 'sender_name', 'receiver_name', 'delivery_charge', 'delivered_at', 'source_hub_id', 'assigned_rider_id', 'payment_method']);
+
+        if ($hubId) {
+            $earnings->where('source_hub_id', $hubId);
+        }
+
+        return DataTables::eloquent($earnings)
+            ->editColumn('delivered_at', fn($row) => $row->delivered_at->format('d M Y'))
+            ->editColumn('delivery_charge', fn($row) => '₹' . number_format($row->delivery_charge, 2))
+            ->addColumn('commission', fn($row) => '₹' . number_format($row->delivery_charge * 0.7, 2))
+            ->addColumn('rider_name', fn($row) => $row->assignedRider->user->name ?? 'N/A')
+            ->addColumn('hub_name', fn($row) => $row->sourceHub->name ?? 'N/A')
+            ->addColumn('status_badge', fn($row) => '<span class="badge bg-success">Delivered</span>')
+            ->rawColumns(['status_badge'])
+            ->toJson();
+    }
+
+    public function getDeliveryData(Request $request){
+        $startDate = $request->get('start_date', now()->startOfMonth());
+        $endDate = $request->get('end_date', now()->endOfMonth());
+        $hubId = $request->get('hub_id');
+        $statusFilter = $request->get('status');
+
+        $parcels = Parcel::with(['status', 'assignedRider.user', 'sourceHub'])
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->select(['id', 'tracking_number', 'sender_name', 'receiver_name', 'weight', 'status_id', 'assigned_rider_id', 'source_hub_id', 'created_at', 'delivered_at']);
+
+        if ($hubId) {
+            $parcels->where('source_hub_id', $hubId);
+        }
+
+        if ($statusFilter) {
+            $parcels->whereHas('status', fn($q) => $q->where('slug', $statusFilter));
+        }
+
+        return DataTables::eloquent($parcels)
+            ->editColumn('weight', fn($row) => $row->weight . ' kg')
+            ->editColumn('created_at', fn($row) => $row->created_at->format('d M Y'))
+            ->addColumn('status_badge', fn($row) =>
+                '<span class="badge" style="background-color: ' . ($row->status->color_code ?? '#6c757d') . '; color: white;">'
+                . ($row->status->display_name ?? 'Unknown') . '</span>'
+            )
+            ->addColumn('rider_name', fn($row) => $row->assignedRider->user->name ?? 'Unassigned')
+            ->addColumn('hub_name', fn($row) => $row->sourceHub->name ?? 'N/A')
+            ->addColumn('delivered_date', fn($row) => $row->delivered_at ? $row->delivered_at->format('d M Y') : '-')
+            ->rawColumns(['status_badge'])
+            ->toJson();
+    }
     /**
      * Display delivery reports dashboard
      */

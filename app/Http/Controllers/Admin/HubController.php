@@ -18,6 +18,31 @@ class HubController extends Controller
         return view('admin.hubs.index', compact('hubs'));
     }
 
+    public function getData(Request $request){
+        $hubs = Hub::select(['id', 'code', 'name', 'manager_name', 'phone', 'email', 'is_active']);
+
+        $csrf = csrf_token();
+
+        return DataTables::eloquent($hubs)
+            ->addColumn('riders_count', fn($row) => '<span class="badge bg-info">' . $row->riders()->count() . '</span>')
+            ->addColumn('parcels_count', fn($row) => '<span class="badge bg-secondary">' . $row->sourceParcels()->count() . '</span>')
+            ->addColumn('status_badge', fn($row) => $row->is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-danger">Inactive</span>')
+            ->addColumn('action', fn($row) =>
+                '<div class="btn-group" role="group">
+                    <a href="/admin/hubs/'.$row->id.'" class="btn btn-sm btn-info">View</a>
+                    <a href="/admin/hubs/'.$row->id.'/edit" class="btn btn-sm btn-warning">Edit</a>
+                    <a href="/admin/hubs/'.$row->id.'/toggle-status" class="btn btn-sm ' . ($row->is_active ? 'btn-secondary' : 'btn-success') . '">' . ($row->is_active ? 'Deactivate' : 'Activate') . '</a>
+                    <form method="POST" action="/admin/hubs/'.$row->id.'" style="display:inline;">
+                        <input type="hidden" name="_token" value="'.$csrf.'">
+                        <input type="hidden" name="_method" value="DELETE">
+                        <button class="btn btn-sm btn-danger" onclick="return confirm(\'Are you sure?\')">Delete</button>
+                    </form>
+                </div>'
+            )
+            ->rawColumns(['riders_count', 'parcels_count', 'status_badge', 'action'])
+            ->toJson();
+    }
+
     /**
      * Show the form for creating a new hub.
      */

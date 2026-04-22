@@ -16,13 +16,42 @@ class ParcelController extends Controller
 {
     public function index()
     {
-        $parcels = Parcel::with(['status', 'assignedRider.user'])
-            ->latest()
-            ->paginate(15);
-
-        return view('admin.parcels.index', compact('parcels'));
+        return view('admin.parcels.index');
     }
 
+    /**
+     * Get parcels data for DataTable via AJAX
+     */
+    public function getData(Request $request)
+    {
+        $parcels = Parcel::with(['status', 'assignedRider.user', 'sourceHub'])
+            ->select('parcels.*');
+
+        $csrf = csrf_token();
+
+        return DataTables::eloquent($parcels)
+            ->editColumn('weight', fn($parcel) => $parcel->weight . ' kg')
+            ->editColumn('created_at', fn($parcel) => $parcel->created_at->format('d M Y'))
+            ->addColumn('status_badge', function($parcel) {
+                $color = $parcel->status->color_code ?? '#6c757d';
+                return '<span class="badge" style="background-color: ' . $color . '; color: white;">'
+                    . ($parcel->status->display_name ?? 'Unknown') . '</span>';
+            })
+            ->addColumn('rider_name', fn($parcel) => $parcel->assignedRider->user->name ?? 'Unassigned')
+            ->addColumn('action', function($parcel) use ($csrf) {
+                return '
+                    <a href="' . route('admin.parcels.show', $parcel->id) . '" class="btn btn-sm btn-info">View</a>
+                    <a href="' . route('admin.parcels.edit', $parcel->id) . '" class="btn btn-sm btn-warning">Edit</a>
+                    <form method="POST" action="' . route('admin.parcels.destroy', $parcel->id) . '" style="display:inline;">
+                        <input type="hidden" name="_token" value="' . $csrf . '">
+                        <input type="hidden" name="_method" value="DELETE">
+                        <button class="btn btn-sm btn-danger" onclick="return confirm(\'Are you sure?\')">Delete</button>
+                    </form>
+                ';
+            })
+            ->rawColumns(['status_badge', 'action'])
+            ->toJson();
+    }
     public function create()
     {
         $hubs = Hub::where('is_active', true)->get();

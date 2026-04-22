@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Parcel extends Model
 {
@@ -251,4 +252,29 @@ class Parcel extends Model
         }
         return null;
     }
+
+    public static function getDailyEarningsForRider($riderId, $startDate, $endDate)
+    {
+        return self::where('assigned_rider_id', $riderId)
+            ->whereHas('status', function($q) {
+                $q->where('slug', 'delivered');
+            })
+            ->whereBetween('delivered_at', [$startDate, $endDate])
+            ->select(DB::raw('DATE(delivered_at) as date'), DB::raw('SUM(delivery_charge * 0.7) as total'))
+            ->groupBy('date')
+            ->orderBy('date', 'ASC')
+            ->get();
+    }
+
+    public static function getEarningsHistoryForRider($riderId)
+    {
+        return self::where('assigned_rider_id', $riderId)
+            ->whereHas('status', function($q) {
+                $q->where('slug', 'delivered');
+            })
+            ->with(['status', 'sourceHub'])
+            ->orderBy('delivered_at', 'desc')
+            ->paginate(15);
+    }
+
 }
