@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Rider;
 use App\Http\Controllers\Controller;
 use App\Models\Parcel;
 use App\Models\ParcelStatus;
+use App\Models\Rider;
 use App\Models\Notification;
 use App\Models\User;
 use App\Models\Payment;
@@ -13,8 +14,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log;
-
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class RiderController extends Controller
 {
@@ -152,7 +153,7 @@ class RiderController extends Controller
                 ->make(true);
 
         } catch (\Exception $e) {
-            Log::error('DataTable error: ' . $e->getMessage());
+            \Log::error('DataTable error: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Failed to load data: ' . $e->getMessage()
             ], 500);
@@ -407,8 +408,26 @@ class RiderController extends Controller
             ->count();
 
         $commissionEarnings = $periodEarnings * 0.7;
-        $dailyEarnings = Parcel::getDailyEarningsForRider($riderId, $startDate, $endDate);
-        $earningsHistory = Parcel::getEarningsHistoryForRider($riderId);
+
+        // Get daily earnings
+        $dailyEarnings = Parcel::where('assigned_rider_id', $riderId)
+            ->whereHas('status', function($q) {
+                $q->where('slug', 'delivered');
+            })
+            ->whereBetween('delivered_at', [$startDate, $endDate])
+            ->select(DB::raw('DATE(delivered_at) as date'), DB::raw('SUM(delivery_charge * 0.7) as total'))
+            ->groupBy('date')
+            ->orderBy('date', 'ASC')
+            ->get();
+
+        // Get earnings history
+        $earningsHistory = Parcel::where('assigned_rider_id', $riderId)
+            ->whereHas('status', function($q) {
+                $q->where('slug', 'delivered');
+            })
+            ->with(['status', 'sourceHub'])
+            ->orderBy('delivered_at', 'desc')
+            ->paginate(15);
 
         return view('rider.earnings', compact(
             'totalEarnings', 'periodEarnings', 'commissionEarnings',
@@ -447,12 +466,14 @@ class RiderController extends Controller
         $user = Auth::user();
         $rider = $user->rider;
 
+        // Update user
         $user->update([
             'name' => $request->name,
             'phone' => $request->phone,
             'address' => $request->address,
         ]);
 
+        // Update rider
         $rider->update([
             'vehicle_number' => $request->vehicle_number,
             'vehicle_model' => $request->vehicle_model,
@@ -509,8 +530,9 @@ class RiderController extends Controller
         $user = Auth::user();
 
         if ($request->hasFile('profile_image')) {
-            if ($user->profile_image && file_exists(storage_path('app/public/' . $user->profile_image))) {
-                unlink(storage_path('app/public/' . $user->profile_image));
+            // Delete old image
+            if ($user->profile_image && Storage::disk('public')->exists($user->profile_image)) {
+                Storage::disk('public')->delete($user->profile_image);
             }
 
             $imagePath = $request->file('profile_image')->store('profile_images', 'public');
