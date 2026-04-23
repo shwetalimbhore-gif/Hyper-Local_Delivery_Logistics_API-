@@ -91,17 +91,18 @@ class RiderController extends Controller
         ));
     }
 
-    /**
+     /**
      * Display rider's parcels page
      */
-    public function parcels()
+    public function parcels(Request $request)
     {
+        $statusFilter = $request->get('status');
         $statuses = ParcelStatus::where('is_rider_updatable', true)
             ->orWhereIn('slug', ['delivered', 'failed-delivery', 'returned-to-hub', 'assigned'])
             ->orderBy('sequence_order')
             ->get();
 
-        return view('rider.parcels', compact('statuses'));
+        return view('rider.parcels', compact('statuses', 'statusFilter'));
     }
 
     /**
@@ -418,20 +419,24 @@ class RiderController extends Controller
         $user = Auth::user();
 
         if ($request->hasFile('profile_image')) {
-            // Delete old image
+            // Delete old image if exists
             if ($user->profile_image && Storage::disk('public')->exists($user->profile_image)) {
                 Storage::disk('public')->delete($user->profile_image);
             }
 
+            // Upload new image
             $imagePath = $request->file('profile_image')->store('profile_images', 'public');
+
+            // Update user record
             $user->profile_image = $imagePath;
             $user->save();
 
-            return redirect()->route('rider.profile')->with('success', 'Profile picture updated!');
+            return redirect()->route('rider.profile')->with('success', 'Profile picture updated successfully!');
         }
 
-        return redirect()->route('rider.profile')->with('error', 'Failed to update profile picture');
+        return redirect()->route('rider.profile')->with('error', 'No image file selected.');
     }
+
     /**
      * Get date range based on period
      */

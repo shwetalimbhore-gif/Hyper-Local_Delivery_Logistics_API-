@@ -119,17 +119,90 @@ class ReportController extends Controller
             ->limit(10)
             ->get();
 
-        // Daily earnings chart data
-        $dailyEarnings = Parcel::whereHas('status', function($q) {
+         // Get daily earnings for the selected period
+        $dailyEarningsQuery = Parcel::whereHas('status', function($q) {
                 $q->where('slug', 'delivered');
             })
             ->whereBetween('delivered_at', [$startDate, $endDate])
-            ->select(DB::raw('DATE(delivered_at) as date'), DB::raw('COUNT(*) as deliveries'), DB::raw('SUM(delivery_charge * 0.7) as earnings'))
+            ->select(
+                DB::raw('DATE(delivered_at) as date'),
+                DB::raw('COUNT(*) as deliveries'),
+                DB::raw('SUM(delivery_charge) as total_charges'),
+                DB::raw('SUM(delivery_charge * 0.7) as earnings')
+            )
             ->groupBy('date')
             ->orderBy('date', 'ASC')
             ->get();
 
-        // Get filters data
+        // Prepare daily earnings data for chart (fill missing dates with 0)
+        $dateRange = [];
+        $currentDate = clone $startDate;
+        while ($currentDate <= $endDate) {
+            $dateKey = $currentDate->format('Y-m-d');
+            $dateRange[$dateKey] = [
+                'date' => $dateKey,
+                'display_date' => $currentDate->format('d M'),
+                'earnings' => 0,
+                'deliveries' => 0
+            ];
+            $currentDate->addDay();
+        }
+
+        foreach ($dailyEarningsQuery as $earning) {
+            $dateKey = $earning->date;
+            if (isset($dateRange[$dateKey])) {
+                $dateRange[$dateKey]['earnings'] = (float)$earning->earnings;
+                $dateRange[$dateKey]['deliveries'] = (int)$earning->deliveries;
+            }
+        }
+
+        // Convert to indexed arrays for chart
+        $dailyEarningsData = [
+            'labels' => array_values(array_column($dateRange, 'display_date')),
+            'earnings' => array_values(array_column($dateRange, 'earnings')),
+            'deliveries' => array_values(array_column($dateRange, 'deliveries'))
+        ];
+
+        // ========== MONTHLY EARNINGS CHART DATA ==========
+        // Get monthly earnings for the current year
+        $yearlyEarnings = Parcel::whereHas('status', function($q) {
+                $q->where('slug', 'delivered');
+            })
+            ->whereYear('delivered_at', date('Y'))
+            ->select(
+                DB::raw('MONTH(delivered_at) as month'),
+                DB::raw('COUNT(*) as deliveries'),
+                DB::raw('SUM(delivery_charge) as total_charges'),
+                DB::raw('SUM(delivery_charge * 0.7) as earnings')
+            )
+            ->groupBy('month')
+            ->orderBy('month', 'ASC')
+            ->get();
+
+        // Prepare monthly data for all 12 months
+        $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        $monthlyData = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $monthlyData[$i] = [
+                'month' => $i,
+                'month_name' => $monthNames[$i - 1],
+                'earnings' => 0,
+                'deliveries' => 0
+            ];
+        }
+
+        foreach ($yearlyEarnings as $earning) {
+            $monthlyData[$earning->month]['earnings'] = (float)$earning->earnings;
+            $monthlyData[$earning->month]['deliveries'] = (int)$earning->deliveries;
+        }
+
+        $monthlyEarningsData = [
+            'labels' => array_values(array_column($monthlyData, 'month_name')),
+            'earnings' => array_values(array_column($monthlyData, 'earnings')),
+            'deliveries' => array_values(array_column($monthlyData, 'deliveries'))
+        ];
+
+         // Get filters data
         $hubs = Hub::where('is_active', true)->get();
         $riders = Rider::with('user')->get();
 
@@ -142,7 +215,8 @@ class ReportController extends Controller
             'earningsByMethod',
             'earningsByHub',
             'topRiders',
-            'dailyEarnings',
+            'dailyEarningsData',
+            'monthlyEarningsData',
             'period',
             'startDate',
             'endDate',

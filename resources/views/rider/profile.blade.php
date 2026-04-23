@@ -12,16 +12,27 @@
         <div class="card profile-card text-center">
             <div class="card-body">
                 <!-- Profile Picture -->
+                <!-- Profile Picture -->
                 <div class="profile-avatar">
+                    @php
+                        $profileImage = Auth::user()->profile_image;
+                        $defaultImage = asset('assets/images/profile/user-1.jpg');
+                        $imageUrl = $profileImage ? asset('storage/' . $profileImage) : $defaultImage;
+                    @endphp
                     <img id="profilePreview"
-                         src="{{ $user->profile_image ? asset('storage/' . $user->profile_image) : asset('assets/images/profile/user-1.jpg') }}"
-                         alt="Profile Picture">
+                        src="{{ $imageUrl }}"
+                        alt="Profile Picture"
+                        width="150"
+                        height="150"
+                        class="rounded-circle"
+                        style="object-fit: cover; border: 3px solid #4f46e5;"
+                        onerror="this.src='{{ asset('assets/images/profile/user-1.jpg') }}'">
                     <button type="button" class="upload-btn" onclick="document.getElementById('profileImageInput').click();">
                         <iconify-icon icon="solar:camera-line-duotone"></iconify-icon>
                     </button>
                     <form id="profileImageForm" action="{{ route('rider.profile.update-image') }}" method="POST" enctype="multipart/form-data" style="display: none;">
                         @csrf
-                        <input type="file" name="profile_image" id="profileImageInput" accept="image/*" onchange="this.form.submit()">
+                        <input type="file" name="profile_image" id="profileImageInput" accept="image/*" onchange="uploadProfileImage(this)">
                     </form>
                 </div>
 

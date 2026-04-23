@@ -285,29 +285,15 @@
 <script>
     // Pass data from PHP to JavaScript
     window.dailyEarningsData = {
-        labels: {!! json_encode($dailyEarnings->pluck('date')->map(function($date) { return date('d M', strtotime($date)); })) !!},
-        earnings: {!! json_encode($dailyEarnings->pluck('earnings')) !!},
-        deliveries: {!! json_encode($dailyEarnings->pluck('deliveries')) !!}
+        labels: {!! json_encode($dailyEarningsData['labels']) !!},
+        earnings: {!! json_encode($dailyEarningsData['earnings']) !!},
+        deliveries: {!! json_encode($dailyEarningsData['deliveries']) !!}
     };
 
     window.monthlyEarningsData = {
-        labels: [],
-        values: []
+        labels: {!! json_encode($monthlyEarningsData['labels']) !!},
+        earnings: {!! json_encode($monthlyEarningsData['earnings']) !!}
     };
-
-    @if(isset($monthlyEarnings) && $monthlyEarnings->count() > 0)
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const monthlyValues = Array(12).fill(0);
-
-    @foreach($monthlyEarnings as $earning)
-    monthlyValues[{{ $earning->month - 1 }}] = {{ $earning->earnings }};
-    @endforeach
-
-    window.monthlyEarningsData = {
-        labels: monthNames,
-        values: monthlyValues
-    };
-    @endif
 
     window.paymentMethodData = {
         labels: {!! json_encode($earningsByMethod->pluck('payment_method')->map(function($method) { return ucfirst($method); })) !!},

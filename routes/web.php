@@ -141,13 +141,13 @@ Route::middleware(['auth'])->prefix('rider')->name('rider.')->group(function () 
     // Profileff
     Route::get('/profile', [RiderRiderController::class, 'profile'])->name('profile');
     Route::post('/profile/update', [RiderRiderController::class, 'updateProfile'])->name('profile.update');
-    Route::post('/profile/update-image', [RiderController::class, 'updateProfileImage'])->name('profile.update-image');
+    Route::post('/profile/update-image', [RiderRiderController::class, 'updateProfileImage'])->name('profile.update-image');
 
 
     // Status
     Route::post('/update-status', [RiderRiderController::class, 'updateStatus'])->name('update-status');
 
-    Route::post('/notification/read', [RiderController::class, 'markNotificationRead'])->name('notification.read');
+    Route::post('/notification/read', [RiderRiderController::class, 'markNotificationRead'])->name('notification.read');
     Route::post('/notifications/read-all', [RiderController::class, 'markAllNotificationsRead'])->name('notifications.read-all');
 });
 

@@ -18,17 +18,24 @@ function initDateRangeToggle() {
                 if (endDateDiv) endDateDiv.style.display = 'none';
             }
         });
+
+        // Initialize on page load
+        if (periodSelect.value === 'custom') {
+            if (startDateDiv) startDateDiv.style.display = 'block';
+            if (endDateDiv) endDateDiv.style.display = 'block';
+        }
     }
 }
 
 // Initialize Daily Earnings Chart
 function initDailyEarningsChart(labels, earningsData, deliveriesData) {
     const dailyCtx = document.getElementById('dailyEarningsChart');
-    if (dailyCtx && labels.length > 0) {
+    if (dailyCtx && labels && labels.length > 0) {
         const datasets = [
             {
                 label: 'Earnings (₹)',
                 data: earningsData,
+                type: 'line',
                 borderColor: '#4f46e5',
                 backgroundColor: 'rgba(79, 70, 229, 0.1)',
                 tension: 0.4,
@@ -41,10 +48,9 @@ function initDailyEarningsChart(labels, earningsData, deliveriesData) {
             datasets.push({
                 label: 'Deliveries',
                 data: deliveriesData,
-                borderColor: '#10b981',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                tension: 0.4,
-                fill: true,
+                type: 'bar',
+                backgroundColor: 'rgba(16, 185, 129, 0.5)',
+                borderRadius: 4,
                 yAxisID: 'y1'
             });
         }
@@ -58,6 +64,10 @@ function initDailyEarningsChart(labels, earningsData, deliveriesData) {
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 plugins: {
                     legend: {
                         position: 'top',
@@ -83,7 +93,7 @@ function initDailyEarningsChart(labels, earningsData, deliveriesData) {
                         },
                         ticks: {
                             callback: function(value) {
-                                return '₹' + value;
+                                return '₹' + value.toLocaleString();
                             }
                         }
                     },
@@ -95,27 +105,39 @@ function initDailyEarningsChart(labels, earningsData, deliveriesData) {
                         },
                         ticks: {
                             stepSize: 1
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date'
                         }
                     }
                 }
             }
         });
+    } else if (dailyCtx) {
+        dailyCtx.parentElement.innerHTML = '<div class="text-center py-5 text-muted">No earnings data available for this period</div>';
     }
 }
 
 // Initialize Monthly Earnings Chart
-function initMonthlyEarningsChart(monthlyData) {
+function initMonthlyEarningsChart(labels, earningsData) {
     const monthlyCtx = document.getElementById('monthlyEarningsChart');
-    if (monthlyCtx && monthlyData.labels.length > 0) {
+    if (monthlyCtx && labels && labels.length > 0 && earningsData && earningsData.length > 0) {
         new Chart(monthlyCtx, {
             type: 'bar',
             data: {
-                labels: monthlyData.labels,
+                labels: labels,
                 datasets: [{
                     label: 'Earnings (₹)',
-                    data: monthlyData.values,
+                    data: earningsData,
                     backgroundColor: '#4f46e5',
-                    borderRadius: 8
+                    borderRadius: 8,
+                    borderWidth: 0
                 }]
             },
             options: {
@@ -142,20 +164,28 @@ function initMonthlyEarningsChart(monthlyData) {
                         },
                         ticks: {
                             callback: function(value) {
-                                return '₹' + value;
+                                return '₹' + value.toLocaleString();
                             }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
                         }
                     }
                 }
             }
         });
+    } else if (monthlyCtx) {
+        monthlyCtx.parentElement.innerHTML = '<div class="text-center py-5 text-muted">No monthly earnings data available</div>';
     }
 }
 
 // Initialize Payment Method Chart
 function initPaymentMethodChart(labels, data, colors) {
     const paymentCtx = document.getElementById('paymentMethodChart');
-    if (paymentCtx && labels.length > 0) {
+    if (paymentCtx && labels && labels.length > 0 && data && data.length > 0) {
         new Chart(paymentCtx, {
             type: 'doughnut',
             data: {
@@ -183,6 +213,8 @@ function initPaymentMethodChart(labels, data, colors) {
                 }
             }
         });
+    } else if (paymentCtx) {
+        paymentCtx.parentElement.innerHTML = '<div class="text-center py-3 text-muted">No payment data available</div>';
     }
 }
 
@@ -197,7 +229,10 @@ function initCharts() {
     }
 
     if (window.monthlyEarningsData) {
-        initMonthlyEarningsChart(window.monthlyEarningsData);
+        initMonthlyEarningsChart(
+            window.monthlyEarningsData.labels,
+            window.monthlyEarningsData.earnings
+        );
     }
 
     if (window.paymentMethodData) {
@@ -209,21 +244,8 @@ function initCharts() {
     }
 }
 
-// Auto-hide alerts
-function initAlerts() {
-    setTimeout(function() {
-        $('.alert').fadeOut('slow');
-    }, 5000);
-}
-
-// Format currency
-function formatCurrency(amount) {
-    return '₹' + parseFloat(amount).toFixed(2);
-}
-
 // Document Ready
 $(document).ready(function() {
     initDateRangeToggle();
     initCharts();
-    initAlerts();
 });
