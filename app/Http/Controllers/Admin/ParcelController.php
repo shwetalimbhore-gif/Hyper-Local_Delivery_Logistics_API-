@@ -94,6 +94,20 @@ class ParcelController extends Controller
         return view('admin.parcels.edit', compact('parcel', 'hubs', 'riders', 'statuses'));
     }
 
+    // public function edit(Parcel $parcel)
+    // {
+    //     // Load relationships
+    //     $parcel->load(['assignedRider.user', 'sourceHub', 'destinationHub', 'status']);
+
+    //     // Only get riders that have valid user accounts
+    //     $riders = Rider::has('user')->with('user')->get();
+
+    //     $hubs = Hub::where('is_active', true)->get();
+    //     $statuses = ParcelStatus::all();
+
+    //     return view('admin.parcels.edit', compact('parcel', 'riders', 'hubs', 'statuses'));
+    // }
+
     /**
      * Update the specified parcel (Using FormRequest)
      */
@@ -334,13 +348,13 @@ class ParcelController extends Controller
     }
 
     /**
-     * Display the specified parcel.
-     */
-    public function show($id)
-    {
-        $parcel = Parcel::with(['status', 'assignedRider.user', 'sourceHub', 'statusHistories.updater'])
-            ->findOrFail($id);
+ * Display the specified parcel.
+ */
+public function show($id)
+{
+    $parcel = Parcel::with(['status', 'assignedRider.user', 'sourceHub', 'statusHistories.updater'])
+        ->findOrFail($id);
 
-        return view('admin.parcels.show', compact('parcel'));
-    }
+    return view('admin.parcels.show', compact('parcel'));
+}
 }

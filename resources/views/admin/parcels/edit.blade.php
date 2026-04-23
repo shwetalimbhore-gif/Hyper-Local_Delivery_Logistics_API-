@@ -227,7 +227,7 @@
                 </div>
             </div>
 
-            <!-- Assignment Information -->
+            <!-- Assignment Information - FIXED SECTION -->
             <div class="card mb-3">
                 <div class="card-header bg-secondary text-white">
                     <h6 class="mb-0">
@@ -245,14 +245,15 @@
                                         <option value="">-- Select Rider --</option>
                                         @foreach($riders as $rider)
                                             <option value="{{ $rider->id }}"
-                                                data-weight="{{ $rider->max_weight_capacity }}"
-                                                data-size="{{ $rider->max_size_capacity }}"
-                                                data-status="{{ $rider->status }}"
-                                                data-hub="{{ $rider->hub_id }}"
+                                                data-weight="{{ $rider->max_weight_capacity ?? 0 }}"
+                                                data-size="{{ $rider->max_size_capacity ?? 0 }}"
+                                                data-status="{{ $rider->status ?? 'unknown' }}"
+                                                data-hub="{{ $rider->hub_id ?? '' }}"
                                                 {{ old('assigned_rider_id', $parcel->assigned_rider_id) == $rider->id ? 'selected' : '' }}>
-                                                {{ $rider->user->name }} ({{ $rider->employee_id }}) -
-                                                Max: {{ $rider->max_weight_capacity }}kg / {{ $rider->max_size_capacity }}cm³ -
-                                                {{ ucfirst($rider->status) }}
+                                                {{ $rider->user->name ?? 'Rider #' . $rider->id }}
+                                                ({{ $rider->employee_id ?? 'N/A' }}) -
+                                                Max: {{ $rider->max_weight_capacity ?? 0 }}kg / {{ $rider->max_size_capacity ?? 0 }}cm³ -
+                                                {{ ucfirst($rider->status ?? 'unknown') }}
                                             </option>
                                         @endforeach
                                     </select>

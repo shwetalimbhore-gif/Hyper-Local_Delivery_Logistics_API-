@@ -202,9 +202,9 @@ class ReportController extends Controller
             'deliveries' => array_values(array_column($monthlyData, 'deliveries'))
         ];
 
-         // Get filters data
+        // Get filters data - FIXED: Only get riders with valid user accounts
         $hubs = Hub::where('is_active', true)->get();
-        $riders = Rider::with('user')->get();
+        $riders = Rider::has('user')->with('user')->get();
 
         return view('admin.reports.earnings', compact(
             'totalEarnings',
@@ -392,9 +392,9 @@ class ReportController extends Controller
             ->orderBy('count', 'DESC')
             ->get();
 
-        // Get filters data
+        // Get filters data - FIXED: Only get riders with valid user accounts
         $hubs = Hub::where('is_active', true)->get();
-        $riders = Rider::with('user')->get();
+        $riders = Rider::has('user')->with('user')->get();
 
         return view('admin.reports.delivery', compact(
             'parcels', 'statusDistribution', 'totalParcels', 'deliveredCount',
@@ -449,7 +449,7 @@ class ReportController extends Controller
                     $parcel->receiver_name,
                     $parcel->delivery_charge,
                     $parcel->delivery_charge * 0.7,
-                    $parcel->assignedRider->user->name ?? 'N/A',
+                    $parcel->assignedRider?->user?->name ?? 'N/A',
                     $parcel->sourceHub->name ?? 'N/A',
                     $parcel->payment_method ?? 'cash',
                 ]);
@@ -506,7 +506,7 @@ class ReportController extends Controller
                     $parcel->weight . ' kg',
                     $parcel->delivery_charge,
                     $parcel->status->display_name ?? 'Unknown',
-                    $parcel->assignedRider->user->name ?? 'Unassigned',
+                    $parcel->assignedRider?->user?->name ?? 'Unassigned',
                     $parcel->created_at->format('Y-m-d H:i:s'),
                     $parcel->delivered_at ? $parcel->delivered_at->format('Y-m-d H:i:s') : 'Not delivered',
                     $deliveryTime ?? 'N/A',

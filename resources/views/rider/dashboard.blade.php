@@ -17,24 +17,37 @@
                         <h3 class="text-white mb-2">Welcome back, {{ Auth::user()->name }}!</h3>
                         <p class="text-white-50 mb-0">Ready for deliveries? You have {{ $activeParcels->count() }} active parcels.</p>
                     </div>
-                    <div class="mt-2 mt-sm-0">
-                        <div class="dropdown">
-                            <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                Status:
-                                @if(Auth::user()->rider->status == 'available')
-                                    <span class="status-available">Available</span>
-                                @elseif(Auth::user()->rider->status == 'busy')
-                                    <span class="status-busy">Busy</span>
-                                @else
-                                    <span class="status-offline">Offline</span>
-                                @endif
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item update-status" href="#" data-status="available">Available</a></li>
-                                <li><a class="dropdown-item update-status" href="#" data-status="busy">Busy</a></li>
-                                <li><a class="dropdown-item update-status" href="#" data-status="offline">Offline</a></li>
-                            </ul>
-                        </div>
+                    <div class="dropdown">
+                        <button class="btn btn-light dropdown-toggle" type="button" id="statusDropdown" data-bs-toggle="dropdown">
+                            Status:
+                            @if(Auth::user()->rider->status == 'available')
+                                <span class="text-success">Available</span>
+                            @elseif(Auth::user()->rider->status == 'busy')
+                                <span class="text-warning">Busy</span>
+                            @else
+                                <span class="text-danger">Offline</span>
+                            @endif
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item update-status" href="#" data-status="available">
+                                    <iconify-icon icon="solar:check-circle-line-duotone" class="text-success"></iconify-icon>
+                                    Available
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item update-status" href="#" data-status="busy">
+                                    <iconify-icon icon="solar:clock-circle-line-duotone" class="text-warning"></iconify-icon>
+                                    Busy
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item update-status" href="#" data-status="offline">
+                                    <iconify-icon icon="solar:power-off-line-duotone" class="text-danger"></iconify-icon>
+                                    Offline
+                                </a>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
