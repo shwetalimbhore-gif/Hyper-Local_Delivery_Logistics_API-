@@ -69,18 +69,32 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     // Route::get('/riders/data', [RiderController::class, 'getDataTable'])->name('riders.datatable');
     // Route::get('/hubs/data', [HubController::class, 'getDataTable'])->name('hubs.datatable');
 
-    // Parcel Management
+    // ========== PARCELS ROUTES - MUST BE IN THIS ORDER ==========
+    // Data endpoints (specific routes first)
     Route::get('/parcels/data', [ParcelController::class, 'getData'])->name('parcels.data');
-    Route::get('/parcels/trash', [ParcelController::class, 'trash'])->name('parcels.trash');
-    Route::resource('parcels', ParcelController::class);
+    Route::get('/parcels/trash-data', [ParcelController::class, 'getTrashData'])->name('parcels.trash-data');
 
+    // Trash management
+    Route::get('/parcels/trash', [ParcelController::class, 'trash'])->name('parcels.trash');
     Route::post('/parcels/{id}/restore', [ParcelController::class, 'restore'])->name('parcels.restore');
     Route::delete('/parcels/{id}/force-delete', [ParcelController::class, 'forceDelete'])->name('parcels.force-delete');
 
-    // Auto-assign routes - ADD THESE
-    Route::post('/parcels/find-rider', [ParcelController::class, 'findBestRider'])->name('parcels.find-rider');
-    Route::post('/parcels/auto-assign-all', [ParcelController::class, 'autoAssignAll'])->name('parcels.auto-assign-all');
+    // Bulk actions
+    Route::post('/parcels/bulk-restore', [ParcelController::class, 'bulkRestore'])->name('parcels.bulk-restore');
+    Route::post('/parcels/bulk-force-delete', [ParcelController::class, 'bulkForceDelete'])->name('parcels.bulk-force-delete');
 
+    // Auto assign
+    Route::post('/parcels/auto-assign', [ParcelController::class, 'autoAssignAll'])->name('parcels.auto-assign');
+    Route::post('/parcels/find-rider', [ParcelController::class, 'findBestRider'])->name('parcels.find-rider');
+
+    // Standard CRUD routes for parcels
+    Route::get('/parcels', [ParcelController::class, 'index'])->name('parcels.index');
+    Route::get('/parcels/create', [ParcelController::class, 'create'])->name('parcels.create');
+    Route::post('/parcels', [ParcelController::class, 'store'])->name('parcels.store');
+    Route::get('/parcels/{parcel}', [ParcelController::class, 'show'])->name('parcels.show');
+    Route::get('/parcels/{parcel}/edit', [ParcelController::class, 'edit'])->name('parcels.edit');
+    Route::put('/parcels/{parcel}', [ParcelController::class, 'update'])->name('parcels.update');
+    Route::delete('/parcels/{parcel}', [ParcelController::class, 'destroy'])->name('parcels.destroy');
 
     // Rider Management
     Route::get('/riders/data', [RiderController::class, 'getData'])->name('riders.data');

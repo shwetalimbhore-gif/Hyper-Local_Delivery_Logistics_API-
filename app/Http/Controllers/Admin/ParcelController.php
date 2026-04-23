@@ -16,6 +16,9 @@ use App\Http\Requests\Admin\ParcelUpdateRequest;
 
 class ParcelController extends Controller
 {
+     /**
+     * Display parcels index page
+     */
     public function index()
     {
         return view('admin.parcels.index');
@@ -47,14 +50,13 @@ class ParcelController extends Controller
             ->editColumn('created_at', fn($parcel) => $parcel->created_at->format('d M Y'))
             ->addColumn('status_html', function($parcel) {
                 $color = $parcel->status->color_code ?? '#6c757d';
-                return '<span class="badge" style="background-color: ' . $color . '; color: white;">'
+                return '<span class="badge" style="background-color: ' . $color . '; color: white; padding: 6px 12px;">'
                     . ($parcel->status->display_name ?? 'Unknown') . '</span>';
             })
             ->addColumn('rider_name', function($parcel) {
-                return $parcel->assignedRider->user->name ?? 'Unassigned';
+                return $parcel->assignedRider->user->name ?? '<span class="text-muted">Unassigned</span>';
             })
             ->addColumn('actions', function($parcel) {
-                $csrf = csrf_token();
                 return '
                     <div class="btn-group btn-group-sm" role="group">
                         <a href="' . route('admin.parcels.show', $parcel->id) . '" class="btn btn-info btn-sm" title="View">
@@ -72,8 +74,58 @@ class ParcelController extends Controller
                     </div>
                 ';
             })
-            ->rawColumns(['status_html', 'actions'])
+            ->rawColumns(['status_html', 'rider_name', 'actions'])
             ->toJson();
+    }
+
+    /**
+     * Display trash page
+     */
+    public function trash()
+    {
+        return view('admin.parcels.trash');
+    }
+
+    /**
+     * Get trashed parcels data for DataTable via AJAX
+     */
+    public function getTrashData(Request $request)
+    {
+        try {
+            $parcels = Parcel::onlyTrashed()
+                ->select(
+                    'id',
+                    'tracking_number',
+                    'sender_name',
+                    'receiver_name',
+                    'deleted_at'
+                );
+
+            return DataTables::eloquent($parcels)
+                ->addColumn('checkbox', function($parcel) {
+                    return '<input type="checkbox" class="parcel-checkbox" value="' . $parcel->id . '">';
+                })
+                ->addColumn('actions', function($parcel) {
+                    return '
+                        <button class="btn btn-sm btn-success" onclick="showRestoreModal(' . $parcel->id . ', \'' . addslashes($parcel->tracking_number) . '\')">
+                            <iconify-icon icon="solar:refresh-line-duotone"></iconify-icon>
+                            Restore
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="showForceDeleteModal(' . $parcel->id . ', \'' . addslashes($parcel->tracking_number) . '\')">
+                            <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
+                            Delete Forever
+                        </button>
+                    ';
+                })
+                ->rawColumns(['checkbox', 'actions'])
+                ->make(true);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => true,
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
     public function create()
     {
@@ -140,52 +192,27 @@ class ParcelController extends Controller
         return redirect()->route('admin.parcels.index')
             ->with('success', 'Parcel updated successfully');
     }
-    /**
-     * Display trashed parcels (soft deleted)
-     */
-    public function trash()
-    {
-        $parcels = Parcel::onlyTrashed()
-            ->with(['status', 'assignedRider.user'])
-            ->latest('deleted_at')
-            ->paginate(15);
 
-        return view('admin.parcels.trash', compact('parcels'));
-    }
 
     /**
-     * Soft delete parcel (move to trash)
+     * Remove the specified parcel from storage (soft delete).
      */
-    public function destroy($id)
+    public function destroy(Parcel $parcel)
     {
         try {
-            $parcel = Parcel::findOrFail($id);
+            // Soft delete the parcel
             $parcel->delete();
 
-            // Return JSON response for AJAX request
-            if (request()->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Parcel moved to trash successfully'
-                ]);
-            }
-
-            return redirect()->back()->with('success', 'Parcel moved to trash');
+            return redirect()->route('admin.parcels.index')
+                ->with('success', 'Parcel moved to trash successfully.');
 
         } catch (\Exception $e) {
-            if (request()->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Error: ' . $e->getMessage()
-                ], 500);
-            }
-
-            return redirect()->back()->with('error', 'Error moving parcel to trash');
+            return back()->withErrors(['error' => 'Failed to delete parcel: ' . $e->getMessage()]);
         }
     }
 
     /**
-     * Restore soft deleted parcel
+     * Restore a soft deleted parcel
      */
     public function restore($id)
     {
@@ -196,26 +223,27 @@ class ParcelController extends Controller
             if (request()->ajax()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Parcel restored successfully'
+                    'message' => 'Parcel restored successfully.'
                 ]);
             }
 
-            return redirect()->back()->with('success', 'Parcel restored successfully');
+            return redirect()->route('admin.parcels.trash')
+                ->with('success', 'Parcel restored successfully.');
 
         } catch (\Exception $e) {
             if (request()->ajax()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Error: ' . $e->getMessage()
+                    'message' => 'Failed to restore parcel: ' . $e->getMessage()
                 ], 500);
             }
 
-            return redirect()->back()->with('error', 'Error restoring parcel');
+            return redirect()->route('admin.parcels.trash')
+                ->with('error', 'Failed to restore parcel.');
         }
     }
-
-    /**
-     * Force delete parcel permanently
+     /**
+     * Permanently delete a soft deleted parcel
      */
     public function forceDelete($id)
     {
@@ -226,21 +254,44 @@ class ParcelController extends Controller
             if (request()->ajax()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Parcel permanently deleted'
+                    'message' => 'Parcel permanently deleted.'
                 ]);
             }
 
-            return redirect()->back()->with('success', 'Parcel permanently deleted');
+            return redirect()->route('admin.parcels.trash')
+                ->with('success', 'Parcel permanently deleted.');
 
         } catch (\Exception $e) {
             if (request()->ajax()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Error: ' . $e->getMessage()
+                    'message' => 'Failed to delete parcel: ' . $e->getMessage()
                 ], 500);
             }
 
-            return redirect()->back()->with('error', 'Error deleting parcel');
+            return redirect()->route('admin.parcels.trash')
+                ->with('error', 'Failed to delete parcel.');
+        }
+    }
+
+    /**
+     * Bulk force delete parcels
+     */
+    public function bulkForceDelete(Request $request)
+    {
+        try {
+            $ids = $request->ids;
+            Parcel::onlyTrashed()->whereIn('id', $ids)->forceDelete();
+
+            return response()->json([
+                'success' => true,
+                'message' => count($ids) . ' parcels permanently deleted.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
         }
     }
 
