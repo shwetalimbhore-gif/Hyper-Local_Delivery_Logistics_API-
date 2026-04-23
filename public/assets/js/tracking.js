@@ -2,69 +2,83 @@
  * Tracking Page JavaScript
  */
 
-// Refresh status
-function refreshStatus() {
-    let trackingNumber = $('#trackingNumber').val();
+// Form validation before submit
+function validateTrackingForm(form) {
+    const trackingInput = form.querySelector('input[name="tracking_number"]');
+    if (!trackingInput.value.trim()) {
+        showTrackingError('Please enter a tracking number');
+        trackingInput.focus();
+        return false;
+    }
+    return true;
+}
 
-    $.ajax({
-        url: '/api/track',
-        method: 'POST',
-        data: {
-            _token: $('meta[name="csrf-token"]').attr('content'),
-            tracking_number: trackingNumber
-        },
-        success: function(response) {
-            if (response.success) {
-                updateTrackingDisplay(response.data);
+// Show error message
+function showTrackingError(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-danger tracking-alert alert-dismissible fade show';
+    alertDiv.innerHTML = `
+        <iconify-icon icon="solar:danger-circle-line-duotone"></iconify-icon>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    const formContainer = document.querySelector('.tracking-form');
+    if (formContainer) {
+        formContainer.insertBefore(alertDiv, formContainer.firstChild);
+    }
+
+    setTimeout(() => {
+        if (alertDiv) alertDiv.remove();
+    }, 5000);
+}
+
+// Add loading state to submit button
+function setButtonLoading(button, isLoading) {
+    if (isLoading) {
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Tracking...';
+    } else {
+        button.disabled = false;
+        button.innerHTML = '<iconify-icon icon="solar:search-line-duotone" class="me-2"></iconify-icon> Track Parcel';
+    }
+}
+
+// Initialize form submission handler
+function initTrackingForm() {
+    const form = document.querySelector('form[action*="track"]');
+    const submitBtn = form?.querySelector('button[type="submit"]');
+
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (!validateTrackingForm(this)) {
+                e.preventDefault();
+            } else if (submitBtn) {
+                setButtonLoading(submitBtn, true);
             }
-        },
-        error: function() {
-            console.log('Failed to refresh status');
+        });
+    }
+}
+
+// Add autocomplete tracking number from URL parameter
+function initTrackingFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const trackingNumber = urlParams.get('tracking');
+
+    if (trackingNumber) {
+        const trackingInput = document.querySelector('input[name="tracking_number"]');
+        if (trackingInput) {
+            trackingInput.value = trackingNumber;
+            const form = document.querySelector('form[action*="track"]');
+            if (form) {
+                form.submit();
+            }
         }
-    });
-}
-
-// Update tracking display
-function updateTrackingDisplay(data) {
-    // Update status badge
-    $('#statusBadge').text(data.status.name).css('background-color', data.status.color);
-
-    // Update timeline
-    updateTimeline(data.status.slug);
-
-    // Update last updated
-    $('#lastUpdated').text(data.last_updated);
-}
-
-// Update timeline based on status
-function updateTimeline(statusSlug) {
-    const steps = ['pending', 'assigned', 'picked-up', 'out-for-delivery', 'delivered'];
-    const currentIndex = steps.indexOf(statusSlug);
-
-    $('.timeline-step').each(function(index) {
-        $(this).removeClass('completed active');
-        if (index < currentIndex) {
-            $(this).addClass('completed');
-        } else if (index === currentIndex) {
-            $(this).addClass('active');
-        }
-    });
-}
-
-// Auto refresh every 30 seconds
-let refreshInterval;
-
-function startAutoRefresh() {
-    if (refreshInterval) clearInterval(refreshInterval);
-    refreshInterval = setInterval(refreshStatus, 30000);
+    }
 }
 
 // Document Ready
 $(document).ready(function() {
-    startAutoRefresh();
-
-    // Refresh button click
-    $('.refresh-btn').click(function() {
-        refreshStatus();
-    });
+    initTrackingForm();
+    initTrackingFromUrl();
 });

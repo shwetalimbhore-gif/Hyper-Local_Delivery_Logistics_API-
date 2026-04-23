@@ -1,131 +1,232 @@
 /* Tracking Page Styles */
 
-/* Timeline */
-.tracking-timeline {
-    position: relative;
-    padding: 30px 0;
+/* Page Wrapper */
+.tracking-page-wrapper {
+    min-height: 100vh;
+    background: #f4f6f9;
 }
 
-.timeline-steps {
-    display: flex;
-    justify-content: space-between;
-    position: relative;
-    margin-bottom: 30px;
-}
-
-.timeline-steps:before {
-    content: '';
-    position: absolute;
-    top: 30px;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: #e9ecef;
-    z-index: 1;
-}
-
-.timeline-step {
-    flex: 1;
-    text-align: center;
-    position: relative;
-    z-index: 2;
-}
-
-.timeline-icon {
-    width: 60px;
-    height: 60px;
-    background: white;
-    border: 3px solid #e9ecef;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 10px;
-    transition: all 0.3s;
-}
-
-.timeline-step.completed .timeline-icon {
-    border-color: #28a745;
-    background: #28a745;
-    color: white;
-}
-
-.timeline-step.active .timeline-icon {
-    border-color: #764ba2;
-    background: #764ba2;
-    color: white;
-    box-shadow: 0 0 0 5px rgba(118, 75, 162, 0.2);
-}
-
-.timeline-label {
-    font-size: 12px;
-    font-weight: 600;
-    margin-top: 8px;
-}
-
-.timeline-step.completed .timeline-label {
-    color: #28a745;
-}
-
-.timeline-step.active .timeline-label {
-    color: #764ba2;
-}
-
-/* Info Cards */
-.info-card {
-    background: #f8f9fa;
-    border-radius: 12px;
-    padding: 15px;
-    border: 1px solid #e9ecef;
-    transition: all 0.3s;
-}
-
-.info-card:hover {
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-}
-
-/* Progress Bar */
-.progress-custom {
-    height: 8px;
-    border-radius: 4px;
-    background: #e9ecef;
+/* Tracking Card */
+.tracking-card {
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    border: none;
     overflow: hidden;
 }
 
-.progress-bar {
-    transition: width 0.5s ease;
+.tracking-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 30px;
+    text-align: center;
 }
 
-/* Refresh Button */
-.refresh-btn {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1000;
-    border-radius: 50px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-    animation: pulse 1.5s infinite;
+.tracking-header h2 {
+    font-size: 1.75rem;
+    margin-bottom: 0.5rem;
 }
 
-@keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.4); }
-    70% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+.tracking-header p {
+    opacity: 0.75;
+    margin-bottom: 0;
+}
+
+.tracking-header-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Form Styles */
+.tracking-form {
+    padding: 1.5rem;
+}
+
+.tracking-input-group {
+    position: relative;
+}
+
+.tracking-input-group .input-group-text {
+    background-color: #f8f9fa;
+    border-right: none;
+    border-radius: 10px 0 0 10px;
+}
+
+.tracking-input {
+    border-radius: 10px;
+    padding: 12px 20px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s;
+}
+
+.tracking-input:focus {
+    border-color: #764ba2;
+    box-shadow: 0 0 0 0.2rem rgba(118, 75, 162, 0.25);
+    z-index: 1;
+}
+
+.tracking-input-group .tracking-input {
+    border-left: none;
+    border-radius: 0 10px 10px 0;
+}
+
+.form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.help-text {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+/* Track Button */
+.btn-track {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 10px;
+    padding: 12px 30px;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-track:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(118, 75, 162, 0.4);
+}
+
+.btn-track:active {
+    transform: translateY(0);
+}
+
+/* Features Section */
+.features-section {
+    margin-top: 1.5rem;
+    padding-top: 0.75rem;
+}
+
+.feature-item {
+    text-align: center;
+    padding: 15px;
+    border-radius: 10px;
+    transition: all 0.3s;
+}
+
+.feature-item:hover {
+    background: #f8f9fa;
+    transform: translateY(-3px);
+}
+
+.feature-icon {
+    font-size: 35px;
+    color: #764ba2;
+    margin-bottom: 10px;
+}
+
+.feature-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.feature-description {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+/* Footer */
+.tracking-footer {
+    text-align: center;
+    margin-top: 30px;
+    padding: 20px;
+    color: #6c757d;
+}
+
+.tracking-footer a {
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.tracking-footer a:hover {
+    color: #764ba2;
+}
+
+/* Alert Styles */
+.tracking-alert {
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .timeline-icon {
-        width: 40px;
-        height: 40px;
-        font-size: 20px;
+    .tracking-header {
+        padding: 20px;
     }
 
-    .timeline-label {
-        font-size: 10px;
+    .tracking-header h2 {
+        font-size: 1.25rem;
     }
 
-    .info-card {
-        margin-bottom: 15px;
+    .tracking-header p {
+        font-size: 0.875rem;
     }
+
+    .tracking-form {
+        padding: 1rem;
+    }
+
+    .tracking-input {
+        padding: 10px 15px;
+        font-size: 14px;
+    }
+
+    .btn-track {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+
+    .feature-item {
+        padding: 10px;
+    }
+
+    .feature-icon {
+        font-size: 28px;
+    }
+
+    .feature-title {
+        font-size: 0.8rem;
+    }
+
+    .tracking-footer {
+        margin-top: 20px;
+        padding: 15px;
+        font-size: 12px;
+    }
+}
+
+/* Animation for card */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tracking-card {
+    animation: fadeInUp 0.5s ease;
 }

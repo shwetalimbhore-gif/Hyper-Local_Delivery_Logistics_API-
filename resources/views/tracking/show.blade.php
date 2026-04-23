@@ -5,224 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Tracking Results - {{ $parcel->tracking_number }}</title>
+
+    <!-- Favicon -->
     <link rel="shortcut icon" type="image/png" href="{{ asset('assets/images/logos/favicon.png') }}" />
+
+    <!-- Template CSS -->
     <link rel="stylesheet" href="{{ asset('assets/css/styles.min.css') }}" />
-    <style>
-        .tracking-card {
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            border: none;
-            margin-bottom: 20px;
-        }
-        .tracking-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 15px 15px 0 0;
-            padding: 20px 25px;
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 6px 16px;
-            border-radius: 50px;
-            font-weight: 600;
-            font-size: 13px;
-        }
-        .info-card {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border: 1px solid #e9ecef;
-            transition: all 0.3s;
-        }
-        .info-card:hover {
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        }
 
-        /* Timeline Styles */
-        .tracking-timeline {
-            position: relative;
-            padding: 30px 0 20px 0;
-        }
-
-        .timeline-steps {
-            display: flex;
-            justify-content: space-between;
-            position: relative;
-            margin-bottom: 30px;
-        }
-
-        .timeline-steps:before {
-            content: '';
-            position: absolute;
-            top: 30px;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: #e9ecef;
-            z-index: 1;
-        }
-
-        .timeline-step {
-            flex: 1;
-            text-align: center;
-            position: relative;
-            z-index: 2;
-        }
-
-        .timeline-icon {
-            width: 60px;
-            height: 60px;
-            background: white;
-            border: 3px solid #e9ecef;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 10px;
-            position: relative;
-            background: white;
-            transition: all 0.3s;
-        }
-
-        .timeline-step.completed .timeline-icon {
-            border-color: #28a745;
-            background: #28a745;
-            color: white;
-        }
-
-        .timeline-step.active .timeline-icon {
-            border-color: #764ba2;
-            background: #764ba2;
-            color: white;
-            box-shadow: 0 0 0 5px rgba(118, 75, 162, 0.2);
-        }
-
-        .timeline-step.pending .timeline-icon {
-            border-color: #e9ecef;
-            background: white;
-            color: #adb5bd;
-        }
-
-        .timeline-label {
-            font-size: 12px;
-            font-weight: 600;
-            margin-top: 8px;
-        }
-
-        .timeline-step.completed .timeline-label {
-            color: #28a745;
-        }
-
-        .timeline-step.active .timeline-label {
-            color: #764ba2;
-        }
-
-        .timeline-step.pending .timeline-label {
-            color: #adb5bd;
-        }
-
-        .timeline-date {
-            font-size: 10px;
-            color: #6c757d;
-            margin-top: 4px;
-        }
-
-        /* Status History List */
-        .status-history-list {
-            margin-top: 30px;
-        }
-
-        .history-item {
-            display: flex;
-            padding: 15px 0;
-            border-bottom: 1px solid #e9ecef;
-            position: relative;
-        }
-
-        .history-item:last-child {
-            border-bottom: none;
-        }
-
-        .history-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            flex-shrink: 0;
-        }
-
-        .history-icon.pending {
-            background: #fff3cd;
-            color: #ffc107;
-        }
-
-        .history-icon.completed {
-            background: #d4edda;
-            color: #28a745;
-        }
-
-        .history-icon.current {
-            background: #e0e7ff;
-            color: #4f46e5;
-        }
-
-        .history-content {
-            flex: 1;
-        }
-
-        .history-title {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .history-date {
-            font-size: 11px;
-            color: #6c757d;
-        }
-
-        .history-note {
-            font-size: 12px;
-            color: #6c757d;
-            margin-top: 5px;
-        }
-
-        .refresh-btn {
-            position: fixed;
-            bottom: 25px;
-            right: 25px;
-            z-index: 1000;
-            border-radius: 50px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
-        }
-        .pulse {
-            animation: pulse 1.5s infinite;
-        }
-        .page-wrapper {
-            background: #f4f6f9;
-            min-height: 100vh;
-        }
-        .progress-custom {
-            height: 8px;
-            border-radius: 4px;
-            background: #e9ecef;
-            overflow: hidden;
-        }
-        .progress-bar {
-            transition: width 0.5s ease;
-        }
-    </style>
+    <!-- Tracking Show CSS -->
+    <link rel="stylesheet" href="{{ asset('assets/css/tracking-show.css') }}">
 </head>
 <body>
-    <div class="page-wrapper" id="main-wrapper">
+    <div class="tracking-show-wrapper">
         <div class="container py-4">
             <div class="row justify-content-center">
                 <div class="col-lg-8">
@@ -249,9 +43,8 @@
                             <div class="mb-4">
                                 <div class="progress-custom">
                                     @php
-                                        $progress = 0;
+                                        $progress = 10;
                                         switch($parcel->status->slug) {
-                                            case 'pending': $progress = 10; break;
                                             case 'assigned': $progress = 25; break;
                                             case 'picked-up': $progress = 50; break;
                                             case 'out-for-delivery': $progress = 75; break;
@@ -260,7 +53,7 @@
                                             default: $progress = 10;
                                         }
                                     @endphp
-                                    <div class="progress-bar" role="progressbar" style="width: {{ $progress }}%; background-color: {{ $parcel->status->color_code }};"></div>
+                                    <div class="progress-bar-custom" role="progressbar" style="width: {{ $progress }}%; background-color: {{ $parcel->status->color_code }};"></div>
                                 </div>
                             </div>
 
@@ -413,7 +206,7 @@
 
                             <!-- Action Buttons -->
                             <div class="text-center mt-4 pt-2">
-                                <a href="{{ route('tracking.index') }}" class="btn btn-primary me-2">
+                                <a href="{{ route('tracking.index') }}" class="btn btn-primary me-2" id="trackAnotherUrl" data-url="{{ route('tracking.index') }}">
                                     <iconify-icon icon="solar:search-line-duotone"></iconify-icon>
                                     Track Another
                                 </a>
@@ -430,39 +223,20 @@
     </div>
 
     <!-- Refresh Button -->
-    <button class="btn btn-primary refresh-btn pulse" onclick="refreshStatus()">
+    <button class="btn btn-primary refresh-btn pulse" id="refreshBtn" onclick="refreshStatus()">
         <iconify-icon icon="solar:refresh-line-duotone"></iconify-icon>
         Refresh Status
     </button>
 
+    <!-- Hidden elements for JavaScript -->
+    <div id="refreshError" style="display: none;"></div>
+    <div id="refreshStatusUrl" data-url="{{ route('tracking.status') }}" style="display: none;"></div>
+    <div id="trackingNumber" data-tracking="{{ $parcel->tracking_number }}" style="display: none;"></div>
+
+    <!-- Scripts -->
     <script src="{{ asset('assets/libs/jquery/dist/jquery.min.js') }}"></script>
     <script src="{{ asset('assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
-
-    <script>
-        function refreshStatus() {
-            let trackingNumber = "{{ $parcel->tracking_number }}";
-
-            $.ajax({
-                url: "{{ route('tracking.status') }}",
-                method: "POST",
-                data: {
-                    _token: "{{ csrf_token() }}",
-                    tracking_number: trackingNumber
-                },
-                success: function(response) {
-                    if (response.success) {
-                        location.reload();
-                    }
-                },
-                error: function() {
-                    console.log('Failed to refresh status');
-                }
-            });
-        }
-
-        // Auto refresh every 30 seconds
-        setInterval(refreshStatus, 30000);
-    </script>
+    <script src="{{ asset('assets/js/tracking-show.js') }}"></script>
 </body>
 </html>

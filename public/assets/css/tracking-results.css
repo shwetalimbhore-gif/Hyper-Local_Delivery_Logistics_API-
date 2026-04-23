@@ -1,0 +1,146 @@
+/* Tracking Results Page Styles */
+
+/* Timeline Styles */
+.tracking-timeline {
+    position: relative;
+    padding: 30px 0;
+}
+
+.timeline-steps {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    margin-bottom: 30px;
+}
+
+.timeline-steps:before {
+    content: '';
+    position: absolute;
+    top: 30px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #e9ecef;
+    z-index: 1;
+}
+
+.timeline-step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+}
+
+.timeline-icon {
+    width: 60px;
+    height: 60px;
+    background: white;
+    border: 3px solid #e9ecef;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+    transition: all 0.3s;
+}
+
+.timeline-step.completed .timeline-icon {
+    border-color: #28a745;
+    background: #28a745;
+    color: white;
+}
+
+.timeline-step.active .timeline-icon {
+    border-color: #764ba2;
+    background: #764ba2;
+    color: white;
+    box-shadow: 0 0 0 5px rgba(118, 75, 162, 0.2);
+}
+
+.timeline-step.pending .timeline-icon {
+    border-color: #e9ecef;
+    background: white;
+    color: #adb5bd;
+}
+
+.timeline-label {
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+.timeline-step.completed .timeline-label {
+    color: #28a745;
+}
+
+.timeline-step.active .timeline-label {
+    color: #764ba2;
+}
+
+/* Info Cards */
+.info-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 15px;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s;
+}
+
+.info-card:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Progress Bar */
+.progress-custom {
+    height: 8px;
+    border-radius: 4px;
+    background: #e9ecef;
+    overflow: hidden;
+}
+
+.progress-bar-custom {
+    transition: width 0.5s ease;
+}
+
+/* Refresh Button */
+.refresh-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .timeline-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+    }
+
+    .timeline-label {
+        font-size: 10px;
+    }
+
+    .info-card {
+        margin-bottom: 15px;
+    }
+}
