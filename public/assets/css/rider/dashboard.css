@@ -1,0 +1,193 @@
+/* Rider Dashboard Styles */
+
+/* Welcome Banner */
+.welcome-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.welcome-card .btn-light {
+    background: white;
+    border: none;
+    border-radius: 30px;
+    padding: 8px 20px;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.welcome-card .btn-light:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+/* Status Colors */
+.status-available {
+    color: #28a745;
+}
+
+.status-busy {
+    color: #ffc107;
+}
+
+.status-offline {
+    color: #dc3545;
+}
+
+/* Stats Cards */
+.stats-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-radius: 12px;
+    border: none;
+    overflow: hidden;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.stats-card .card-icon {
+    font-size: 2rem;
+    opacity: 0.8;
+}
+
+/* List Group */
+.list-group-item {
+    border-left: none;
+    border-right: none;
+    padding: 15px;
+    transition: background 0.2s;
+}
+
+.list-group-item:hover {
+    background: #f8f9fa;
+}
+
+.list-group-item:first-child {
+    border-top: none;
+}
+
+.list-group-item:last-child {
+    border-bottom: none;
+}
+
+/* Parcel Info */
+.tracking-number {
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.receiver-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.receiver-address {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.status-delivered {
+    background-color: #28a745;
+    color: white;
+}
+
+.status-pending {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.status-in-transit {
+    background-color: #17a2b8;
+    color: white;
+}
+
+/* Earnings Amount */
+.earnings-amount {
+    font-weight: 700;
+    font-size: 16px;
+    color: #28a745;
+}
+
+/* Chart Container */
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    color: #adb5bd;
+    margin-bottom: 15px;
+}
+
+.empty-state-text {
+    color: #6c757d;
+    margin-bottom: 15px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .stats-card {
+        margin-bottom: 15px;
+    }
+
+    .stats-card h2 {
+        font-size: 1.5rem;
+    }
+
+    .welcome-card h3 {
+        font-size: 1.25rem;
+    }
+
+    .welcome-card p {
+        font-size: 0.875rem;
+    }
+
+    .chart-container {
+        height: 250px;
+    }
+
+    .list-group-item {
+        padding: 12px;
+    }
+
+    .tracking-number {
+        font-size: 12px;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card {
+    animation: fadeIn 0.3s ease;
+}

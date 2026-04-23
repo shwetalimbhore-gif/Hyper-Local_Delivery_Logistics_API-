@@ -1,0 +1,179 @@
+/* Rider Earnings Page Styles */
+
+/* Card Styles */
+.earnings-card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+.earnings-card .card-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    padding: 12px 20px;
+}
+
+/* Stats Cards */
+.stats-card {
+    transition: transform 0.2s;
+    border-radius: 12px;
+}
+
+.stats-card:hover {
+    transform: translateY(-3px);
+}
+
+/* Table Styles */
+.table th {
+    font-weight: 600;
+    color: #555;
+    border-top: none;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Commission Amount */
+.commission-amount {
+    font-weight: 700;
+    color: #28a745;
+}
+
+/* Period Summary */
+.summary-label {
+    font-weight: 600;
+    color: #6c757d;
+}
+
+.summary-value {
+    font-weight: 700;
+}
+
+/* Quick Stats Box */
+.quick-stat-box {
+    text-align: center;
+    padding: 15px;
+    border-radius: 10px;
+    transition: transform 0.2s;
+}
+
+.quick-stat-box:hover {
+    transform: translateY(-3px);
+    background: #f8f9fa;
+}
+
+.quick-stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.quick-stat-label {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+/* Filter Section */
+.filter-card {
+    margin-bottom: 20px;
+}
+
+.filter-card .card-body {
+    padding: 20px;
+}
+
+/* Chart Container */
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 50px 20px;
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    color: #adb5bd;
+    margin-bottom: 15px;
+}
+
+.empty-state-text {
+    color: #6c757d;
+    margin-bottom: 15px;
+}
+
+/* Table Borderless Custom */
+.table-borderless-custom td,
+.table-borderless-custom th {
+    padding: 12px 0;
+    border: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .stats-card {
+        margin-bottom: 15px;
+    }
+
+    .stats-card h2 {
+        font-size: 1.5rem;
+    }
+
+    .card-body {
+        padding: 15px;
+    }
+
+    .chart-container {
+        height: 250px;
+    }
+
+    .quick-stat-value {
+        font-size: 20px;
+    }
+
+    .table {
+        font-size: 12px;
+    }
+
+    .table th,
+    .table td {
+        padding: 8px;
+    }
+
+    .commission-amount {
+        font-size: 12px;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.earnings-card {
+    animation: fadeIn 0.3s ease;
+}
+
+/* Pagination */
+.pagination {
+    justify-content: center;
+    margin-top: 20px;
+}
+
+/* Alert Info */
+.alert-info-custom {
+    border-radius: 10px;
+    border-left: 4px solid #0dcaf0;
+}

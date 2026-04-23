@@ -2,12 +2,20 @@
 
 @section('title', 'My Parcels')
 
+@push('styles')
+<link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{{ asset('assets/css/rider/parcels.css') }}">
+@endpush
+
 @section('content')
-<div class="card">
+<div class="card parcels-card">
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="card-title mb-0">My Parcels</h5>
-            <div class="dropdown">
+            <h5 class="card-title mb-0">
+                <iconify-icon icon="solar:box-line-duotone"></iconify-icon>
+                My Parcels
+            </h5>
+            <div class="dropdown filter-dropdown">
                 <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                     <iconify-icon icon="solar:filter-line-duotone"></iconify-icon>
                     Filter by Status
@@ -34,6 +42,7 @@
 
         @if(session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <iconify-icon icon="solar:check-circle-line-duotone"></iconify-icon>
                 {{ session('success') }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
@@ -41,7 +50,7 @@
 
         <div class="table-responsive">
             <input type="hidden" id="statusFilterValue" value="">
-            <table class="table table-hover" id="riderParcelsTable" width="100%">
+            <table class="table table-hover" id="riderParcelsTable" width="100%" data-ajax="{{ route('rider.parcels.data') }}">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -90,7 +99,7 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">New Status <span class="text-danger">*</span></label>
-                        <select name="status_id" id="statusSelect" class="form-select" required>
+                        <select name="status_id" id="statusSelect" class="form-select status-select" required>
                             <option value="">-- Select New Status --</option>
                         </select>
                     </div>
@@ -110,169 +119,29 @@
 
                     <div class="mb-3">
                         <label class="form-label">Additional Notes</label>
-                        <textarea name="notes" id="statusNotes" class="form-control" rows="2"></textarea>
+                        <textarea name="notes" id="statusNotes" class="form-control" rows="2" placeholder="Any additional information..."></textarea>
                     </div>
 
                     <div id="statusMessage" class="alert" style="display: none;"></div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="submitStatusUpdate">Update Status</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <iconify-icon icon="solar:close-circle-line-duotone"></iconify-icon>
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="submitStatusUpdate">
+                    <iconify-icon icon="solar:refresh-line-duotone"></iconify-icon>
+                    Update Status
+                </button>
             </div>
         </div>
     </div>
 </div>
 @endsection
 
-@push('styles')
-<link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-<style>
-    .table th {
-        font-weight: 600;
-        color: #555;
-        border-top: none;
-    }
-</style>
-@endpush
-
 @push('scripts')
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
-
-<script>
-$(document).ready(function() {
-    var table = $('#riderParcelsTable').DataTable({
-        processing: true,
-        serverSide: true,
-        ajax: {
-            url: "{{ route('rider.parcels.data') }}",
-            data: function(d) {
-                d.status = $('#statusFilterValue').val();
-            }
-        },
-        columns: [
-            { data: 'id', name: 'id' },
-            { data: 'tracking_number', name: 'tracking_number' },
-            { data: 'receiver_info', name: 'receiver_name', orderable: false },
-            { data: 'address_short', name: 'receiver_address' },
-            { data: 'weight', name: 'weight' },
-            { data: 'status_badge', name: 'status_badge', orderable: false },
-            { data: 'action', name: 'action', orderable: false }
-        ],
-        order: [[0, 'desc']],
-        pageLength: 15,
-        language: {
-            search: "Search:",
-            lengthMenu: "Show _MENU_ entries",
-            info: "Showing _START_ to _END_ of _TOTAL_ entries",
-            zeroRecords: "No parcels found"
-        }
-    });
-
-    // Filter by status
-    $('.filter-status').click(function(e) {
-        e.preventDefault();
-        var status = $(this).data('status');
-        $('#statusFilterValue').val(status);
-        table.ajax.reload();
-    });
-});
-
-// Status update logic
-let currentParcelId = null;
-
-$('#riderParcelsTable').on('click', '.update-status-btn', function() {
-    currentParcelId = $(this).data('parcel-id');
-    let trackingNumber = $(this).data('tracking');
-    let currentStatusName = $(this).data('current-status-name');
-
-    $('#modalTrackingNumber').text(trackingNumber);
-    $('#modalCurrentStatus').text(currentStatusName).removeClass().addClass('badge bg-secondary');
-    $('#parcelId').val(currentParcelId);
-    $('#statusMessage').hide();
-    $('#failureReasonDiv').hide();
-    $('#statusSelect').html('<option value="">Loading...</option>');
-
-    $.ajax({
-        url: `/rider/parcels/${currentParcelId}/available-statuses`,
-        method: 'GET',
-        success: function(response) {
-            let select = $('#statusSelect');
-            select.empty();
-            select.append('<option value="">-- Select New Status --</option>');
-            if(response.length === 0) {
-                select.append('<option disabled>No status updates available</option>');
-            } else {
-                response.forEach(function(status) {
-                    select.append(`<option value="${status.id}" data-slug="${status.slug}">${status.display_name}</option>`);
-                });
-            }
-        },
-        error: function() {
-            $('#statusSelect').html('<option disabled>Error loading statuses</option>');
-        }
-    });
-});
-
-$('#statusSelect').change(function() {
-    let selectedSlug = $(this).find('option:selected').data('slug');
-    if (selectedSlug === 'failed-delivery') {
-        $('#failureReasonDiv').slideDown();
-    } else {
-        $('#failureReasonDiv').slideUp();
-    }
-});
-
-$('#submitStatusUpdate').click(function() {
-    let statusId = $('#statusSelect').val();
-    let failureReason = $('#failureReason').val();
-    let notes = $('#statusNotes').val();
-    let selectedSlug = $('#statusSelect').find('option:selected').data('slug');
-
-    if (!statusId) {
-        showMessage('Please select a status', 'danger');
-        return;
-    }
-
-    if (selectedSlug === 'failed-delivery' && !failureReason) {
-        showMessage('Please select a failure reason', 'danger');
-        return;
-    }
-
-    $('#submitStatusUpdate').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Updating...');
-
-    $.ajax({
-        url: `/rider/parcels/${currentParcelId}/update-status`,
-        method: 'POST',
-        data: {
-            _token: "{{ csrf_token() }}",
-            status_id: statusId,
-            failure_reason: failureReason,
-            notes: notes
-        },
-        success: function(response) {
-            if(response.success) {
-                showMessage(response.message, 'success');
-                setTimeout(function() {
-                    $('#updateStatusModal').modal('hide');
-                    $('#riderParcelsTable').DataTable().ajax.reload();
-                }, 1500);
-            }
-        },
-        error: function(xhr) {
-            showMessage(xhr.responseJSON?.error || 'Failed to update status', 'danger');
-            $('#submitStatusUpdate').prop('disabled', false).html('Update Status');
-        }
-    });
-});
-
-function showMessage(message, type) {
-    let alertDiv = $('#statusMessage');
-    alertDiv.removeClass('alert-info alert-success alert-danger').addClass(`alert-${type}`);
-    alertDiv.html(`<iconify-icon icon="solar:${type === 'success' ? 'check-circle' : 'danger-circle'}-line-duotone"></iconify-icon> ${message}`);
-    alertDiv.show();
-    setTimeout(function() { alertDiv.fadeOut(); }, 3000);
-}
-</script>
+<script src="{{ asset('assets/js/rider/parcels.js') }}"></script>
 @endpush

@@ -1,110 +1,30 @@
 /**
- * Rider Parcels JavaScript
+ * Rider Parcels Page JavaScript
  */
 
 let currentParcelId = null;
 
-// Show message
+// Show message function
 function showMessage(message, type) {
     let alertDiv = $('#statusMessage');
-    alertDiv.removeClass('alert-info alert-success alert-danger').addClass(`alert-${type}`);
+    alertDiv.removeClass('alert-info alert-success alert-danger').addClass(`alert alert-${type} alert-message`);
     alertDiv.html(`<iconify-icon icon="solar:${type === 'success' ? 'check-circle' : 'danger-circle'}-line-duotone"></iconify-icon> ${message}`);
     alertDiv.show();
     setTimeout(() => alertDiv.fadeOut(), 3000);
 }
 
-// Update status button click handler
-$(document).on('click', '.update-status-btn', function() {
-    currentParcelId = $(this).data('parcel-id');
-    let trackingNumber = $(this).data('tracking');
-    let currentStatusName = $(this).data('current-status-name');
-
-    $('#modalTrackingNumber').text(trackingNumber);
-    $('#modalCurrentStatus').text(currentStatusName).removeClass().addClass('badge bg-secondary');
-    $('#parcelId').val(currentParcelId);
-    $('#statusMessage').hide();
-    $('#failureReasonDiv').hide();
-    $('#statusSelect').html('<option value="">Loading...</option>');
-
-    $.ajax({
-        url: `/rider/parcels/${currentParcelId}/available-statuses`,
-        method: 'GET',
-        success: function(response) {
-            let select = $('#statusSelect');
-            select.empty();
-            select.append('<option value="">-- Select New Status --</option>');
-            if (response.length === 0) {
-                select.append('<option disabled>No status updates available</option>');
-            } else {
-                response.forEach(function(status) {
-                    select.append(`<option value="${status.id}" data-slug="${status.slug}">${status.display_name}</option>`);
-                });
-            }
-        },
-        error: function() {
-            $('#statusSelect').html('<option disabled>Error loading statuses</option>');
-        }
-    });
-});
-
-// Status select change handler
-$('#statusSelect').change(function() {
-    let selectedSlug = $(this).find('option:selected').data('slug');
-    if (selectedSlug === 'failed-delivery') {
-        $('#failureReasonDiv').slideDown();
-    } else {
-        $('#failureReasonDiv').slideUp();
-    }
-});
-
-// Submit status update
-$('#submitStatusUpdate').click(function() {
-    let statusId = $('#statusSelect').val();
-    let failureReason = $('#failureReason').val();
-    let notes = $('#statusNotes').val();
-    let selectedSlug = $('#statusSelect').find('option:selected').data('slug');
-
-    if (!statusId) {
-        showMessage('Please select a status', 'danger');
-        return;
-    }
-
-    if (selectedSlug === 'failed-delivery' && !failureReason) {
-        showMessage('Please select a failure reason', 'danger');
-        return;
-    }
-
-    $('#submitStatusUpdate').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Updating...');
-
-    $.ajax({
-        url: `/rider/parcels/${currentParcelId}/update-status`,
-        method: 'POST',
-        data: {
-            _token: $('meta[name="csrf-token"]').attr('content'),
-            status_id: statusId,
-            failure_reason: failureReason,
-            notes: notes
-        },
-        success: function(response) {
-            if (response.success) {
-                showMessage(response.message, 'success');
-                setTimeout(() => location.reload(), 1500);
-            }
-        },
-        error: function(xhr) {
-            showMessage(xhr.responseJSON?.error || 'Failed to update status', 'danger');
-            $('#submitStatusUpdate').prop('disabled', false).html('Update Status');
-        }
-    });
-});
-
 // Initialize DataTable
 function initParcelsDataTable() {
     if ($.fn.DataTable && $('#riderParcelsTable').length) {
-        $('#riderParcelsTable').DataTable({
+        const table = $('#riderParcelsTable').DataTable({
             processing: true,
             serverSide: true,
-            ajax: $('#riderParcelsTable').data('ajax'),
+            ajax: {
+                url: $('#riderParcelsTable').data('ajax') || "{{ route('rider.parcels.data') }}",
+                data: function(d) {
+                    d.status = $('#statusFilterValue').val();
+                }
+            },
             columns: [
                 { data: 'id', name: 'id' },
                 { data: 'tracking_number', name: 'tracking_number' },
@@ -115,19 +35,157 @@ function initParcelsDataTable() {
                 { data: 'action', name: 'action', orderable: false }
             ],
             order: [[0, 'desc']],
-            pageLength: 15
+            pageLength: 15,
+            language: {
+                search: "Search:",
+                lengthMenu: "Show _MENU_ entries",
+                info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                zeroRecords: "No parcels found"
+            }
+        });
+
+        return table;
+    }
+    return null;
+}
+
+// Filter by status handler
+function initFilterHandlers(table) {
+    $('.filter-status').click(function(e) {
+        e.preventDefault();
+        const status = $(this).data('status');
+        $('#statusFilterValue').val(status);
+
+        // Update active state in dropdown
+        $('.filter-status').removeClass('active bg-primary text-white');
+        $(this).addClass('active bg-primary text-white');
+
+        if (table) {
+            table.ajax.reload();
+        } else {
+            window.location.href = `${window.location.pathname}?status=${status}`;
+        }
+    });
+}
+
+// Load available statuses for modal
+function loadAvailableStatuses(parcelId, callback) {
+    $.ajax({
+        url: `/rider/parcels/${parcelId}/available-statuses`,
+        method: 'GET',
+        success: function(response) {
+            if (callback) callback(response);
+        },
+        error: function() {
+            if (callback) callback([]);
+        }
+    });
+}
+
+// Populate status select dropdown
+function populateStatusSelect(statuses) {
+    const select = $('#statusSelect');
+    select.empty();
+    select.append('<option value="">-- Select New Status --</option>');
+
+    if (statuses.length === 0) {
+        select.append('<option disabled>No status updates available</option>');
+    } else {
+        statuses.forEach(function(status) {
+            select.append(`<option value="${status.id}" data-slug="${status.slug}">${status.display_name}</option>`);
         });
     }
 }
 
-// Filter by status
-$('.filter-status').click(function(e) {
-    e.preventDefault();
-    var status = $(this).data('status');
-    window.location.href = `/rider/parcels?status=${status}`;
-});
+// Update status modal handlers
+function initStatusModalHandlers() {
+    // Open modal and load statuses
+    $('#riderParcelsTable').on('click', '.update-status-btn', function() {
+        currentParcelId = $(this).data('parcel-id');
+        const trackingNumber = $(this).data('tracking');
+        const currentStatusName = $(this).data('current-status-name');
+
+        $('#modalTrackingNumber').text(trackingNumber);
+        $('#modalCurrentStatus').text(currentStatusName).removeClass().addClass('badge bg-secondary');
+        $('#parcelId').val(currentParcelId);
+        $('#statusMessage').hide();
+        $('#failureReasonDiv').hide();
+        $('#statusSelect').html('<option value="">Loading...</option>');
+
+        loadAvailableStatuses(currentParcelId, function(statuses) {
+            populateStatusSelect(statuses);
+        });
+    });
+
+    // Status select change - show/hide failure reason
+    $('#statusSelect').off('change').on('change', function() {
+        const selectedSlug = $(this).find('option:selected').data('slug');
+        if (selectedSlug === 'failed-delivery') {
+            $('#failureReasonDiv').slideDown();
+        } else {
+            $('#failureReasonDiv').slideUp();
+        }
+    });
+
+    // Submit status update
+    $('#submitStatusUpdate').off('click').on('click', function() {
+        const statusId = $('#statusSelect').val();
+        const failureReason = $('#failureReason').val();
+        const notes = $('#statusNotes').val();
+        const selectedSlug = $('#statusSelect').find('option:selected').data('slug');
+
+        if (!statusId) {
+            showMessage('Please select a status', 'danger');
+            return;
+        }
+
+        if (selectedSlug === 'failed-delivery' && !failureReason) {
+            showMessage('Please select a failure reason', 'danger');
+            return;
+        }
+
+        const $btn = $('#submitStatusUpdate');
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm spinner-small"></span> Updating...');
+
+        $.ajax({
+            url: `/rider/parcels/${currentParcelId}/update-status`,
+            method: 'POST',
+            data: {
+                _token: $('meta[name="csrf-token"]').attr('content'),
+                status_id: statusId,
+                failure_reason: failureReason,
+                notes: notes
+            },
+            success: function(response) {
+                if (response.success) {
+                    showMessage(response.message, 'success');
+                    setTimeout(function() {
+                        $('#updateStatusModal').modal('hide');
+                        $('#riderParcelsTable').DataTable().ajax.reload();
+                        $('#submitStatusUpdate').prop('disabled', false).html('Update Status');
+                    }, 1500);
+                }
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON?.error || 'Failed to update status';
+                showMessage(errorMsg, 'danger');
+                $btn.prop('disabled', false).html('Update Status');
+            }
+        });
+    });
+}
+
+// Auto-hide alerts
+function initAlerts() {
+    setTimeout(function() {
+        $('.alert').fadeOut('slow');
+    }, 5000);
+}
 
 // Document Ready
 $(document).ready(function() {
-    initParcelsDataTable();
+    const table = initParcelsDataTable();
+    initFilterHandlers(table);
+    initStatusModalHandlers();
+    initAlerts();
 });
