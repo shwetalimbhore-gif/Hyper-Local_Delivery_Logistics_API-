@@ -2,10 +2,14 @@
 
 @section('title', 'Rider Details - ' . $rider->employee_id)
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('assets/css/admin/riders-show.css') }}">
+@endpush
+
 @section('content')
 <div class="row">
     <div class="col-12">
-        <div class="card">
+        <div class="card rider-details-card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="card-title mb-0">Rider Details: {{ $rider->user->name }}</h5>
@@ -34,41 +38,22 @@
                             </div>
                             <div class="card-body">
                                 <table class="table table-sm table-borderless">
-                                    <tr>
-                                        <th width="35%">Full Name:</th>
-                                        <td>{{ $rider->user->name }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Email:</th>
-                                        <td>{{ $rider->user->email }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Phone:</th>
-                                        <td>{{ $rider->user->phone }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Address:</th>
-                                        <td>{{ $rider->user->address ?? 'N/A' }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Employee ID:</th>
-                                        <td><span class="fw-bold">{{ $rider->employee_id }}</span></td>
-                                    </tr>
-                                    <tr>
-                                        <th>Joined Date:</th>
-                                        <td>{{ $rider->joined_date ? date('d M Y', strtotime($rider->joined_date)) : 'N/A' }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Status:</th>
+                                    <tr><th width="35%">Full Name:</th><td>{{ $rider->user->name }}</small></tr>
+                                    <tr><th>Email:</th><td>{{ $rider->user->email }}</small></tr>
+                                    <tr><th>Phone:</th><td>{{ $rider->user->phone }}</small></tr>
+                                    <tr><th>Address:</th><td>{{ $rider->user->address ?? 'N/A' }}</small></tr>
+                                    <tr><th>Employee ID:</th><td><span class="employee-id">{{ $rider->employee_id }}</span></small></tr>
+                                    <tr><th>Joined Date:</th><td>{{ $rider->joined_date ? date('d M Y', strtotime($rider->joined_date)) : 'N/A' }}</small></tr>
+                                    <tr><th>Status:</th>
                                         <td>
                                             @if($rider->status == 'available')
-                                                <span class="badge bg-success">Available</span>
+                                                <span class="badge badge-available">Available</span>
                                             @elseif($rider->status == 'busy')
-                                                <span class="badge bg-warning">Busy</span>
+                                                <span class="badge badge-busy">Busy</span>
                                             @else
-                                                <span class="badge bg-secondary">Offline</span>
+                                                <span class="badge badge-offline">Offline</span>
                                             @endif
-                                        </td>
+                                         </small>
                                     </tr>
                                 </table>
                             </div>
@@ -83,30 +68,12 @@
                             </div>
                             <div class="card-body">
                                 <table class="table table-sm table-borderless">
-                                    <tr>
-                                        <th width="35%">Vehicle Type:</th>
-                                        <td><span class="badge bg-info">{{ ucfirst($rider->vehicle_type) }}</span></td>
-                                    </tr>
-                                    <tr>
-                                        <th>Vehicle Number:</th>
-                                        <td>{{ $rider->vehicle_number ?? 'N/A' }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Vehicle Model:</th>
-                                        <td>{{ $rider->vehicle_model ?? 'N/A' }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>License Number:</th>
-                                        <td>{{ $rider->license_number ?? 'N/A' }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Max Weight Capacity:</th>
-                                        <td>{{ $rider->max_weight_capacity }} kg</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Max Size Capacity:</th>
-                                        <td>{{ $rider->max_size_capacity }} cm³</td>
-                                    </tr>
+                                    <tr><th width="35%">Vehicle Type:</th><td><span class="badge badge-vehicle">{{ ucfirst($rider->vehicle_type) }}</span></small></tr>
+                                    <tr><th>Vehicle Number:</th><td>{{ $rider->vehicle_number ?? 'N/A' }}</small></tr>
+                                    <tr><th>Vehicle Model:</th><td>{{ $rider->vehicle_model ?? 'N/A' }}</small></td>
+                                    <tr><th>License Number:</th><td>{{ $rider->license_number ?? 'N/A' }}</small></tr>
+                                    <tr><th>Max Weight Capacity:</th><td>{{ $rider->max_weight_capacity }} kg</small></tr>
+                                    <tr><th>Max Size Capacity:</th><td>{{ $rider->max_size_capacity }} cm³</small></tr>
                                 </table>
                             </div>
                         </div>
@@ -120,18 +87,9 @@
                             </div>
                             <div class="card-body">
                                 <table class="table table-sm table-borderless">
-                                    <tr>
-                                        <th width="35%">Assigned Hub:</th>
-                                        <td>{{ $rider->hub->name ?? 'N/A' }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Hub Code:</th>
-                                        <td>{{ $rider->hub->code ?? 'N/A' }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Hub Address:</th>
-                                        <td>{{ $rider->hub->address ?? 'N/A' }}</td>
-                                    </tr>
+                                    <tr><th width="35%">Assigned Hub:</th><td>{{ $rider->hub->name ?? 'N/A' }}</small></tr>
+                                    <tr><th>Hub Code:</th><td>{{ $rider->hub->code ?? 'N/A' }}</small></tr>
+                                    <tr><th>Hub Address:</th><td>{{ $rider->hub->address ?? 'N/A' }}</small></tr>
                                 </table>
                             </div>
                         </div>
@@ -146,29 +104,36 @@
                             <div class="card-body">
                                 <div class="row text-center">
                                     <div class="col-4">
-                                        <h3 class="mb-0">{{ $rider->total_deliveries }}</h3>
-                                        <small class="text-muted">Total Deliveries</small>
+                                        <div class="stat-box">
+                                            <div class="stat-value">{{ $rider->total_deliveries }}</div>
+                                            <div class="stat-label">Total Deliveries</div>
+                                        </div>
                                     </div>
                                     <div class="col-4">
-                                        <h3 class="mb-0 text-success">{{ $rider->successful_deliveries }}</h3>
-                                        <small class="text-muted">Successful</small>
+                                        <div class="stat-box">
+                                            <div class="stat-value text-success">{{ $rider->successful_deliveries }}</div>
+                                            <div class="stat-label">Successful</div>
+                                        </div>
                                     </div>
                                     <div class="col-4">
-                                        <h3 class="mb-0 text-danger">{{ $rider->failed_deliveries }}</h3>
-                                        <small class="text-muted">Failed</small>
+                                        <div class="stat-box">
+                                            <div class="stat-value text-danger">{{ $rider->failed_deliveries }}</div>
+                                            <div class="stat-label">Failed</div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="progress mt-3" style="height: 10px;">
+                                <div class="progress-custom mt-3">
                                     @php
                                         $successRate = $rider->total_deliveries > 0 ? ($rider->successful_deliveries / $rider->total_deliveries) * 100 : 0;
                                     @endphp
-                                    <div class="progress-bar bg-success" style="width: {{ $successRate }}%">
-                                        {{ round($successRate, 1) }}%
-                                    </div>
+                                    <div class="progress-bar-custom" style="width: {{ $successRate }}%"></div>
                                 </div>
                                 <div class="text-center mt-3">
-                                    <h4>{{ number_format($rider->rating, 1) }} <iconify-icon icon="solar:star-bold" class="text-warning"></iconify-icon></h4>
-                                    <small class="text-muted">Rating</small>
+                                    <span class="rating-value">{{ number_format($rider->rating, 1) }}</span>
+                                    <span class="rating-stars">
+                                        <iconify-icon icon="solar:star-bold"></iconify-icon>
+                                    </span>
+                                    <div class="stat-label">Rating</div>
                                 </div>
                             </div>
                         </div>
@@ -196,19 +161,19 @@
                                         <tbody>
                                             @foreach($rider->assignedParcels->take(10) as $parcel)
                                             <tr>
-                                                <td>{{ $parcel->tracking_number }}</td>
-                                                <td>{{ $parcel->receiver_name }}</td>
+                                                <td>{{ $parcel->tracking_number }}</small></td>
+                                                <td>{{ $parcel->receiver_name }}</small></td>
                                                 <td>
                                                     <span class="badge rounded-pill" style="background-color: {{ $parcel->status->color_code ?? '#6c757d' }}; color: white;">
                                                         {{ $parcel->status->display_name ?? $parcel->status->name ?? 'Unknown' }}
                                                     </span>
-                                                </td>
-                                                <td>{{ $parcel->assigned_at ? $parcel->assigned_at->format('d M Y') : 'N/A' }}</td>
+                                                 </small>
+                                                <td>{{ $parcel->assigned_at ? $parcel->assigned_at->format('d M Y') : 'N/A' }}</small></tr>
                                                 <td>
                                                     <a href="{{ route('admin.parcels.show', $parcel->id) }}" class="btn btn-sm btn-info">
                                                         <iconify-icon icon="solar:eye-line-duotone"></iconify-icon>
                                                     </a>
-                                                </td>
+                                                 </small>
                                             </tr>
                                             @endforeach
                                         </tbody>
@@ -224,7 +189,7 @@
     </div>
 </div>
 
-<!-- Delete Confirmation Modal (Centered) -->
+<!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -264,12 +229,5 @@
 @endsection
 
 @push('scripts')
-<script>
-    function showDeleteModal(riderId, riderName) {
-        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        document.getElementById('deleteRiderName').innerHTML = `<strong>${riderName}</strong>`;
-        document.getElementById('deleteForm').action = `/admin/riders/${riderId}`;
-        modal.show();
-    }
-</script>
+<script src="{{ asset('assets/js/admin/riders-show.js') }}"></script>
 @endpush

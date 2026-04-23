@@ -2,6 +2,10 @@
 
 @section('title', 'Manage Hubs')
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('assets/css/admin/hubs.css') }}">
+@endpush
+
 @section('content')
 <div class="card">
     <div class="card-body">
@@ -80,7 +84,7 @@
                                 <a href="{{ route('admin.hubs.toggle-status', $hub->id) }}" class="btn btn-sm {{ $hub->is_active ? 'btn-secondary' : 'btn-success' }}" title="{{ $hub->is_active ? 'Deactivate' : 'Activate' }}">
                                     <iconify-icon icon="{{ $hub->is_active ? 'solar:power-off-line-duotone' : 'solar:power-on-line-duotone' }}"></iconify-icon>
                                 </a>
-                                <button type="button" class="btn btn-sm btn-danger" title="Delete" 
+                                <button type="button" class="btn btn-sm btn-danger" title="Delete"
                                         onclick="showDeleteModal({{ $hub->id }}, '{{ addslashes($hub->name) }}', '{{ $hub->code }}')">
                                     <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
                                 </button>
@@ -156,74 +160,6 @@
 </div>
 @endsection
 
-@push('styles')
-<style>
-    .table th {
-        font-weight: 600;
-        color: #555;
-        border-top: none;
-    }
-    .badge {
-        padding: 5px 10px;
-        font-size: 12px;
-        font-weight: 500;
-    }
-    .btn-group .btn {
-        padding: 0.25rem 0.5rem;
-    }
-    .modal-dialog-centered {
-        display: flex;
-        align-items: center;
-        min-height: calc(100% - 1rem);
-    }
-</style>
-@endpush
-
 @push('scripts')
-<script>
-    $(document).ready(function() {
-        if ($.fn.DataTable) {
-            $('#hubsTable').DataTable({
-                responsive: true,
-                order: [[0, 'asc']],
-                pageLength: 15,
-                language: {
-                    search: "Search:",
-                    lengthMenu: "Show _MENU_ entries",
-                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                    zeroRecords: "No hubs found"
-                },
-                dom: 'Bfrtip',
-                buttons: [
-                    {
-                        extend: 'excel',
-                        text: '<iconify-icon icon="solar:file-text-line-duotone"></iconify-icon> Excel',
-                        className: 'btn btn-success btn-sm',
-                        title: 'Hubs_Report'
-                    },
-                    {
-                        extend: 'pdf',
-                        text: '<iconify-icon icon="solar:file-text-line-duotone"></iconify-icon> PDF',
-                        className: 'btn btn-danger btn-sm',
-                        title: 'Hubs_Report'
-                    },
-                    {
-                        extend: 'print',
-                        text: '<iconify-icon icon="solar:printer-line-duotone"></iconify-icon> Print',
-                        className: 'btn btn-secondary btn-sm'
-                    }
-                ]
-            });
-        }
-    });
-
-    function showDeleteModal(id, name, code) {
-        document.getElementById('hubName').textContent = name;
-        document.getElementById('hubCode').textContent = code;
-        document.getElementById('deleteForm').action = '/admin/hubs/' + id;
-        
-        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        modal.show();
-    }
-</script>
+<script src="{{ asset('assets/js/admin/hubs.js') }}"></script>
 @endpush

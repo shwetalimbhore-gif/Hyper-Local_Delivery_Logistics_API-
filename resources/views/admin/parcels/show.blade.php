@@ -2,10 +2,14 @@
 
 @section('title', 'Parcel Details - ' . $parcel->tracking_number)
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('assets/css/admin/parcels-show.css') }}">
+@endpush
+
 @section('content')
 <div class="row">
     <div class="col-12">
-        <div class="card">
+        <div class="card parcel-details-card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="card-title mb-0">Parcel Details</h5>
@@ -24,7 +28,7 @@
                 <div class="row">
                     <!-- Tracking Info -->
                     <div class="col-md-12 mb-4">
-                        <div class="card bg-light">
+                        <div class="card tracking-info-card">
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-4">
@@ -34,7 +38,7 @@
                                     <div class="col-md-4">
                                         <small class="text-muted">Status</small>
                                         <div>
-                                            <span class="badge rounded-pill" style="background-color: {{ $parcel->status->color_code ?? '#6c757d' }}; color: white; font-size: 14px;">
+                                            <span class="status-badge rounded-pill" style="background-color: {{ $parcel->status->color_code ?? '#6c757d' }}; color: white;">
                                                 {{ $parcel->status->display_name ?? $parcel->status->name ?? 'Unknown' }}
                                             </span>
                                         </div>
@@ -50,9 +54,12 @@
 
                     <!-- Sender Information -->
                     <div class="col-md-6">
-                        <div class="card h-100">
+                        <div class="card info-card h-100">
                             <div class="card-header bg-primary text-white">
-                                <h6 class="mb-0">Sender Information</h6>
+                                <h6 class="mb-0">
+                                    <iconify-icon icon="solar:user-circle-line-duotone"></iconify-icon>
+                                    Sender Information
+                                </h6>
                             </div>
                             <div class="card-body">
                                 <table class="table table-sm table-borderless">
@@ -79,9 +86,12 @@
 
                     <!-- Receiver Information -->
                     <div class="col-md-6">
-                        <div class="card h-100">
+                        <div class="card info-card h-100">
                             <div class="card-header bg-success text-white">
-                                <h6 class="mb-0">Receiver Information</h6>
+                                <h6 class="mb-0">
+                                    <iconify-icon icon="solar:user-circle-line-duotone"></iconify-icon>
+                                    Receiver Information
+                                </h6>
                             </div>
                             <div class="card-body">
                                 <table class="table table-sm table-borderless">
@@ -108,9 +118,12 @@
 
                     <!-- Parcel Details -->
                     <div class="col-md-6 mt-3">
-                        <div class="card">
+                        <div class="card info-card">
                             <div class="card-header bg-info text-white">
-                                <h6 class="mb-0">Parcel Details</h6>
+                                <h6 class="mb-0">
+                                    <iconify-icon icon="solar:box-line-duotone"></iconify-icon>
+                                    Parcel Details
+                                </h6>
                             </div>
                             <div class="card-body">
                                 <table class="table table-sm table-borderless">
@@ -124,15 +137,15 @@
                                     </tr>
                                     <tr>
                                         <th>Weight:</th>
-                                        <td>{{ $parcel->weight }} kg</td>
+                                        <td>{{ $parcel->weight }} kg</small>
                                     </tr>
                                     <tr>
                                         <th>Size:</th>
-                                        <td>{{ $parcel->size }} cm³</td>
+                                        <td>{{ $parcel->size }} cm³</small>
                                     </tr>
                                     <tr>
                                         <th>Description:</th>
-                                        <td>{{ $parcel->parcel_description ?? 'N/A' }}</td>
+                                        <td>{{ $parcel->parcel_description ?? 'N/A' }}</small>
                                     </tr>
                                 </table>
                             </div>
@@ -141,15 +154,18 @@
 
                     <!-- Delivery Information -->
                     <div class="col-md-6 mt-3">
-                        <div class="card">
+                        <div class="card info-card">
                             <div class="card-header bg-warning">
-                                <h6 class="mb-0">Delivery Information</h6>
+                                <h6 class="mb-0">
+                                    <iconify-icon icon="solar:delivery-line-duotone"></iconify-icon>
+                                    Delivery Information
+                                </h6>
                             </div>
                             <div class="card-body">
                                 <table class="table table-sm table-borderless">
                                     <tr>
                                         <th width="35%">Source Hub:</th>
-                                        <td>{{ $parcel->sourceHub->name ?? 'N/A' }}</td>
+                                        <td>{{ $parcel->sourceHub->name ?? 'N/A' }}</small>
                                     </tr>
                                     <tr>
                                         <th>Assigned Rider:</th>
@@ -161,15 +177,15 @@
                                             @else
                                                 <span class="text-muted">Not assigned</span>
                                             @endif
-                                        </td>
+                                         </small>
                                     </tr>
                                     <tr>
                                         <th>Delivery Charge:</th>
-                                        <td>₹{{ number_format($parcel->delivery_charge, 2) }}</td>
+                                        <td>₹{{ number_format($parcel->delivery_charge, 2) }}</small>
                                     </tr>
                                     <tr>
                                         <th>Payment Method:</th>
-                                        <td>{{ ucfirst($parcel->payment_method ?? 'Cash') }}</td>
+                                        <td>{{ ucfirst($parcel->payment_method ?? 'Cash') }}</small>
                                     </tr>
                                     <tr>
                                         <th>Payment Status:</th>
@@ -179,7 +195,7 @@
                                             @else
                                                 <span class="badge bg-warning">Pending</span>
                                             @endif
-                                        </td>
+                                         </small>
                                     </tr>
                                 </table>
                             </div>
@@ -190,7 +206,10 @@
                     <div class="col-md-12 mt-3">
                         <div class="card">
                             <div class="card-header bg-secondary text-white">
-                                <h6 class="mb-0">Delivery Timeline</h6>
+                                <h6 class="mb-0">
+                                    <iconify-icon icon="solar:clock-circle-line-duotone"></iconify-icon>
+                                    Delivery Timeline
+                                </h6>
                             </div>
                             <div class="card-body">
                                 <div class="row">
@@ -213,7 +232,8 @@
                                 </div>
                                 @if($parcel->failure_reason)
                                     <hr>
-                                    <div class="alert alert-danger mb-0">
+                                    <div class="alert alert-failure mb-0">
+                                        <iconify-icon icon="solar:danger-circle-line-duotone"></iconify-icon>
                                         <strong>Failure Reason:</strong> {{ $parcel->failure_reason }}
                                     </div>
                                 @endif
@@ -226,25 +246,26 @@
                     <div class="col-md-12 mt-3">
                         <div class="card">
                             <div class="card-header bg-dark text-white">
-                                <h6 class="mb-0">Status History</h6>
+                                <h6 class="mb-0">
+                                    <iconify-icon icon="solar:history-line-duotone"></iconify-icon>
+                                    Status History
+                                </h6>
                             </div>
                             <div class="card-body">
                                 <div class="timeline">
                                     @foreach($parcel->statusHistories as $history)
-                                    <div class="d-flex mb-3">
-                                        <div class="flex-shrink-0">
-                                            <div class="rounded-circle bg-primary p-2" style="width: 40px; height: 40px; text-align: center;">
-                                                <iconify-icon icon="solar:check-circle-line-duotone" class="text-white"></iconify-icon>
-                                            </div>
+                                    <div class="timeline-item">
+                                        <div class="timeline-icon bg-primary">
+                                            <iconify-icon icon="solar:check-circle-line-duotone" class="text-white"></iconify-icon>
                                         </div>
-                                        <div class="flex-grow-1 ms-3">
-                                            <h6 class="mb-1">{{ $history->status->display_name ?? $history->status->name }}</h6>
-                                            <p class="mb-0 text-muted small">
+                                        <div class="timeline-content">
+                                            <div class="timeline-title">{{ $history->status->display_name ?? $history->status->name }}</div>
+                                            <div class="timeline-date">
                                                 {{ $history->created_at->format('d M Y, h:i A') }} -
                                                 Updated by: {{ $history->updater->name ?? 'System' }}
-                                            </p>
+                                            </div>
                                             @if($history->notes)
-                                                <small class="text-muted">{{ $history->notes }}</small>
+                                                <div class="timeline-notes">{{ $history->notes }}</div>
                                             @endif
                                         </div>
                                     </div>
@@ -259,7 +280,10 @@
                     <div class="col-md-12 mt-3">
                         <div class="card">
                             <div class="card-header bg-secondary text-white">
-                                <h6 class="mb-0">Additional Notes</h6>
+                                <h6 class="mb-0">
+                                    <iconify-icon icon="solar:document-text-line-duotone"></iconify-icon>
+                                    Additional Notes
+                                </h6>
                             </div>
                             <div class="card-body">
                                 <p class="mb-0">{{ $parcel->notes }}</p>
@@ -273,30 +297,3 @@
     </div>
 </div>
 @endsection
-
-@push('styles')
-<style>
-    .table-borderless td, .table-borderless th {
-        padding: 8px 0;
-    }
-    .timeline {
-        position: relative;
-    }
-    .timeline .d-flex {
-        position: relative;
-        padding-bottom: 20px;
-    }
-    .timeline .d-flex:last-child {
-        padding-bottom: 0;
-    }
-    .timeline .d-flex:not(:last-child):before {
-        content: '';
-        position: absolute;
-        left: 20px;
-        top: 40px;
-        bottom: 0;
-        width: 2px;
-        background: #dee2e6;
-    }
-</style>
-@endpush

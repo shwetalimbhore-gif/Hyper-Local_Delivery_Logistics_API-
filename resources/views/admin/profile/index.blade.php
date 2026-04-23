@@ -2,24 +2,22 @@
 
 @section('title', 'Admin Profile')
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('assets/css/admin/profile.css') }}">
+@endpush
+
 @section('content')
 <div class="row">
     <!-- Profile Card -->
     <div class="col-md-4 mb-4">
-        <div class="card">
+        <div class="card profile-card">
             <div class="card-body text-center">
                 <!-- Profile Picture -->
-                <div class="position-relative d-inline-block mb-3">
+                <div class="profile-avatar mb-3">
                     <img id="profilePreview"
                          src="{{ $admin->profile_image ? asset('storage/' . $admin->profile_image) : asset('assets/images/profile/user-1.jpg') }}"
-                         class="rounded-circle"
-                         width="120"
-                         height="120"
-                         style="object-fit: cover; border: 3px solid #4f46e5;">
-                    <button type="button"
-                            class="btn btn-sm btn-primary position-absolute bottom-0 end-0"
-                            style="border-radius: 50%; width: 32px; height: 32px; padding: 0;"
-                            onclick="document.getElementById('profileImageInput').click();">
+                         alt="Profile Picture">
+                    <button type="button" class="upload-btn" onclick="document.getElementById('profileImageInput').click();">
                         <iconify-icon icon="solar:camera-line-duotone"></iconify-icon>
                     </button>
                     <form id="profileImageForm" action="{{ route('admin.profile.update-picture') }}" method="POST" enctype="multipart/form-data" style="display: none;">
@@ -48,26 +46,28 @@
         </div>
 
         <!-- Quick Stats -->
-        <div class="card">
+        <div class="card stats-card">
             <div class="card-header">
                 <h6 class="mb-0">Quick Stats</h6>
             </div>
             <div class="card-body">
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Total Parcels:</span>
-                    <span class="fw-bold">{{ \App\Models\Parcel::count() }}</span>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Total Riders:</span>
-                    <span class="fw-bold">{{ \App\Models\Rider::count() }}</span>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Total Hubs:</span>
-                    <span class="fw-bold">{{ \App\Models\Hub::count() }}</span>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span>Total Earnings:</span>
-                    <span class="fw-bold text-success">₹{{ number_format(\App\Models\Payment::where('payment_status', 'completed')->sum('amount'), 2) }}</span>
+                <div class="stats-list">
+                    <div class="stats-item">
+                        <span class="stats-label">Total Parcels:</span>
+                        <span class="stats-value">{{ \App\Models\Parcel::count() }}</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="stats-label">Total Riders:</span>
+                        <span class="stats-value">{{ \App\Models\Rider::count() }}</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="stats-label">Total Hubs:</span>
+                        <span class="stats-value">{{ \App\Models\Hub::count() }}</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="stats-label">Total Earnings:</span>
+                        <span class="stats-value text-success">₹{{ number_format(\App\Models\Payment::where('payment_status', 'completed')->sum('amount'), 2) }}</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -75,7 +75,7 @@
 
     <!-- Edit Profile Form -->
     <div class="col-md-8 mb-4">
-        <div class="card">
+        <div class="card form-card">
             <div class="card-header">
                 <h6 class="mb-0">
                     <iconify-icon icon="solar:user-circle-line-duotone"></iconify-icon>
@@ -90,7 +90,7 @@
                     </div>
                 @endif
 
-                <form id="profileForm" method = "POST">
+                <form id="profileForm" action="{{ route('admin.profile.update') }}" method="POST">
                     @csrf
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -120,12 +120,12 @@
                     </button>
                 </form>
 
-                <div id="profileMessage" class="mt-3" style="display: none;"></div>
+                <div id="profileMessage" class="alert-message" style="display: none;"></div>
             </div>
         </div>
 
         <!-- Change Password Card -->
-        <div class="card mt-4">
+        <div class="card form-card mt-4">
             <div class="card-header">
                 <h6 class="mb-0">
                     <iconify-icon icon="solar:lock-password-line-duotone"></iconify-icon>
@@ -133,7 +133,7 @@
                 </h6>
             </div>
             <div class="card-body">
-                <form id="passwordForm" method = "POST">
+                <form id="passwordForm" action="{{ route('admin.profile.change-password') }}" method="POST">
                     @csrf
                     <div class="mb-3">
                         <label class="form-label">Current Password</label>
@@ -154,7 +154,7 @@
                     </button>
                 </form>
 
-                <div id="passwordMessage" class="mt-3" style="display: none;"></div>
+                <div id="passwordMessage" class="alert-message" style="display: none;"></div>
             </div>
         </div>
     </div>
@@ -162,102 +162,5 @@
 @endsection
 
 @push('scripts')
-<script>
-    // Upload profile image
-    function uploadProfileImage(input) {
-        if (input.files && input.files[0]) {
-            const formData = new FormData();
-            formData.append('profile_image', input.files[0]);
-
-            // Preview image
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                $('#profilePreview').attr('src', e.target.result);
-            }
-            reader.readAsDataURL(input.files[0]);
-
-            // Upload
-            $.ajax({
-                url: "{{ route('admin.profile.update-picture') }}",
-                method: "POST",
-                data: formData,
-                processData: false,
-                contentType: false,
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                success: function(response) {
-                    if(response.success) {
-                        showMessage('profileMessage', 'success', response.message);
-                    }
-                },
-                error: function(xhr) {
-                    showMessage('profileMessage', 'danger', xhr.responseJSON?.message || 'Upload failed');
-                }
-            });
-        }
-    }
-
-    // Update profile
-    $('#profileForm').on('submit', function(e) {
-        e.preventDefault();
-        $('#saveProfileBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Saving...');
-
-        $.ajax({
-            url: "{{ route('admin.profile.update') }}",
-            method: "POST",
-            data: $(this).serialize(),
-            success: function(response) {
-                if(response.success) {
-                    showMessage('profileMessage', 'success', response.message);
-                    setTimeout(() => location.reload(), 1500);
-                }
-            },
-            error: function(xhr) {
-                let errors = xhr.responseJSON?.errors;
-                let message = errors ? Object.values(errors).flat().join(', ') : 'Update failed';
-                showMessage('profileMessage', 'danger', message);
-            },
-            complete: function() {
-                $('#saveProfileBtn').prop('disabled', false).html('<iconify-icon icon="solar:save-line-duotone"></iconify-icon> Save Changes');
-            }
-        });
-    });
-
-    // Change password
-    $('#passwordForm').on('submit', function(e) {
-        e.preventDefault();
-        $('#changePasswordBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Changing...');
-
-        $.ajax({
-            url: "{{ route('admin.profile.change-password') }}",
-            method: "POST",
-            data: $(this).serialize(),
-            success: function(response) {
-                if(response.success) {
-                    showMessage('passwordMessage', 'success', response.message);
-                    $('#passwordForm')[0].reset();
-                    setTimeout(() => {
-                        window.location.href = "{{ route('login') }}";
-                    }, 2000);
-                }
-            },
-            error: function(xhr) {
-                let message = xhr.responseJSON?.message || 'Password change failed';
-                showMessage('passwordMessage', 'danger', message);
-            },
-            complete: function() {
-                $('#changePasswordBtn').prop('disabled', false).html('<iconify-icon icon="solar:lock-password-line-duotone"></iconify-icon> Change Password');
-            }
-        });
-    });
-
-    function showMessage(elementId, type, message) {
-        let alertDiv = $(`#${elementId}`);
-        alertDiv.removeClass('alert-success alert-danger').addClass(`alert alert-${type}`);
-        alertDiv.html(`<iconify-icon icon="solar:${type === 'success' ? 'check-circle' : 'danger-circle'}-line-duotone"></iconify-icon> ${message}`);
-        alertDiv.show();
-        setTimeout(() => { alertDiv.fadeOut(); }, 3000);
-    }
-</script>
+<script src="{{ asset('assets/js/admin/profile.js') }}"></script>
 @endpush

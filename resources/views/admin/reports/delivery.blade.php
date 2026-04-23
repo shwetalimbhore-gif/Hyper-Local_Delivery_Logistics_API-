@@ -2,16 +2,20 @@
 
 @section('title', 'Delivery Reports')
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('assets/css/admin/reports-delivery.css') }}">
+@endpush
+
 @section('content')
 <div class="delivery-report-container">
-    <div class="card">
+    <div class="card report-card">
         <div class="card-body">
             <h5 class="card-title mb-4">Delivery Reports</h5>
 
             <!-- Filter Section -->
             <div class="row mb-4">
                 <div class="col-md-12">
-                    <div class="card bg-light">
+                    <div class="card filter-card">
                         <div class="card-body">
                             <form method="GET" action="{{ route('admin.reports.delivery') }}" class="row g-3">
                                 <div class="col-md-2">
@@ -77,7 +81,7 @@
             <!-- Summary Cards -->
             <div class="row mb-4">
                 <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card bg-primary text-white h-100">
+                    <div class="card bg-primary text-white stats-card h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -92,7 +96,7 @@
                 </div>
 
                 <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card bg-success text-white h-100">
+                    <div class="card bg-success text-white stats-card h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -107,9 +111,9 @@
                 </div>
 
                 <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card bg-danger text-white h-100">
+                    <div class="card bg-danger text-white stats-card h-100">
                         <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex justify-content-between-align-items-center">
                                 <div>
                                     <h6 class="text-white-50 mb-1">Failed</h6>
                                     <h2 class="text-white mb-0">{{ $failedCount }}</h2>
@@ -122,7 +126,7 @@
                 </div>
 
                 <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card bg-info text-white h-100">
+                    <div class="card bg-info text-white stats-card h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -145,7 +149,7 @@
                             <h6 class="mb-0">Delivery Trends</h6>
                         </div>
                         <div class="card-body">
-                            <div style="height: 350px;">
+                            <div class="chart-container">
                                 <canvas id="deliveryTrendsChart"></canvas>
                             </div>
                         </div>
@@ -158,7 +162,7 @@
                             <h6 class="mb-0">Status Distribution</h6>
                         </div>
                         <div class="card-body">
-                            <div style="height: 250px;">
+                            <div class="chart-container-sm">
                                 <canvas id="statusChart"></canvas>
                             </div>
                             <div class="mt-3">
@@ -184,10 +188,10 @@
                         <div class="card-header">
                             <h6 class="mb-0">Rider Performance</h6>
                         </div>
-                        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        <div class="scrollable-table-body">
                             <div class="table-responsive">
                                 <table class="table table-sm table-hover">
-                                    <thead class="sticky-top bg-white">
+                                    <thead class="sticky-header">
                                         <tr>
                                             <th>Rider</th>
                                             <th>Deliveries</th>
@@ -205,12 +209,12 @@
                                                 @php
                                                     $successRate = $rider->deliveries > 0 ? 100 : 0;
                                                 @endphp
-                                                <div class="progress" style="height: 6px;">
-                                                    <div class="progress-bar bg-success" style="width: {{ $successRate }}%"></div>
+                                                <div class="progress-custom">
+                                                    <div class="progress-bar-custom bg-success" style="width: {{ $successRate }}%"></div>
                                                 </div>
                                                 <small>{{ $successRate }}%</small>
                                              </small>
-                                        </tr>
+                                        </td>
                                         @empty
                                         <tr>
                                             <td colspan="4" class="text-center text-muted">No data available</small></td>
@@ -228,10 +232,10 @@
                         <div class="card-header">
                             <h6 class="mb-0">Hub Performance</h6>
                         </div>
-                        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        <div class="scrollable-table-body">
                             <div class="table-responsive">
                                 <table class="table table-sm table-hover">
-                                    <thead class="sticky-top bg-white">
+                                    <thead class="sticky-header">
                                         <tr>
                                             <th>Hub</th>
                                             <th>Deliveries</th>
@@ -251,11 +255,11 @@
                                                 {{ $hubSuccessRate }}%
                                              </small>
                                             <td>
-                                                <div class="progress" style="height: 6px;">
-                                                    <div class="progress-bar bg-info" style="width: {{ $hubSuccessRate }}%"></div>
+                                                <div class="progress-custom">
+                                                    <div class="progress-bar-custom bg-info" style="width: {{ $hubSuccessRate }}%"></div>
                                                 </div>
                                              </small>
-                                        </tr>
+                                        </td>
                                         @empty
                                         <tr>
                                             <td colspan="4" class="text-center text-muted">No data available</small></td>
@@ -281,10 +285,10 @@
                             <div class="row">
                                 @foreach($failureReasons as $reason)
                                 <div class="col-md-4 col-lg-3 mb-2">
-                                    <div class="alert alert-warning mb-0">
+                                    <div class="failure-alert alert-warning">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <span>{{ $reason->failure_reason }}</span>
-                                            <span class="badge bg-danger rounded-pill">{{ $reason->count }}</span>
+                                            <span class="failure-reason-count">{{ $reason->count }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -304,10 +308,10 @@
                             <h6 class="mb-0">Detailed Parcel List</h6>
                             <span class="badge bg-secondary">{{ $parcels->total() }} Total Records</span>
                         </div>
-                        <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                        <div class="scrollable-table-body-large">
                             <div class="table-responsive">
                                 <table class="table table-hover table-sm">
-                                    <thead class="sticky-top bg-white">
+                                    <thead class="sticky-header">
                                         <tr>
                                             <th>ID</th>
                                             <th>Tracking #</th>
@@ -357,7 +361,7 @@
             </div>
 
             <!-- Date Range Info -->
-            <div class="alert alert-info">
+            <div class="alert alert-info-custom">
                 <iconify-icon icon="solar:info-circle-line-duotone"></iconify-icon>
                 Showing data from <strong>{{ $startDate instanceof \DateTime ? $startDate->format('d M Y') : \Carbon\Carbon::parse($startDate)->format('d M Y') }}</strong>
                 to <strong>{{ $endDate instanceof \DateTime ? $endDate->format('d M Y') : \Carbon\Carbon::parse($endDate)->format('d M Y') }}</strong>
@@ -367,160 +371,20 @@
 </div>
 @endsection
 
-@push('styles')
-<style>
-    .delivery-report-container {
-        overflow-x: auto;
-        overflow-y: visible;
-    }
-    .card {
-        border-radius: 10px;
-        border: none;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-    }
-    .card-header {
-        background: #f8f9fa;
-        border-bottom: 1px solid #e9ecef;
-        padding: 12px 20px;
-    }
-    .sticky-top {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        background: white;
-    }
-    .table-responsive {
-        overflow-x: auto;
-    }
-    canvas {
-        max-width: 100%;
-        height: auto !important;
-    }
-    .progress {
-        background-color: #e9ecef;
-        border-radius: 10px;
-    }
-    @media (max-width: 768px) {
-        .col-md-3, .col-lg-8, .col-lg-4, .col-lg-6 {
-            margin-bottom: 15px;
-        }
-        .card-body {
-            padding: 15px;
-        }
-        h2 {
-            font-size: 1.5rem;
-        }
-    }
-</style>
-@endpush
-
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Show/hide custom date range
-    const periodSelect = document.getElementById('periodSelect');
-    const startDateDiv = document.getElementById('startDateDiv');
-    const endDateDiv = document.getElementById('endDateDiv');
+    // Pass data from PHP to JavaScript
+    window.deliveryTrendsData = {
+        labels: {!! json_encode($dailyDeliveries->pluck('date')->map(function($date) { return date('d M', strtotime($date)); })) !!},
+        values: {!! json_encode($dailyDeliveries->pluck('count')) !!}
+    };
 
-    if (periodSelect) {
-        periodSelect.addEventListener('change', function() {
-            if (this.value === 'custom') {
-                if (startDateDiv) startDateDiv.style.display = 'block';
-                if (endDateDiv) endDateDiv.style.display = 'block';
-            } else {
-                if (startDateDiv) startDateDiv.style.display = 'none';
-                if (endDateDiv) endDateDiv.style.display = 'none';
-            }
-        });
-    }
-
-    // Delivery Trends Chart
-    @if(isset($dailyDeliveries) && $dailyDeliveries->count() > 0)
-    const trendsCtx = document.getElementById('deliveryTrendsChart');
-    if (trendsCtx) {
-        new Chart(trendsCtx, {
-            type: 'line',
-            data: {
-                labels: {!! json_encode($dailyDeliveries->pluck('date')->map(function($date) { return date('d M', strtotime($date)); })) !!},
-                datasets: [{
-                    label: 'Deliveries',
-                    data: {!! json_encode($dailyDeliveries->pluck('count')) !!},
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': ' + context.raw;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Number of Deliveries'
-                        },
-                        ticks: {
-                            stepSize: 1
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Date'
-                        }
-                    }
-                }
-            }
-        });
-    }
-    @endif
-
-    // Status Distribution Chart
-    @if(isset($statusDistribution) && $statusDistribution->count() > 0)
-    const statusCtx = document.getElementById('statusChart');
-    if (statusCtx) {
-        new Chart(statusCtx, {
-            type: 'doughnut',
-            data: {
-                labels: {!! json_encode($statusDistribution->pluck('display_name')) !!},
-                datasets: [{
-                    data: {!! json_encode($statusDistribution->pluck('parcels_count')) !!},
-                    backgroundColor: {!! json_encode($statusDistribution->pluck('color_code')) !!},
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.label + ': ' + context.raw + ' parcels';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-    @endif
+    window.statusChartData = {
+        labels: {!! json_encode($statusDistribution->pluck('display_name')) !!},
+        data: {!! json_encode($statusDistribution->pluck('parcels_count')) !!},
+        colors: {!! json_encode($statusDistribution->pluck('color_code')) !!}
+    };
 </script>
+<script src="{{ asset('assets/js/admin/reports-delivery.js') }}"></script>
 @endpush

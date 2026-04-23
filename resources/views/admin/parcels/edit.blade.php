@@ -2,8 +2,12 @@
 
 @section('title', 'Edit Parcel - ' . $parcel->tracking_number)
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('assets/css/admin/parcels-edit.css') }}">
+@endpush
+
 @section('content')
-<div class="card">
+<div class="card parcel-edit-card">
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h5 class="card-title">Edit Parcel: {{ $parcel->tracking_number }}</h5>
@@ -15,6 +19,7 @@
 
         @if(session('error'))
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <iconify-icon icon="solar:danger-circle-line-duotone"></iconify-icon>
                 {{ session('error') }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
@@ -251,7 +256,9 @@
                                             </option>
                                         @endforeach
                                     </select>
-                                    <button type="button" class="btn btn-primary" id="autoAssignBtn" onclick="autoAssignRider()">
+                                    <button type="button" class="btn btn-primary" id="autoAssignBtn"
+                                            data-url="{{ route('admin.parcels.find-rider') }}"
+                                            onclick="autoAssignRider()">
                                         <iconify-icon icon="solar:magic-stick-line-duotone"></iconify-icon>
                                         Auto Assign
                                     </button>
@@ -301,132 +308,9 @@
 </div>
 
 <!-- Auto Assign Status Message -->
-<div id="autoAssignMessage" style="display: none;"></div>
+<div id="autoAssignMessage" class="auto-assign-message" style="display: none;"></div>
 @endsection
 
-@push('styles')
-<style>
-    .card {
-        border-radius: 10px;
-        border: none;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-    }
-    .card-header {
-        border-radius: 10px 10px 0 0 !important;
-    }
-    .form-label {
-        font-weight: 500;
-        margin-bottom: 0.5rem;
-    }
-    .input-group .btn {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-    }
-</style>
-@endpush
-
 @push('scripts')
-<script>
-    function autoAssignRider() {
-        let weight = parseFloat(document.getElementById('weight').value) || 0;
-        let size = parseFloat(document.getElementById('size').value) || 0;
-        let hubId = document.getElementById('sourceHubId').value;
-
-        if (weight === 0) {
-            alert('Please enter parcel weight first');
-            document.getElementById('weight').focus();
-            return;
-        }
-
-        if (size === 0) {
-            alert('Please enter parcel size first');
-            document.getElementById('size').focus();
-            return;
-        }
-
-        if (!hubId) {
-            alert('Please select a source hub first');
-            document.getElementById('sourceHubId').focus();
-            return;
-        }
-
-        // Show loading
-        let autoAssignBtn = document.getElementById('autoAssignBtn');
-        let originalText = autoAssignBtn.innerHTML;
-        autoAssignBtn.disabled = true;
-        autoAssignBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Finding best rider...';
-
-        // AJAX request to find best rider
-        $.ajax({
-            url: "{{ route('admin.parcels.find-rider') }}",
-            method: 'POST',
-            data: {
-                _token: "{{ csrf_token() }}",
-                weight: weight,
-                size: size,
-                hub_id: hubId
-            },
-            success: function(response) {
-                if (response.success && response.rider) {
-                    // Select the rider in dropdown
-                    $('#riderSelect').val(response.rider.id);
-
-                    // Show success message
-                    showMessage('✓ Rider auto-assigned successfully!', 'success');
-
-                    // Update status select to "Assigned"
-                    let assignedStatusId = $('#statusSelect option[data-status-slug="assigned"]').val();
-                    if (assignedStatusId) {
-                        $('#statusSelect').val(assignedStatusId);
-                    }
-
-                    // Display rider details
-                    alert('✓ Rider Auto-Assigned:\n\n' +
-                          'Name: ' + response.rider.name + '\n' +
-                          'Employee ID: ' + response.rider.employee_id + '\n' +
-                          'Max Weight: ' + response.rider.max_weight_capacity + ' kg\n' +
-                          'Max Size: ' + response.rider.max_size_capacity + ' cm³\n' +
-                          'Status: ' + response.rider.status);
-                } else {
-                    alert('❌ No available rider found!\n\n' +
-                          'Parcel Requirements:\n' +
-                          '• Weight: ' + weight + ' kg\n' +
-                          '• Size: ' + size + ' cm³\n' +
-                          '• Hub ID: ' + hubId + '\n\n' +
-                          'Please check:\n' +
-                          '• Rider availability in this hub\n' +
-                          '• Rider weight/size capacity\n' +
-                          '• Rider status (must be "available")');
-                }
-            },
-            error: function(xhr) {
-                let errorMsg = xhr.responseJSON?.error || 'Unknown error occurred';
-                alert('Error finding rider: ' + errorMsg);
-            },
-            complete: function() {
-                autoAssignBtn.disabled = false;
-                autoAssignBtn.innerHTML = originalText;
-            }
-        });
-    }
-
-    function showMessage(message, type) {
-        let msgDiv = $('#autoAssignMessage');
-        msgDiv.removeClass('alert-success alert-danger alert-info')
-            .addClass(`alert alert-${type === 'success' ? 'success' : 'danger'}`)
-            .html(`<iconify-icon icon="solar:${type === 'success' ? 'check-circle' : 'danger-circle'}-line-duotone"></iconify-icon> ${message}`);
-        msgDiv.show();
-
-        setTimeout(function() {
-            msgDiv.fadeOut();
-        }, 3000);
-    }
-
-    // Form submission loading state
-    document.getElementById('parcelForm').addEventListener('submit', function() {
-        let submitBtn = document.getElementById('submitBtn');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Updating...';
-    });
-</script>
+<script src="{{ asset('assets/js/admin/parcels-edit.js') }}"></script>
 @endpush

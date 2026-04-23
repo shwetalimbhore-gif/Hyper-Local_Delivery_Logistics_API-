@@ -2,6 +2,10 @@
 
 @section('title', 'Dashboard')
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('assets/css/admin/dashboard.css') }}">
+@endpush
+
 @section('content')
 <div class="row">
     <!-- Stats Cards -->
@@ -210,43 +214,6 @@
 </div>
 @endsection
 
-@push('styles')
-<style>
-    .card {
-        border-radius: 15px;
-        border: none;
-        box-shadow: 0 2px 15px rgba(0,0,0,0.08);
-        transition: transform 0.2s;
-    }
-    .card:hover {
-        transform: translateY(-3px);
-    }
-    .table th {
-        font-weight: 600;
-        color: #555;
-        border-top: none;
-    }
-    .badge {
-        padding: 5px 10px;
-        font-size: 12px;
-        font-weight: 500;
-    }
-    .btn-group .btn {
-        padding: 0.25rem 0.5rem;
-    }
-    .progress {
-        background-color: #e9ecef;
-        border-radius: 10px;
-    }
-</style>
-@endpush
-
 @push('scripts')
-<script>
-    function confirmDelete(id) {
-        if (confirm('Are you sure you want to delete this parcel?')) {
-            document.getElementById('delete-form-' + id).submit();
-        }
-    }
-</script>
+<script src="{{ asset('assets/js/admin/dashboard.js') }}"></script>
 @endpush

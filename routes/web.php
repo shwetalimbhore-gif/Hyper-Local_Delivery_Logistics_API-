@@ -138,7 +138,7 @@ Route::middleware(['auth'])->prefix('rider')->name('rider.')->group(function () 
     // Earnings
     Route::get('/earnings', [RiderRiderController::class, 'earnings'])->name('earnings');
 
-    // Profile
+    // Profileff
     Route::get('/profile', [RiderRiderController::class, 'profile'])->name('profile');
     Route::post('/profile/update', [RiderRiderController::class, 'updateProfile'])->name('profile.update');
     Route::post('/profile/update-image', [RiderController::class, 'updateProfileImage'])->name('profile.update-image');

@@ -1,0 +1,66 @@
+/* Admin Riders Styles */
+
+/* Rider Avatar */
+.rider-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Rating Stars */
+.rating-stars {
+    color: #ffc107;
+    font-size: 14px;
+}
+
+.rating-value {
+    font-weight: 600;
+    margin-right: 5px;
+}
+
+/* Vehicle Badges */
+.vehicle-bike { background: #007bff; }
+.vehicle-scooter { background: #17a2b8; }
+.vehicle-bicycle { background: #28a745; }
+.vehicle-car { background: #ffc107; color: #000; }
+.vehicle-truck { background: #dc3545; }
+
+/* Status Badges */
+.status-available { background: #28a745; }
+.status-busy { background: #ffc107; color: #000; }
+.status-offline { background: #6c757d; }
+
+/* Rider Card */
+.rider-card {
+    transition: transform 0.2s;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.rider-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Performance Progress */
+.progress-sm {
+    height: 6px;
+    border-radius: 3px;
+}
+
+/* Modal */
+.modal-centered {
+    display: flex;
+    align-items: center;
+    min-height: calc(100% - 1rem);
+}
+
+.modal.fade .modal-dialog {
+    transform: scale(0.8);
+    transition: transform 0.2s ease-in-out;
+}
+
+.modal.show .modal-dialog {
+    transform: scale(1);
+}

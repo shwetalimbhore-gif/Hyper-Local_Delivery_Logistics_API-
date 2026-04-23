@@ -2,16 +2,20 @@
 
 @section('title', 'Earnings Reports')
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('assets/css/admin/reports-earnings.css') }}">
+@endpush
+
 @section('content')
 <div class="earnings-report-container">
-    <div class="card">
+    <div class="card report-card">
         <div class="card-body">
             <h5 class="card-title mb-4">Earnings Reports</h5>
 
             <!-- Filter Section -->
             <div class="row mb-4">
                 <div class="col-md-12">
-                    <div class="card bg-light">
+                    <div class="card filter-card">
                         <div class="card-body">
                             <form method="GET" action="{{ route('admin.reports.earnings') }}" class="row g-3">
                                 <div class="col-md-2">
@@ -77,7 +81,7 @@
             <!-- Summary Cards Row -->
             <div class="row mb-4">
                 <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card bg-primary text-white h-100">
+                    <div class="card bg-primary text-white stats-card h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -92,7 +96,7 @@
                 </div>
 
                 <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card bg-success text-white h-100">
+                    <div class="card bg-success text-white stats-card h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -107,7 +111,7 @@
                 </div>
 
                 <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card bg-info text-white h-100">
+                    <div class="card bg-info text-white stats-card h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -122,7 +126,7 @@
                 </div>
 
                 <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card bg-warning text-dark h-100">
+                    <div class="card bg-warning text-dark stats-card h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -145,7 +149,7 @@
                             <h6 class="mb-0">Daily Earnings Trend</h6>
                         </div>
                         <div class="card-body">
-                            <div style="height: 350px;">
+                            <div class="chart-container">
                                 <canvas id="dailyEarningsChart"></canvas>
                             </div>
                         </div>
@@ -158,14 +162,14 @@
                             <h6 class="mb-0">Payment Methods</h6>
                         </div>
                         <div class="card-body">
-                            <div style="height: 250px;">
+                            <div class="chart-container-sm">
                                 <canvas id="paymentMethodChart"></canvas>
                             </div>
                             <div class="mt-3">
                                 @foreach($earningsByMethod as $method)
                                 <div class="d-flex justify-content-between mb-2">
                                     <span>{{ ucfirst($method->payment_method) }}</span>
-                                    <span class="fw-bold">₹{{ number_format($method->total, 2) }}</span>
+                                    <span class="fw-bold earnings-amount">₹{{ number_format($method->total, 2) }}</span>
                                 </div>
                                 @endforeach
                             </div>
@@ -181,10 +185,10 @@
                         <div class="card-header">
                             <h6 class="mb-0">Earnings by Hub</h6>
                         </div>
-                        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        <div class="scrollable-table-body">
                             <div class="table-responsive">
                                 <table class="table table-sm table-hover">
-                                    <thead class="sticky-top bg-white">
+                                    <thead class="sticky-header">
                                         <tr>
                                             <th>Hub</th>
                                             <th>Deliveries</th>
@@ -198,7 +202,7 @@
                                             <td>{{ $hub->name }} ({{ $hub->code }})</small></td>
                                             <td>{{ $hub->deliveries }}</small></td>
                                             <td>₹{{ number_format($hub->total_charges, 2) }}</small></td>
-                                            <td class="fw-bold text-success">₹{{ number_format($hub->total_earnings, 2) }}</small></td>
+                                            <td class="earnings-amount">₹{{ number_format($hub->total_earnings, 2) }}</small></td>
                                         </tr>
                                         @empty
                                         <tr>
@@ -217,10 +221,10 @@
                         <div class="card-header">
                             <h6 class="mb-0">Top Performing Riders</h6>
                         </div>
-                        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        <div class="scrollable-table-body">
                             <div class="table-responsive">
                                 <table class="table table-sm table-hover">
-                                    <thead class="sticky-top bg-white">
+                                    <thead class="sticky-header">
                                         <tr>
                                             <th>Rider</th>
                                             <th>Deliveries</th>
@@ -234,7 +238,7 @@
                                             <td>{{ $rider->name }} ({{ $rider->employee_id }})</small></td>
                                             <td>{{ $rider->deliveries }}</small></td>
                                             <td>₹{{ number_format($rider->total_charges, 2) }}</small></td>
-                                            <td class="fw-bold text-success">₹{{ number_format($rider->total_earnings, 2) }}</small></td>
+                                            <td class="earnings-amount">₹{{ number_format($rider->total_earnings, 2) }}</small></td>
                                         </tr>
                                         @empty
                                         <tr>
@@ -257,7 +261,7 @@
                             <h6 class="mb-0">Monthly Earnings ({{ date('Y') }})</h6>
                         </div>
                         <div class="card-body">
-                            <div style="height: 350px;">
+                            <div class="chart-container">
                                 <canvas id="monthlyEarningsChart"></canvas>
                             </div>
                         </div>
@@ -266,7 +270,7 @@
             </div>
 
             <!-- Date Range Info -->
-            <div class="alert alert-info">
+            <div class="alert alert-info-custom">
                 <iconify-icon icon="solar:info-circle-line-duotone"></iconify-icon>
                 Showing data from <strong>{{ $startDate instanceof \DateTime ? $startDate->format('d M Y') : \Carbon\Carbon::parse($startDate)->format('d M Y') }}</strong>
                 to <strong>{{ $endDate instanceof \DateTime ? $endDate->format('d M Y') : \Carbon\Carbon::parse($endDate)->format('d M Y') }}</strong>
@@ -276,226 +280,40 @@
 </div>
 @endsection
 
-@push('styles')
-<style>
-    .earnings-report-container {
-        overflow-x: auto;
-        overflow-y: visible;
-    }
-    .card {
-        border-radius: 10px;
-        border: none;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-    }
-    .card-header {
-        background: #f8f9fa;
-        border-bottom: 1px solid #e9ecef;
-        padding: 12px 20px;
-    }
-    .sticky-top {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-    .table-responsive {
-        overflow-x: auto;
-    }
-    /* Ensure charts are responsive */
-    canvas {
-        max-width: 100%;
-        height: auto !important;
-    }
-    /* Better mobile view */
-    @media (max-width: 768px) {
-        .col-md-3, .col-lg-8, .col-lg-4, .col-lg-6 {
-            margin-bottom: 15px;
-        }
-        .card-body {
-            padding: 15px;
-        }
-        h2 {
-            font-size: 1.5rem;
-        }
-    }
-</style>
-@endpush
-
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Show/hide custom date range
-    const periodSelect = document.getElementById('periodSelect');
-    const startDateDiv = document.getElementById('startDateDiv');
-    const endDateDiv = document.getElementById('endDateDiv');
+    // Pass data from PHP to JavaScript
+    window.dailyEarningsData = {
+        labels: {!! json_encode($dailyEarnings->pluck('date')->map(function($date) { return date('d M', strtotime($date)); })) !!},
+        earnings: {!! json_encode($dailyEarnings->pluck('earnings')) !!},
+        deliveries: {!! json_encode($dailyEarnings->pluck('deliveries')) !!}
+    };
 
-    if (periodSelect) {
-        periodSelect.addEventListener('change', function() {
-            if (this.value === 'custom') {
-                if (startDateDiv) startDateDiv.style.display = 'block';
-                if (endDateDiv) endDateDiv.style.display = 'block';
-            } else {
-                if (startDateDiv) startDateDiv.style.display = 'none';
-                if (endDateDiv) endDateDiv.style.display = 'none';
-            }
-        });
-    }
+    window.monthlyEarningsData = {
+        labels: [],
+        values: []
+    };
 
-    // Daily Earnings Chart
-    @if(isset($dailyEarnings) && $dailyEarnings->count() > 0)
-    const dailyCtx = document.getElementById('dailyEarningsChart');
-    if (dailyCtx) {
-        new Chart(dailyCtx, {
-            type: 'line',
-            data: {
-                labels: {!! json_encode($dailyEarnings->pluck('date')->map(function($date) { return date('d M', strtotime($date)); })) !!},
-                datasets: [{
-                    label: 'Earnings (₹)',
-                    data: {!! json_encode($dailyEarnings->pluck('earnings')) !!},
-                    borderColor: '#4f46e5',
-                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }, {
-                    label: 'Deliveries',
-                    data: {!! json_encode($dailyEarnings->pluck('deliveries')) !!},
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    tension: 0.4,
-                    fill: true,
-                    yAxisID: 'y1'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    }
-                },
-                scales: {
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Earnings (₹)'
-                        },
-                        ticks: {
-                            callback: function(value) {
-                                return '₹' + value;
-                            }
-                        }
-                    },
-                    y1: {
-                        position: 'right',
-                        title: {
-                            display: true,
-                            text: 'Number of Deliveries'
-                        },
-                        ticks: {
-                            stepSize: 1
-                        }
-                    }
-                }
-            }
-        });
-    }
-    @endif
-
-    // Monthly Earnings Chart
     @if(isset($monthlyEarnings) && $monthlyEarnings->count() > 0)
-    const monthlyCtx = document.getElementById('monthlyEarningsChart');
-    if (monthlyCtx) {
-        const monthNamesJs = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyValues = Array(12).fill(0);
 
-        let monthlyLabels = [];
-        let monthlyData = [];
+    @foreach($monthlyEarnings as $earning)
+    monthlyValues[{{ $earning->month - 1 }}] = {{ $earning->earnings }};
+    @endforeach
 
-        for (let i = 1; i <= 12; i++) {
-            monthlyLabels.push(monthNamesJs[i - 1]);
-            monthlyData.push(0);
-        }
-
-        @foreach($monthlyEarnings as $earning)
-        monthlyData[{{ $earning->month - 1 }}] = {{ $earning->earnings }};
-        @endforeach
-
-        new Chart(monthlyCtx, {
-            type: 'bar',
-            data: {
-                labels: monthlyLabels,
-                datasets: [{
-                    label: 'Earnings (₹)',
-                    data: monthlyData,
-                    backgroundColor: '#4f46e5',
-                    borderRadius: 8
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return '₹ ' + context.raw.toFixed(2);
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Earnings (₹)'
-                        },
-                        ticks: {
-                            callback: function(value) {
-                                return '₹' + value;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
+    window.monthlyEarningsData = {
+        labels: monthNames,
+        values: monthlyValues
+    };
     @endif
 
-    // Payment Method Chart
-    @if(isset($earningsByMethod) && $earningsByMethod->count() > 0)
-    const paymentCtx = document.getElementById('paymentMethodChart');
-    if (paymentCtx) {
-        new Chart(paymentCtx, {
-            type: 'doughnut',
-            data: {
-                labels: {!! json_encode($earningsByMethod->pluck('payment_method')->map(function($method) { return ucfirst($method); })) !!},
-                datasets: [{
-                    data: {!! json_encode($earningsByMethod->pluck('total')) !!},
-                    backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.label + ': ₹' + context.raw.toFixed(2);
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-    @endif
+    window.paymentMethodData = {
+        labels: {!! json_encode($earningsByMethod->pluck('payment_method')->map(function($method) { return ucfirst($method); })) !!},
+        values: {!! json_encode($earningsByMethod->pluck('total')) !!},
+        colors: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444']
+    };
 </script>
+<script src="{{ asset('assets/js/admin/reports-earnings.js') }}"></script>
 @endpush

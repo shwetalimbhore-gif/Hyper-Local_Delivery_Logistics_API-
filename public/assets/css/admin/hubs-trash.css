@@ -1,0 +1,97 @@
+/* Admin Hubs Trash Page Styles */
+
+/* Alert Styles */
+.alert-info {
+    border-left: 4px solid #0dcaf0;
+}
+
+/* Table Styles */
+.table th {
+    font-weight: 600;
+    color: #555;
+    border-top: none;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Badge Styles */
+.badge {
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Button Group */
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+}
+
+/* Hidden Forms */
+.hidden-form {
+    display: none;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 50px 20px;
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    color: #adb5bd;
+    margin-bottom: 15px;
+}
+
+.empty-state-text {
+    color: #6c757d;
+    margin-bottom: 15px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .table {
+        font-size: 12px;
+    }
+
+    .btn-group .btn {
+        padding: 0.2rem 0.4rem;
+        font-size: 10px;
+    }
+}
+
+/* Card Styles */
+.trash-card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+.trash-card-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    padding: 15px 20px;
+}
+
+/* Delete Modal (if used) */
+.modal-content {
+    border-radius: 15px;
+    border: none;
+}
+
+.modal-header {
+    border-radius: 15px 15px 0 0;
+}
+
+.modal-footer {
+    justify-content: center;
+    border-top: none;
+}
+
+/* Pagination */
+.pagination {
+    justify-content: center;
+    margin-top: 20px;
+}

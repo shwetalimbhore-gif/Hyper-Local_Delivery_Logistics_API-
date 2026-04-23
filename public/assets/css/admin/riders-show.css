@@ -1,0 +1,116 @@
+/* Admin Riders Show Page Styles */
+
+/* Card Styles */
+.rider-details-card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+}
+
+/* Table Styles */
+.table-borderless td,
+.table-borderless th {
+    padding: 8px 0;
+}
+
+/* Stats Cards */
+.stat-box {
+    text-align: center;
+    padding: 15px;
+    border-radius: 10px;
+    transition: transform 0.2s;
+}
+
+.stat-box:hover {
+    transform: translateY(-3px);
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+/* Progress Bar */
+.progress-custom {
+    height: 10px;
+    border-radius: 5px;
+    background-color: #e9ecef;
+    overflow: hidden;
+}
+
+.progress-bar-custom {
+    background-color: #28a745;
+    transition: width 0.5s ease;
+}
+
+/* Rating */
+.rating-value {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.rating-stars {
+    color: #ffc107;
+    font-size: 20px;
+}
+
+/* Badges */
+.badge-available { background-color: #28a745; }
+.badge-busy { background-color: #ffc107; color: #000; }
+.badge-offline { background-color: #6c757d; }
+
+.badge-vehicle {
+    background-color: #17a2b8;
+    padding: 5px 10px;
+    font-size: 12px;
+}
+
+/* Employee ID */
+.employee-id {
+    font-family: monospace;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+/* Modal */
+.modal-dialog-centered {
+    display: flex;
+    align-items: center;
+    min-height: calc(100% - 1rem);
+}
+
+.modal.fade .modal-dialog {
+    transform: scale(0.8);
+    transition: transform 0.2s ease-in-out;
+}
+
+.modal.show .modal-dialog {
+    transform: scale(1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .stat-value {
+        font-size: 20px;
+    }
+
+    .table-borderless td,
+    .table-borderless th {
+        padding: 6px 0;
+        font-size: 13px;
+    }
+
+    .card-header h6 {
+        font-size: 14px;
+    }
+}

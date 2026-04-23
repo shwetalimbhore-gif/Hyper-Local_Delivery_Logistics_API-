@@ -332,4 +332,15 @@ class ParcelController extends Controller
 
         return view('admin.parcels.datatable');
     }
+
+    /**
+     * Display the specified parcel.
+     */
+    public function show($id)
+    {
+        $parcel = Parcel::with(['status', 'assignedRider.user', 'sourceHub', 'statusHistories.updater'])
+            ->findOrFail($id);
+
+        return view('admin.parcels.show', compact('parcel'));
+    }
 }

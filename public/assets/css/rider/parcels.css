@@ -1,0 +1,90 @@
+/* Rider Parcels Styles */
+
+/* Status Update Button */
+.update-status-btn {
+    transition: all 0.2s;
+}
+
+.update-status-btn:hover {
+    transform: translateY(-2px);
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 50px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Receiver Info */
+.receiver-info {
+    line-height: 1.4;
+}
+
+.receiver-name {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.receiver-phone {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+/* Address Short */
+.address-short {
+    font-size: 13px;
+    color: #6c757d;
+    max-width: 200px;
+}
+
+/* Modal Styles */
+.modal-content {
+    border-radius: 15px;
+    border: none;
+}
+
+.modal-header {
+    border-radius: 15px 15px 0 0;
+}
+
+/* Form Select */
+.status-select {
+    border-radius: 10px;
+    padding: 10px;
+}
+
+/* Alert Messages */
+.alert-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 12px;
+    }
+
+    .btn-sm {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.7rem;
+    }
+}

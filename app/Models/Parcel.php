@@ -121,7 +121,7 @@ class Parcel extends Model
     }
 
     /**
-     * Check if parcel can be updated to new status
+     * Check if status update is allowed (for riders)
      */
     public function canUpdateStatus($newStatusId)
     {
@@ -135,19 +135,22 @@ class Parcel extends Model
             return false;
         }
 
-        // Define allowed status transitions for riders
         $allowedTransitions = [
-            'assigned' => ['picked_up'],
-            'picked_up' => ['out_for_delivery', 'returned_to_hub'],
-            'out_for_delivery' => ['delivered', 'failed_delivery', 'returned_to_hub'],
-            'failed_delivery' => ['out_for_delivery', 'returned_to_hub'],
+            'assigned' => ['picked-up'],
+            'picked-up' => ['out-for-delivery', 'returned-to-hub'],
+            'out-for-delivery' => ['delivered', 'failed-delivery', 'returned-to-hub'],
+            'failed-delivery' => ['out-for-delivery', 'returned-to-hub'],
         ];
 
         $currentStatus = $this->status ? $this->status->slug : 'pending';
         $newStatusSlug = $newStatus->slug;
 
+        if ($currentStatus === 'pending') {
+            return false;
+        }
+
         return isset($allowedTransitions[$currentStatus]) &&
-               in_array($newStatusSlug, $allowedTransitions[$currentStatus]);
+            in_array($newStatusSlug, $allowedTransitions[$currentStatus]);
     }
 
     /**
