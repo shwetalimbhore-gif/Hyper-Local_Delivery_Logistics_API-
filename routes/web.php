@@ -96,14 +96,17 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::put('/parcels/{parcel}', [ParcelController::class, 'update'])->name('parcels.update');
     Route::delete('/parcels/{parcel}', [ParcelController::class, 'destroy'])->name('parcels.destroy');
 
-    // Rider Management
-    Route::get('/riders/data', [RiderController::class, 'getData'])->name('riders.data');
-    Route::get('/riders/trash', [RiderController::class, 'trash'])->name('riders.trash');
-    Route::resource('riders', RiderController::class);
-
-    // Rider Soft Delete Routes
-    Route::post('/riders/{id}/restore', [RiderController::class, 'restore'])->name('riders.restore');
-    Route::delete('/riders/{id}/force-delete', [RiderController::class, 'forceDelete'])->name('riders.force-delete');
+    /// ========== RIDER ROUTES ==========
+    Route::get('/riders/data', [App\Http\Controllers\Admin\RiderController::class, 'getData'])->name('riders.data');
+    Route::get('/riders/trash-data', [App\Http\Controllers\Admin\RiderController::class, 'getTrashData'])->name('riders.trash-data');
+    Route::get('/riders/trash', [App\Http\Controllers\Admin\RiderController::class, 'trash'])->name('riders.trash');
+    Route::put('/riders/restore/{id}', [App\Http\Controllers\Admin\RiderController::class, 'restore'])->name('riders.restore');
+    Route::delete('/riders/force-delete/{id}', [App\Http\Controllers\Admin\RiderController::class, 'forceDelete'])->name('riders.force-delete');
+    Route::post('/riders/bulk-restore', [App\Http\Controllers\Admin\RiderController::class, 'bulkRestore'])->name('riders.bulk-restore');
+    Route::post('/riders/bulk-force-delete', [App\Http\Controllers\Admin\RiderController::class, 'bulkForceDelete'])->name('riders.bulk-force-delete');
+    Route::post('/riders/{rider}/toggle-verification', [App\Http\Controllers\Admin\RiderController::class, 'toggleVerification'])->name('riders.toggle-verification');
+    Route::post('/riders/{rider}/update-status', [App\Http\Controllers\Admin\RiderController::class, 'updateStatus'])->name('riders.update-status');
+    Route::resource('riders', App\Http\Controllers\Admin\RiderController::class);
 
     /// ========== HUB ROUTES ==========
     // DataTable routes (must be before resource routes)
