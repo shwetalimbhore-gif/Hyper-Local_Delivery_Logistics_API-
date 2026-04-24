@@ -129,10 +129,11 @@ class Rider extends Model
      */
     public function getSuccessRateAttribute()
     {
-        if ($this->total_deliveries === 0) {
-            return 100;
+        $totalAttempts = $this->successful_deliveries + $this->failed_deliveries;
+        if ($totalAttempts > 0) {
+            return round(($this->successful_deliveries / $totalAttempts) * 100, 2);
         }
-        return round(($this->successful_deliveries / $this->total_deliveries) * 100, 2);
+        return 0;
     }
 
     /**

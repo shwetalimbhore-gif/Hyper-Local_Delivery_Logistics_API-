@@ -24,6 +24,7 @@ class ParcelStatusHistory extends Model
     protected $casts = [
         'location_latitude' => 'decimal:8',
         'location_longitude' => 'decimal:8',
+        'created_at' => 'datetime',
     ];
 
     /**

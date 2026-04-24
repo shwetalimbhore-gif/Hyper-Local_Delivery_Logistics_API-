@@ -1,11 +1,11 @@
 /* Rider Dashboard Styles */
 
-/* Welcome Banner */
+/* Welcome Banner - FIXED */
 .welcome-card {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border: none;
     border-radius: 15px;
-    overflow: hidden;
+    overflow: visible; /* CHANGE FROM 'hidden' TO 'visible' */
 }
 
 .welcome-card .btn-light {
@@ -22,17 +22,147 @@
     box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
 
+/* Status Dropdown - Positioned correctly */
+.status-dropdown-container {
+    position: relative;
+    z-index: 1050;
+}
+
+.status-btn {
+    min-width: 140px;
+    background: white !important;
+    color: #333 !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    padding: 8px 16px !important;
+}
+
+.status-btn:hover {
+    background: #f8f9fa !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+/* Dropdown Menu - Make sure it appears above everything */
+.dropdown-menu {
+    position: absolute;
+    z-index: 1060;
+    min-width: 160px;
+    padding: 8px 0;
+    margin-top: 8px;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 10px 20px;
+    clear: both;
+    font-weight: 400;
+    color: #212529;
+    text-align: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+    cursor: pointer;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: #1e2125;
+}
+
+/* Status Dropdown - FIXED */
+.status-dropdown-container {
+    position: relative;
+    z-index: 1050;
+}
+
+.status-btn {
+    min-width: 140px;
+    background: white !important;
+    color: #333 !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    padding: 8px 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.status-btn:hover {
+    background: #f8f9fa !important;
+    transform: translateY(-2px);
+}
+
+/* IMPORTANT: Make dropdown menu visible
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    z-index: 1050;
+    min-width: 160px;
+    padding: 8px 0;
+    margin-top: 8px;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 10px 20px;
+    clear: both;
+    font-weight: 400;
+    color: #212529;
+    text-align: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: #1e2125;
+}
+
+.dropdown-item .text-success {
+    color: #28a745 !important;
+}
+
+.dropdown-item .text-warning {
+    color: #ffc107 !important;
+}
+
+.dropdown-item .text-danger {
+    color: #dc3545 !important;
+} */
+
 /* Status Colors */
-.status-available {
-    color: #28a745;
+.text-success {
+    color: #28a745 !important;
 }
 
-.status-busy {
-    color: #ffc107;
+.text-warning {
+    color: #ffc107 !important;
 }
 
-.status-offline {
-    color: #dc3545;
+.text-danger {
+    color: #dc3545 !important;
 }
 
 /* Stats Cards */
@@ -173,6 +303,17 @@
 
     .tracking-number {
         font-size: 12px;
+    }
+
+    .status-btn {
+        min-width: 120px;
+        font-size: 12px;
+        padding: 6px 12px !important;
+    }
+
+    .dropdown-item {
+        padding: 8px 16px;
+        font-size: 13px;
     }
 }
 

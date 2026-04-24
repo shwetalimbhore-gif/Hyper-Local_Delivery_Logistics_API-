@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Rider;
 
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use App\Models\ParcelStatusHistory;
+use App\Models\Payment;
 use App\Models\Parcel;
 use App\Models\ParcelStatus;
 use App\Models\Notification;
@@ -40,30 +42,45 @@ class RiderController extends Controller
         $riderId = $this->getRiderId();
         $rider = Auth::user()->rider;
 
-        $totalDeliveries = Parcel::where('assigned_rider_id', $riderId)
+        // Get ALL deliveries assigned to this rider (not just delivered)
+        $totalAssignedDeliveries = Parcel::where('assigned_rider_id', $riderId)->count();
+
+        // Get successfully delivered parcels
+        $successfulDeliveries = Parcel::where('assigned_rider_id', $riderId)
             ->whereHas('status', function($q) {
                 $q->where('slug', 'delivered');
             })->count();
 
-        $successfulDeliveries = $rider->successful_deliveries;
-        $failedDeliveries = $rider->failed_deliveries;
+        // Get failed deliveries
+        $failedDeliveries = Parcel::where('assigned_rider_id', $riderId)
+            ->whereHas('status', function($q) {
+                $q->where('slug', 'failed-delivery');
+            })->count();
 
-        $successRate = $totalDeliveries > 0 ? round(($successfulDeliveries / $totalDeliveries) * 100, 2) : 0;
+        // Calculate success rate CORRECTLY
+        if ($totalAssignedDeliveries > 0) {
+            $successRate = round(($successfulDeliveries / $totalAssignedDeliveries) * 100, 2);
+        } else {
+            $successRate = 0;
+        }
 
+        // Calculate total earnings (70% of delivery charge for delivered parcels)
         $totalEarnings = Parcel::where('assigned_rider_id', $riderId)
             ->whereHas('status', function($q) {
                 $q->where('slug', 'delivered');
             })
             ->sum(DB::raw('delivery_charge * 0.7'));
 
+        // Get active parcels (not delivered, cancelled, or returned)
         $activeParcels = Parcel::where('assigned_rider_id', $riderId)
             ->whereHas('status', function($q) {
-                $q->whereNotIn('slug', ['delivered', 'cancelled', 'returned_to_sender']);
+                $q->whereNotIn('slug', ['delivered', 'cancelled', 'returned_to_sender', 'returned-to-hub']);
             })
             ->with('status')
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // Get recent deliveries (last 10)
         $recentDeliveries = Parcel::where('assigned_rider_id', $riderId)
             ->whereHas('status', function($q) {
                 $q->where('slug', 'delivered');
@@ -73,19 +90,24 @@ class RiderController extends Controller
             ->limit(10)
             ->get();
 
+        // Today's deliveries count
         $todaysDeliveries = Parcel::where('assigned_rider_id', $riderId)
             ->whereDate('delivered_at', today())
             ->count();
 
+        // Weekly earnings for chart
         $weeklyEarnings = Parcel::where('assigned_rider_id', $riderId)
             ->where('delivered_at', '>=', now()->startOfWeek())
+            ->whereHas('status', function($q) {
+                $q->where('slug', 'delivered');
+            })
             ->select(DB::raw('DATE(delivered_at) as date'), DB::raw('SUM(delivery_charge * 0.7) as total'))
             ->groupBy('date')
             ->orderBy('date', 'ASC')
             ->get();
 
         return view('rider.dashboard', compact(
-            'totalDeliveries', 'successfulDeliveries', 'failedDeliveries',
+            'totalAssignedDeliveries', 'successfulDeliveries', 'failedDeliveries',
             'successRate', 'totalEarnings', 'activeParcels', 'recentDeliveries',
             'todaysDeliveries', 'weeklyEarnings'
         ));
@@ -183,12 +205,88 @@ class RiderController extends Controller
         DB::beginTransaction();
 
         try {
-            // ... same code as before ...
+
             $oldStatusId = $parcel->status_id;
             $parcel->status_id = $newStatus->id;
 
-            // ... rest of the update logic ...
+            switch ($newStatus->slug) {
+                case 'picked-up':
+                    $parcel->picked_up_at = now();
+                    break;
+                case 'out-for-delivery':
+                    $parcel->out_for_delivery_at = now();
+                    break;
+                case 'delivered':
+                    $parcel->delivered_at = now();
+                    break;
+                case 'failed-delivery':
+                    $parcel->failed_delivery_at = now();
+                    $parcel->delivery_attempts++;
+                    if ($request->failure_reason) {
+                        $parcel->failure_reason = $request->failure_reason;
+                    }
+                    break;
+                case 'returned-to-hub':
+                    $parcel->returned_at = now();
+                    break;
+            }
 
+            $parcel->save();
+
+            // Create history record
+            ParcelStatusHistory::create([
+                'parcel_id' => $parcel->id,
+                'status_id' => $newStatus->id,
+                'from_status_id' => $oldStatusId,
+                'notes' => $request->notes ?? $request->failure_reason,
+                'updated_by' => Auth::id(),
+            ]);
+
+            $rider = Auth::user()->rider;
+
+            // Update rider statistics based on new status
+            if ($newStatus->slug === 'delivered') {
+                $rider->successful_deliveries++;
+                $rider->total_deliveries++;
+                $rider->earnings = ($rider->earnings ?? 0) + ($parcel->delivery_charge * 0.7);
+                $rider->status = 'available';
+                $rider->save();
+
+                // Create payment if cash on delivery
+                if ($parcel->payment_method === 'cash' && $parcel->payment_status !== 'paid') {
+                    Payment::create([
+                        'parcel_id' => $parcel->id,
+                        'amount' => $parcel->delivery_charge,
+                        'payment_method' => 'cash',
+                        'payment_status' => 'completed',
+                        'collected_by' => Auth::id(),
+                        'collected_at' => now(),
+                    ]);
+                    $parcel->payment_status = 'paid';
+                    $parcel->save();
+                }
+
+                $this->sendNotificationToAdmins('✅ Parcel Delivered', "Parcel #{$parcel->tracking_number} delivered by {$rider->user->name}", 'success');
+
+            } elseif ($newStatus->slug === 'failed-delivery') {
+                $rider->failed_deliveries++;
+                $rider->total_deliveries++;
+                $rider->save();
+
+                $this->sendNotificationToAdmins('❌ Delivery Failed', "Parcel #{$parcel->tracking_number} failed. Reason: {$request->failure_reason}", 'error');
+
+            } elseif ($newStatus->slug === 'returned-to-hub') {
+                $rider->status = 'available';
+                $rider->save();
+
+                $this->sendNotificationToAdmins('🔄 Parcel Returned', "Parcel #{$parcel->tracking_number} returned to hub by {$rider->user->name}", 'warning');
+
+            } elseif ($newStatus->slug === 'picked-up') {
+                $this->sendNotificationToAdmins('📦 Parcel Picked Up', "Parcel #{$parcel->tracking_number} picked up by {$rider->user->name}", 'info');
+
+            } elseif ($newStatus->slug === 'out-for-delivery') {
+                $this->sendNotificationToAdmins('🚚 Out for Delivery', "Parcel #{$parcel->tracking_number} is out for delivery with {$rider->user->name}", 'info');
+            }
             DB::commit();
 
             return response()->json([

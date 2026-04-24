@@ -17,37 +17,36 @@
                         <h3 class="text-white mb-2">Welcome back, {{ Auth::user()->name }}!</h3>
                         <p class="text-white-50 mb-0">Ready for deliveries? You have {{ $activeParcels->count() }} active parcels.</p>
                     </div>
-                    <div class="dropdown">
-                        <button class="btn btn-light dropdown-toggle" type="button" id="statusDropdown" data-bs-toggle="dropdown">
-                            Status:
-                            @if(Auth::user()->rider->status == 'available')
-                                <span class="text-success">Available</span>
-                            @elseif(Auth::user()->rider->status == 'busy')
-                                <span class="text-warning">Busy</span>
-                            @else
-                                <span class="text-danger">Offline</span>
-                            @endif
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li>
-                                <a class="dropdown-item update-status" href="#" data-status="available">
-                                    <iconify-icon icon="solar:check-circle-line-duotone" class="text-success"></iconify-icon>
-                                    Available
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item update-status" href="#" data-status="busy">
-                                    <iconify-icon icon="solar:clock-circle-line-duotone" class="text-warning"></iconify-icon>
-                                    Busy
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item update-status" href="#" data-status="offline">
-                                    <iconify-icon icon="solar:power-off-line-duotone" class="text-danger"></iconify-icon>
-                                    Offline
-                                </a>
-                            </li>
-                        </ul>
+                    <div class="status-dropdown-container">
+                        <div class="dropdown">
+                            <button class="btn btn-light dropdown-toggle status-btn" type="button" id="statusDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <iconify-icon icon="solar:{{ Auth::user()->rider->status == 'available' ? 'check-circle-line-duotone' : (Auth::user()->rider->status == 'busy' ? 'clock-circle-line-duotone' : 'power-off-line-duotone') }}" class="me-1"></iconify-icon>
+                                Status:
+                                <span class="{{ Auth::user()->rider->status == 'available' ? 'text-success' : (Auth::user()->rider->status == 'busy' ? 'text-warning' : 'text-danger') }}">
+                                    {{ ucfirst(Auth::user()->rider->status) }}
+                                </span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="statusDropdown">
+                                <li>
+                                    <a class="dropdown-item update-status-link" href="#" data-status="available">
+                                        <iconify-icon icon="solar:check-circle-line-duotone" class="text-success me-2"></iconify-icon>
+                                        Available
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item update-status-link" href="#" data-status="busy">
+                                        <iconify-icon icon="solar:clock-circle-line-duotone" class="text-warning me-2"></iconify-icon>
+                                        Busy
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item update-status-link" href="#" data-status="offline">
+                                        <iconify-icon icon="solar:power-off-line-duotone" class="text-danger me-2"></iconify-icon>
+                                        Offline
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -63,7 +62,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="text-white-50 mb-1">Total Deliveries</h6>
-                        <h2 class="text-white mb-0">{{ $totalDeliveries }}</h2>
+                        <h2 class="text-white mb-0">{{ $totalAssignedDeliveries ?? 0 }}</h2>
                     </div>
                     <iconify-icon icon="solar:box-line-duotone" class="card-icon text-white-50"></iconify-icon>
                 </div>
@@ -76,8 +75,8 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="text-white-50 mb-1">Successful</h6>
-                        <h2 class="text-white mb-0">{{ $successfulDeliveries }}</h2>
+                        <h6 class="text-white-50 mb-1">Successful Deliveries</h6>
+                        <h2 class="text-white mb-0">{{ $successfulDeliveries ?? 0 }}</h2>
                     </div>
                     <iconify-icon icon="solar:check-circle-line-duotone" class="card-icon text-white-50"></iconify-icon>
                 </div>
@@ -91,10 +90,13 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="text-white-50 mb-1">Success Rate</h6>
-                        <h2 class="text-white mb-0">{{ $successRate }}%</h2>
+                        <h2 class="text-white mb-0">{{ $successRate ?? 0 }}%</h2>
                     </div>
                     <iconify-icon icon="solar:chart-line-duotone" class="card-icon text-white-50"></iconify-icon>
                 </div>
+                <small class="text-white-50">
+                    ({{ $successfulDeliveries ?? 0 }}/{{ $totalAssignedDeliveries ?? 0 }} deliveries)
+                </small>
             </div>
         </div>
     </div>
@@ -105,7 +107,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="text-dark-50 mb-1">Total Earnings</h6>
-                        <h2 class="text-dark mb-0">₹{{ number_format($totalEarnings, 2) }}</h2>
+                        <h2 class="text-dark mb-0">₹{{ number_format($totalEarnings ?? 0, 2) }}</h2>
                     </div>
                     <iconify-icon icon="solar:wallet-money-line-duotone" class="card-icon"></iconify-icon>
                 </div>
@@ -219,6 +221,9 @@
         </div>
     </div>
 </div>
+
+<!-- Hidden elements for JavaScript -->
+<div id="statusUpdateUrl" data-url="{{ route('rider.update-status') }}" style="display: none;"></div>
 @endsection
 
 @push('scripts')
