@@ -5,6 +5,7 @@
 let parcelsTable = null;
 
 $(document).ready(function() {
+    console.log('Document ready, initializing DataTable...');
     initializeDataTable();
     setupEventListeners();
 });
@@ -12,15 +13,19 @@ $(document).ready(function() {
 function initializeDataTable() {
     const tableElement = $('#parcelsTable');
 
-    if (!tableElement.length) return;
+    if (!tableElement.length) {
+        console.error('DataTable element not found!');
+        return;
+    }
 
-    // Check if DataTable is already initialized
-    if ($.fn.dataTable.isDataTable(tableElement)) {
+    // Destroy existing DataTable if any
+    if ($.fn.DataTable && $.fn.dataTable.isDataTable(tableElement)) {
         parcelsTable = tableElement.DataTable();
         parcelsTable.destroy();
         tableElement.find('thead, tbody, tfoot').show();
     }
 
+    // Initialize DataTable
     parcelsTable = tableElement.DataTable({
         processing: true,
         serverSide: true,
@@ -29,6 +34,8 @@ function initializeDataTable() {
             type: 'GET',
             error: function(xhr, error, thrown) {
                 console.error('DataTable AJAX Error:', error);
+                console.error('Response:', xhr.responseText);
+                showNotification('Error loading data: ' + error, 'error');
             }
         },
         columns: [
@@ -44,10 +51,35 @@ function initializeDataTable() {
         ],
         order: [[0, 'desc']],
         pageLength: 10,
+        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
         responsive: true,
-        processing: true,
-        serverSide: true
+        language: {
+            processing: '<div class="spinner-border text-primary spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div>',
+            search: "Search:",
+            searchPlaceholder: "Search parcels...",
+            lengthMenu: "Show _MENU_ entries",
+            info: "Showing _START_ to _END_ of _TOTAL_ entries",
+            infoEmpty: "Showing 0 to 0 of 0 entries",
+            infoFiltered: "(filtered from _MAX_ total entries)",
+            zeroRecords: "No parcels found",
+            paginate: {
+                first: '<iconify-icon icon="solar:double-alt-arrow-left-line-duotone"></iconify-icon>',
+                last: '<iconify-icon icon="solar:double-alt-arrow-right-line-duotone"></iconify-icon>',
+                next: '<iconify-icon icon="solar:alt-arrow-right-line-duotone"></iconify-icon>',
+                previous: '<iconify-icon icon="solar:alt-arrow-left-line-duotone"></iconify-icon>'
+            }
+        },
+        drawCallback: function() {
+            // Re-initialize tooltips or icons after table redraw
+            if (typeof iconify !== 'undefined') {
+                iconify.scan();
+            }
+        }
     });
+
+    // Make parcelsTable available globally
+    window.parcelsDataTable = parcelsTable;
+    console.log('DataTable initialized successfully');
 }
 
 function setupEventListeners() {
@@ -57,9 +89,10 @@ function setupEventListeners() {
         const button = $(this);
         const parcelId = button.data('id');
         const trackingNumber = button.data('tracking');
+        const senderName = button.data('sender') || '';
 
         // Set modal content
-        $('#softDeleteMessage').html(`Are you sure you want to move parcel <strong>${trackingNumber}</strong> to trash?`);
+        $('#softDeleteMessage').html(`Are you sure you want to move parcel <strong>${trackingNumber}</strong>${senderName ? ` (${senderName})` : ''} to trash?`);
         $('#softDeleteForm').attr('action', `/admin/parcels/${parcelId}`);
 
         // Store reference to button for callback
@@ -132,7 +165,7 @@ function showNotification(message, type = 'success') {
     const notification = $(`
         <div class="custom-notification alert alert-${type === 'success' ? 'success' : 'danger'}">
             <iconify-icon icon="solar:${type === 'success' ? 'check-circle' : 'danger-circle'}-line-duotone"></iconify-icon>
-            <span>${message}</span>
+            <span>${escapeHtml(message)}</span>
         </div>
     `);
 
@@ -150,7 +183,8 @@ function showNotification(message, type = 'success') {
         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
         display: 'flex',
         alignItems: 'center',
-        gap: '10px'
+        gap: '10px',
+        zIndex: 10000
     });
 
     $('body').append(notification);
@@ -159,5 +193,20 @@ function showNotification(message, type = 'success') {
         notification.fadeOut('slow', function() {
             $(this).remove();
         });
-    }, 3000);
+    }, 5000);
 }
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Make functions globally available
+window.showNotification = showNotification;
+window.parcelsTable = () => parcelsTable;
+window.initializeDataTable = initializeDataTable;

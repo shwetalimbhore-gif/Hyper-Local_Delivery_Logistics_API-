@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Requests\Admin\ParcelStoreRequest;
 use App\Http\Requests\Admin\ParcelUpdateRequest;
+use Illuminate\Support\Facades\Log;
 
 class ParcelController extends Controller
 {
@@ -24,7 +25,7 @@ class ParcelController extends Controller
         return view('admin.parcels.index');
     }
 
-    /**
+   /**
      * Get parcels data for DataTable via AJAX
      */
     public function getData(Request $request)
@@ -77,6 +78,7 @@ class ParcelController extends Controller
             ->rawColumns(['status_html', 'rider_name', 'actions'])
             ->toJson();
     }
+
 
     /**
      * Display trash page
@@ -458,13 +460,13 @@ class ParcelController extends Controller
     }
 
     /**
- * Display the specified parcel.
- */
-public function show($id)
-{
-    $parcel = Parcel::with(['status', 'assignedRider.user', 'sourceHub', 'statusHistories.updater'])
-        ->findOrFail($id);
+     * Display the specified parcel.
+     */
+    public function show($id)
+    {
+        $parcel = Parcel::with(['status', 'assignedRider.user', 'sourceHub', 'statusHistories.updater'])
+            ->findOrFail($id);
 
-    return view('admin.parcels.show', compact('parcel'));
-}
+        return view('admin.parcels.show', compact('parcel'));
+    }
 }

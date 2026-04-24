@@ -59,13 +59,15 @@
                             </a>
                             <ul aria-expanded="false" class="collapse first-level">
                                 <li class="sidebar-item">
-                                    <a class="sidebar-link" href="{{ route('admin.parcels.index') }}">
+                                    <a class="sidebar-link {{ request()->routeIs('admin.parcels.index') ? 'active' : '' }}"
+                                       href="{{ route('admin.parcels.index') }}">
                                         <iconify-icon icon="solar:list-line-duotone"></iconify-icon>
                                         <span class="hide-menu">All Parcels</span>
                                     </a>
                                 </li>
                                 <li class="sidebar-item">
-                                    <a class="sidebar-link" href="{{ route('admin.parcels.trash') }}">
+                                    <a class="sidebar-link {{ request()->routeIs('admin.parcels.trash') ? 'active' : '' }}"
+                                       href="{{ route('admin.parcels.trash') }}">
                                         <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
                                         <span class="hide-menu">Trash</span>
                                     </a>
@@ -82,13 +84,15 @@
                             </a>
                             <ul aria-expanded="false" class="collapse first-level">
                                 <li class="sidebar-item">
-                                    <a class="sidebar-link" href="{{ route('admin.riders.index') }}">
+                                    <a class="sidebar-link {{ request()->routeIs('admin.riders.index') ? 'active' : '' }}"
+                                       href="{{ route('admin.riders.index') }}">
                                         <iconify-icon icon="solar:list-line-duotone"></iconify-icon>
                                         <span class="hide-menu">All Riders</span>
                                     </a>
                                 </li>
                                 <li class="sidebar-item">
-                                    <a class="sidebar-link" href="{{ route('admin.riders.trash') }}">
+                                    <a class="sidebar-link {{ request()->routeIs('admin.riders.trash') ? 'active' : '' }}"
+                                       href="{{ route('admin.riders.trash') }}">
                                         <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
                                         <span class="hide-menu">Trash</span>
                                     </a>
@@ -105,13 +109,15 @@
                             </a>
                             <ul aria-expanded="false" class="collapse first-level">
                                 <li class="sidebar-item">
-                                    <a class="sidebar-link" href="{{ route('admin.hubs.index') }}">
+                                    <a class="sidebar-link {{ request()->routeIs('admin.hubs.index') ? 'active' : '' }}"
+                                       href="{{ route('admin.hubs.index') }}">
                                         <iconify-icon icon="solar:list-line-duotone"></iconify-icon>
                                         <span class="hide-menu">All Hubs</span>
                                     </a>
                                 </li>
                                 <li class="sidebar-item">
-                                    <a class="sidebar-link" href="{{ route('admin.hubs.trash') }}">
+                                    <a class="sidebar-link {{ request()->routeIs('admin.hubs.trash') ? 'active' : '' }}"
+                                       href="{{ route('admin.hubs.trash') }}">
                                         <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
                                         <span class="hide-menu">Trash</span>
                                     </a>
@@ -174,15 +180,10 @@
                                     @php
                                         $unreadCount = App\Models\Notification::where('user_id', Auth::id())->where('is_read', false)->count();
                                     @endphp
-                                    @if($unreadCount > 0)
-                                        <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 10px;">
-                                            {{ $unreadCount }}
-                                        </span>
-                                    @else
-                                        <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 10px;">
-                                            0
-                                        </span>
-                                    @endif
+                                    <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                          style="font-size: 10px; {{ $unreadCount > 0 ? '' : 'display: none;' }}">
+                                        {{ $unreadCount }}
+                                    </span>
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end dropdown-menu-animate-up" aria-labelledby="notificationDropdown" style="width: 380px;">
                                     <div class="message-body">
@@ -263,15 +264,14 @@
         <!-- Main Wrapper End -->
     </div>
 
-    <!-- Scripts -->
+    <!-- Scripts - ORDER MATTERS! -->
+    <!-- jQuery FIRST -->
     <script src="{{ asset('assets/libs/jquery/dist/jquery.min.js') }}"></script>
-    <script src="{{ asset('assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{ asset('assets/js/sidebarmenu.js') }}"></script>
-    <script src="{{ asset('assets/js/app.min.js') }}"></script>
-    <script src="{{ asset('assets/libs/simplebar/dist/simplebar.js') }}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
 
-    <!-- DataTables JS -->
+    <!-- Bootstrap SECOND -->
+    <script src="{{ asset('assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
+
+    <!-- DataTables THIRD (requires jQuery) -->
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
@@ -281,10 +281,28 @@
     <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
 
+    <!-- Custom Scripts -->
+    <script src="{{ asset('assets/js/sidebarmenu.js') }}"></script>
+    <script src="{{ asset('assets/js/app.min.js') }}"></script>
+    <script src="{{ asset('assets/libs/simplebar/dist/simplebar.js') }}"></script>
+
+    <!-- Iconify LAST -->
+    <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
+
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <!-- SweetAlert2 for better modals -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
+        // Function to refresh Iconify icons after dynamic content loads
+        function refreshIcons() {
+            if (typeof iconify !== 'undefined') {
+                iconify.scan();
+            }
+        }
+
         // Fetch notifications
         function fetchNotifications() {
             $.ajax({
@@ -293,6 +311,10 @@
                 success: function(response) {
                     updateNotificationList(response.notifications);
                     updateNotificationBadge(response.unread_count);
+                    refreshIcons();
+                },
+                error: function(xhr) {
+                    console.error('Failed to fetch notifications:', xhr);
                 }
             });
         }
@@ -320,8 +342,8 @@
                                     ${icon}
                                 </div>
                                 <div class="flex-grow-1">
-                                    <p class="mb-1 fw-medium">${notification.title}</p>
-                                    <small class="text-muted d-block">${notification.message}</small>
+                                    <p class="mb-1 fw-medium">${escapeHtml(notification.title)}</p>
+                                    <small class="text-muted d-block">${escapeHtml(notification.message)}</small>
                                     <small class="text-muted">${notification.time_ago}</small>
                                 </div>
                                 ${!notification.is_read ? '<span class="badge bg-primary rounded-pill">New</span>' : ''}
@@ -332,6 +354,7 @@
             }
 
             $('#notificationList').html(html);
+            refreshIcons();
 
             // Add click event to mark as read
             $('.notification-item').click(function() {
@@ -392,10 +415,43 @@
             });
         });
 
-        // Fetch notifications on page load and every 10 seconds
+        // Escape HTML to prevent XSS
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // Global refresh function for DataTables
+        window.refreshDataTables = function() {
+            if (typeof $.fn.DataTable !== 'undefined') {
+                $('table.dataTable').each(function() {
+                    let table = $(this).DataTable();
+                    if (table) {
+                        table.draw();
+                    }
+                });
+            }
+        };
+
+        // Initialize on document ready
         $(document).ready(function() {
             fetchNotifications();
-            setInterval(fetchNotifications, 10000);
+            setInterval(fetchNotifications, 30000); // Every 30 seconds instead of 10
+
+            // Refresh icons after any AJAX completion
+            $(document).ajaxComplete(function() {
+                refreshIcons();
+            });
+        });
+
+        // Also refresh icons when page loads
+        $(window).on('load', function() {
+            refreshIcons();
         });
     </script>
 
