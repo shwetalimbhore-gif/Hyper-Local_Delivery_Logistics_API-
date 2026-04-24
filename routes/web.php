@@ -105,15 +105,25 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/riders/{id}/restore', [RiderController::class, 'restore'])->name('riders.restore');
     Route::delete('/riders/{id}/force-delete', [RiderController::class, 'forceDelete'])->name('riders.force-delete');
 
-    // Hub Management
-    // Hub Soft Delete Routes
-    Route::get('/hubs/data', [HubController::class, 'getData'])->name('hubs.data');
-    Route::get('/hubs/trash', [HubController::class, 'trash'])->name('hubs.trash');
-    Route::resource('hubs', HubController::class);
-    Route::get('/hubs/{hub}/toggle-status', [HubController::class, 'toggleStatus'])->name('hubs.toggle-status');
+    /// ========== HUB ROUTES ==========
+    // DataTable routes (must be before resource routes)
+    Route::get('/hubs/data', [App\Http\Controllers\Admin\HubController::class, 'getData'])->name('hubs.data');
+    Route::get('/hubs/trash-data', [App\Http\Controllers\Admin\HubController::class, 'getTrashData'])->name('hubs.trash-data');
 
-    Route::post('/hubs/{id}/restore', [HubController::class, 'restore'])->name('hubs.restore');
-    Route::delete('/hubs/{id}/force-delete', [HubController::class, 'forceDelete'])->name('hubs.force-delete');
+    // Trash management routes
+    Route::get('/hubs/trash', [App\Http\Controllers\Admin\HubController::class, 'trash'])->name('hubs.trash');
+    Route::put('/hubs/restore/{id}', [App\Http\Controllers\Admin\HubController::class, 'restore'])->name('hubs.restore');
+    Route::delete('/hubs/force-delete/{id}', [App\Http\Controllers\Admin\HubController::class, 'forceDelete'])->name('hubs.force-delete');
+
+    // Bulk operations
+    Route::post('/hubs/bulk-restore', [App\Http\Controllers\Admin\HubController::class, 'bulkRestore'])->name('hubs.bulk-restore');
+    Route::post('/hubs/bulk-force-delete', [App\Http\Controllers\Admin\HubController::class, 'bulkForceDelete'])->name('hubs.bulk-force-delete');
+
+    // Toggle status
+    Route::get('/hubs/{hub}/toggle-status', [App\Http\Controllers\Admin\HubController::class, 'toggleStatus'])->name('hubs.toggle-status');
+
+    // Resource route (must be last)
+    Route::resource('hubs', App\Http\Controllers\Admin\HubController::class);
 
 
     Route::get('/notifications/fetch', [DashboardController::class, 'fetchNotifications'])->name('notifications.fetch');

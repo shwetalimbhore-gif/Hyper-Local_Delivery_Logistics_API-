@@ -190,5 +190,42 @@
         </form>
     </div>
 </div>
+<script>
+    // Auto-assign validation
+    $('#autoAssignBtn').click(function() {
+        let weight = $('#weight').val();
+        let size = $('#size').val();
+        let hubId = $('#source_hub_id').val();
 
+        if (!weight || !size || !hubId) {
+            alert('Please fill in weight, size, and hub before auto-assigning');
+            return;
+        }
+
+        $.ajax({
+            url: "{{ route('admin.parcels.find-rider') }}",
+            method: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                weight: weight,
+                size: size,
+                hub_id: hubId
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#assigned_rider_id').val(response.rider.id);
+                    alert('✓ Rider ' + response.rider.name + ' assigned successfully!');
+
+                    // Change status to assigned
+                    $('#status_id').val($('#status_id option[data-status-slug="assigned"]').val());
+                } else {
+                    alert('❌ ' + response.message);
+                }
+            },
+            error: function(xhr) {
+                alert('Error: ' + (xhr.responseJSON?.message || 'Could not find rider'));
+            }
+        });
+    });
+</script>
 @endsection

@@ -206,7 +206,13 @@ function escapeHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
-// Make functions globally available
-window.showNotification = showNotification;
-window.parcelsTable = () => parcelsTable;
-window.initializeDataTable = initializeDataTable;
+// Make parcelsTable available globally for auto-assign.js
+window.parcelsDataTable = parcelsTable;
+
+// Also expose the DataTable instance via a function
+window.getParcelsDataTable = function() {
+    return parcelsTable;
+};
+
+// Log confirmation
+console.log('DataTable exposed globally:', parcelsTable ? 'Yes' : 'No');

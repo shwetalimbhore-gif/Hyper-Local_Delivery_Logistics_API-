@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Requests\Admin\HubStoreRequest;
 use App\Http\Requests\Admin\HubUpdateRequest;
+use Illuminate\Support\Facades\Log;
 
 class HubController extends Controller
 {
@@ -16,33 +17,82 @@ class HubController extends Controller
      */
     public function index()
     {
-        $hubs = Hub::latest()->paginate(15);
-        return view('admin.hubs.index', compact('hubs'));
+        return view('admin.hubs.index');
     }
 
-    public function getData(Request $request){
-        $hubs = Hub::select(['id', 'code', 'name', 'manager_name', 'phone', 'email', 'is_active']);
+    /**
+     * Get hubs data for DataTable via AJAX
+     */
+    public function getData(Request $request)
+    {
+        try {
+            $hubs = Hub::select([
+                'id',
+                'code',
+                'name',
+                'manager_name',
+                'phone',
+                'email',
+                'is_active',
+                'address',
+                'created_at'
+            ]);
 
-        $csrf = csrf_token();
+            return DataTables::eloquent($hubs)
+                ->addColumn('riders_count', function($row) {
+                    $count = $row->riders()->count();
+                    return '<span class="badge bg-info"><iconify-icon icon="solar:bicycle-line-duotone" class="me-1"></iconify-icon>' . $count . '</span>';
+                })
+                ->addColumn('parcels_count', function($row) {
+                    $count = $row->sourceParcels()->count();
+                    return '<span class="badge bg-secondary"><iconify-icon icon="solar:box-line-duotone" class="me-1"></iconify-icon>' . $count . '</span>';
+                })
+                ->addColumn('status_badge', function($row) {
+                    if ($row->is_active) {
+                        return '<span class="badge bg-success"><iconify-icon icon="solar:check-circle-line-duotone" class="me-1"></iconify-icon>Active</span>';
+                    } else {
+                        return '<span class="badge bg-danger"><iconify-icon icon="solar:close-circle-line-duotone" class="me-1"></iconify-icon>Inactive</span>';
+                    }
+                })
+                ->addColumn('action', function($row) {
+                    $csrf = csrf_token();
+                    $toggleIcon = $row->is_active ? 'solar:power-off-line-duotone' : 'solar:power-on-line-duotone';
+                    $toggleClass = $row->is_active ? 'btn-secondary' : 'btn-success';
+                    $toggleText = $row->is_active ? 'Deactivate' : 'Activate';
 
-        return DataTables::eloquent($hubs)
-            ->addColumn('riders_count', fn($row) => '<span class="badge bg-info">' . $row->riders()->count() . '</span>')
-            ->addColumn('parcels_count', fn($row) => '<span class="badge bg-secondary">' . $row->sourceParcels()->count() . '</span>')
-            ->addColumn('status_badge', fn($row) => $row->is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-danger">Inactive</span>')
-            ->addColumn('action', fn($row) =>
-                '<div class="btn-group" role="group">
-                    <a href="/admin/hubs/'.$row->id.'" class="btn btn-sm btn-info">View</a>
-                    <a href="/admin/hubs/'.$row->id.'/edit" class="btn btn-sm btn-warning">Edit</a>
-                    <a href="/admin/hubs/'.$row->id.'/toggle-status" class="btn btn-sm ' . ($row->is_active ? 'btn-secondary' : 'btn-success') . '">' . ($row->is_active ? 'Deactivate' : 'Activate') . '</a>
-                    <form method="POST" action="/admin/hubs/'.$row->id.'" style="display:inline;">
-                        <input type="hidden" name="_token" value="'.$csrf.'">
-                        <input type="hidden" name="_method" value="DELETE">
-                        <button class="btn btn-sm btn-danger" onclick="return confirm(\'Are you sure?\')">Delete</button>
-                    </form>
-                </div>'
-            )
-            ->rawColumns(['riders_count', 'parcels_count', 'status_badge', 'action'])
-            ->toJson();
+                    return '
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="' . route('admin.hubs.show', $row->id) . '" class="btn btn-info btn-sm" title="View">
+                                <iconify-icon icon="solar:eye-line-duotone"></iconify-icon>
+                            </a>
+                            <a href="' . route('admin.hubs.edit', $row->id) . '" class="btn btn-warning btn-sm" title="Edit">
+                                <iconify-icon icon="solar:pen-line-duotone"></iconify-icon>
+                            </a>
+                            <a href="' . route('admin.hubs.toggle-status', $row->id) . '" class="btn ' . $toggleClass . ' btn-sm toggle-status-btn"
+                               data-id="' . $row->id . '"
+                               data-code="' . e($row->code) . '"
+                               title="' . $toggleText . '">
+                                <iconify-icon icon="' . $toggleIcon . '"></iconify-icon>
+                            </a>
+                            <button type="button" class="btn btn-danger btn-sm soft-delete-btn"
+                                    data-id="' . $row->id . '"
+                                    data-code="' . e($row->code) . '"
+                                    title="Move to Trash">
+                                <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
+                            </button>
+                        </div>
+                    ';
+                })
+                ->rawColumns(['riders_count', 'parcels_count', 'status_badge', 'action'])
+                ->toJson();
+
+        } catch (\Exception $e) {
+            Log::error('Hub DataTable Error: ' . $e->getMessage());
+            return response()->json([
+                'error' => true,
+                'message' => 'Failed to load hubs data: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -66,6 +116,7 @@ class HubController extends Controller
         return redirect()->route('admin.hubs.index')
             ->with('success', 'Hub created successfully! Code: ' . $hub->code);
     }
+
     /**
      * Display the specified hub.
      */
@@ -91,7 +142,7 @@ class HubController extends Controller
         return view('admin.hubs.edit', compact('hub'));
     }
 
-     /**
+    /**
      * Update the specified hub (Using FormRequest)
      */
     public function update(HubUpdateRequest $request, $id)
@@ -116,27 +167,33 @@ class HubController extends Controller
 
             // Check if hub has any riders
             if ($hub->riders()->count() > 0) {
-                return redirect()->route('admin.hubs.index')
-                    ->with('error', 'Cannot delete hub because it has assigned riders. Please reassign or delete the riders first.');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete hub because it has assigned riders. Please reassign or delete the riders first.'
+                ], 400);
             }
 
             // Check if hub has any parcels
             if ($hub->sourceParcels()->count() > 0) {
-                return redirect()->route('admin.hubs.index')
-                    ->with('error', 'Cannot delete hub because it has associated parcels. Please reassign or delete the parcels first.');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete hub because it has associated parcels. Please reassign or delete the parcels first.'
+                ], 400);
             }
 
             // Soft delete the hub
-            // $hub->deleted_by = auth()->id();
-            $hub->save();
             $hub->delete();
 
-            return redirect()->route('admin.hubs.index')
-                ->with('success', 'Hub moved to trash successfully.');
+            return response()->json([
+                'success' => true,
+                'message' => 'Hub moved to trash successfully.'
+            ]);
 
         } catch (\Exception $e) {
-            return redirect()->route('admin.hubs.index')
-                ->with('error', 'Failed to delete hub: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete hub: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -145,12 +202,53 @@ class HubController extends Controller
      */
     public function trash()
     {
-        $hubs = Hub::onlyTrashed()
-            ->with(['deleter'])
-            ->latest('deleted_at')
-            ->paginate(15);
+        return view('admin.hubs.trash');
+    }
 
-        return view('admin.hubs.trash', compact('hubs'));
+    /**
+     * Get trashed hubs data for DataTable via AJAX
+     */
+    public function getTrashData(Request $request)
+    {
+        try {
+            $hubs = Hub::onlyTrashed()
+                ->select('id', 'code', 'name', 'manager_name', 'deleted_at');
+
+            return DataTables::eloquent($hubs)
+                ->addColumn('checkbox', function($row) {
+                    return '<input type="checkbox" class="hub-checkbox" value="' . $row->id . '">';
+                })
+                ->editColumn('deleted_at', function($row) {
+                    return $row->deleted_at->format('d M Y, h:i A');
+                })
+                ->addColumn('actions', function($row) {
+                    return '
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-success btn-sm restore-btn"
+                                    data-id="' . $row->id . '"
+                                    data-code="' . e($row->code) . '">
+                                <iconify-icon icon="solar:refresh-line-duotone"></iconify-icon>
+                                Restore
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm force-delete-btn"
+                                    data-id="' . $row->id . '"
+                                    data-code="' . e($row->code) . '">
+                                <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
+                                Delete Forever
+                            </button>
+                        </div>
+                    ';
+                })
+                ->rawColumns(['checkbox', 'actions'])
+                ->make(true);
+
+        } catch (\Exception $e) {
+            Log::error('Trash DataTable Error: ' . $e->getMessage());
+            return response()->json([
+                'error' => true,
+                'message' => 'Failed to load trash data: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -162,12 +260,16 @@ class HubController extends Controller
             $hub = Hub::withTrashed()->findOrFail($id);
             $hub->restore();
 
-            return redirect()->route('admin.hubs.trash')
-                ->with('success', 'Hub restored successfully.');
+            return response()->json([
+                'success' => true,
+                'message' => 'Hub restored successfully.'
+            ]);
 
         } catch (\Exception $e) {
-            return redirect()->route('admin.hubs.trash')
-                ->with('error', 'Failed to restore hub: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to restore hub: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -180,12 +282,16 @@ class HubController extends Controller
             $hub = Hub::withTrashed()->findOrFail($id);
             $hub->forceDelete();
 
-            return redirect()->route('admin.hubs.trash')
-                ->with('success', 'Hub permanently deleted.');
+            return response()->json([
+                'success' => true,
+                'message' => 'Hub permanently deleted.'
+            ]);
 
         } catch (\Exception $e) {
-            return redirect()->route('admin.hubs.trash')
-                ->with('error', 'Failed to permanently delete hub: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to permanently delete hub: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -194,61 +300,75 @@ class HubController extends Controller
      */
     public function toggleStatus(Hub $hub)
     {
-        $hub->is_active = !$hub->is_active;
-        $hub->save();
+        try {
+            $hub->is_active = !$hub->is_active;
+            $hub->save();
 
-        $status = $hub->is_active ? 'activated' : 'deactivated';
-        return redirect()->route('admin.hubs.index')
-            ->with('success', "Hub {$status} successfully!");
+            $status = $hub->is_active ? 'activated' : 'deactivated';
+
+            if (request()->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Hub {$status} successfully!",
+                    'is_active' => $hub->is_active
+                ]);
+            }
+
+            return redirect()->route('admin.hubs.index')
+                ->with('success', "Hub {$status} successfully!");
+
+        } catch (\Exception $e) {
+            if (request()->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to toggle status: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()->route('admin.hubs.index')
+                ->with('error', 'Failed to toggle status: ' . $e->getMessage());
+        }
     }
 
     /**
-     * Hubs DataTable - Server Side
+     * Bulk restore multiple hubs
      */
-    public function getDataTable(Request $request)
+    public function bulkRestore(Request $request)
     {
-        if ($request->ajax()) {
-            $hubs = Hub::select('hubs.*');
+        try {
+            $ids = $request->ids;
+            Hub::onlyTrashed()->whereIn('id', $ids)->restore();
 
-            return DataTables::of($hubs)
-                ->addColumn('riders_count', function($hub) {
-                    $count = $hub->riders()->count();
-                    return '<span class="badge bg-info">' . $count . '</span>';
-                })
-                ->addColumn('parcels_count', function($hub) {
-                    $count = $hub->sourceParcels()->count();
-                    return '<span class="badge bg-secondary">' . $count . '</span>';
-                })
-                ->addColumn('status_badge', function($hub) {
-                    if ($hub->is_active) {
-                        return '<span class="badge bg-success">Active</span>';
-                    } else {
-                        return '<span class="badge bg-danger">Inactive</span>';
-                    }
-                })
-                ->addColumn('action', function($hub) {
-                    return '
-                        <div class="btn-group" role="group">
-                            <a href="' . route('admin.hubs.show', $hub->id) . '" class="btn btn-sm btn-info" title="View">
-                                <iconify-icon icon="solar:eye-line-duotone"></iconify-icon>
-                            </a>
-                            <a href="' . route('admin.hubs.edit', $hub->id) . '" class="btn btn-sm btn-warning" title="Edit">
-                                <iconify-icon icon="solar:pen-line-duotone"></iconify-icon>
-                            </a>
-                            <a href="' . route('admin.hubs.toggle-status', $hub->id) . '" class="btn btn-sm ' . ($hub->is_active ? 'btn-secondary' : 'btn-success') . '" title="Toggle Status">
-                                <iconify-icon icon="solar:' . ($hub->is_active ? 'power-off-line-duotone' : 'power-on-line-duotone') . '"></iconify-icon>
-                            </a>
-                            <button type="button" class="btn btn-sm btn-danger" title="Delete" onclick="confirmDeleteHub(' . $hub->id . ')">
-                                <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
-                            </button>
-                        </div>
-                    ';
-                })
-                ->rawColumns(['riders_count', 'parcels_count', 'status_badge', 'action'])
-                ->make(true);
+            return response()->json([
+                'success' => true,
+                'message' => count($ids) . ' hubs restored successfully.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to restore hubs: ' . $e->getMessage()
+            ], 500);
         }
-
-        return view('admin.hubs.datatable');
     }
 
+    /**
+     * Bulk force delete multiple hubs
+     */
+    public function bulkForceDelete(Request $request)
+    {
+        try {
+            $ids = $request->ids;
+            Hub::onlyTrashed()->whereIn('id', $ids)->forceDelete();
+
+            return response()->json([
+                'success' => true,
+                'message' => count($ids) . ' hubs permanently deleted.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete hubs: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
