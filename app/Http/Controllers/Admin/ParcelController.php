@@ -414,7 +414,6 @@ class ParcelController extends Controller
 
     /**
      * Parcels DataTable - Server Side
-     * Add this method to your existing ParcelController
      */
     public function getDataTable(Request $request)
     {

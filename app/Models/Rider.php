@@ -157,10 +157,10 @@ class Rider extends Model
     /**
      * Get the best rider for a parcel
      */
-    public static function findBestRiderForParcel($weight, $size, $hubId = null)
-    {
-        return self::findAvailableRidersForParcel($weight, $size, $hubId)->first();
-    }
+    // public static function findBestRiderForParcel($weight, $size, $hubId = null)
+    // {
+    //     return self::findAvailableRidersForParcel($weight, $size, $hubId)->first();
+    // }
 
      /**
      * Find the best rider for a parcel based on weight, size, and availability

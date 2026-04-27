@@ -46,7 +46,7 @@ class DashboardController extends Controller
     {
         $notifications = Notification::where('user_id', Auth::id())
             ->latest()
-            ->take(20)
+            ->take(30)
             ->get()
             ->map(function($notification) {
                 return [

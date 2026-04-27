@@ -3,9 +3,8 @@
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ParcelController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Admin\ReportController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\GoogleController;
-use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\RiderController;
 use App\Http\Controllers\Admin\HubController;
 use App\Http\Controllers\PasswordResetController;
@@ -64,13 +63,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // // DataTable Routes (add inside admin group)
-    // Route::get('/parcels/data', [ParcelController::class, 'getDataTable'])->name('parcels.datatable');
-    // Route::get('/riders/data', [RiderController::class, 'getDataTable'])->name('riders.datatable');
-    // Route::get('/hubs/data', [HubController::class, 'getDataTable'])->name('hubs.datatable');
 
-    // ========== PARCELS ROUTES - MUST BE IN THIS ORDER ==========
-    // Data endpoints (specific routes first)
+    // ========== PARCELS ROUTES  ==========
+    // Data endpoints
     Route::get('/parcels/data', [ParcelController::class, 'getData'])->name('parcels.data');
     Route::get('/parcels/trash-data', [ParcelController::class, 'getTrashData'])->name('parcels.trash-data');
 
@@ -97,36 +92,36 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::delete('/parcels/{parcel}', [ParcelController::class, 'destroy'])->name('parcels.destroy');
 
     /// ========== RIDER ROUTES ==========
-    Route::get('/riders/data', [App\Http\Controllers\Admin\RiderController::class, 'getData'])->name('riders.data');
-    Route::get('/riders/trash-data', [App\Http\Controllers\Admin\RiderController::class, 'getTrashData'])->name('riders.trash-data');
-    Route::get('/riders/trash', [App\Http\Controllers\Admin\RiderController::class, 'trash'])->name('riders.trash');
-    Route::put('/riders/restore/{id}', [App\Http\Controllers\Admin\RiderController::class, 'restore'])->name('riders.restore');
-    Route::delete('/riders/force-delete/{id}', [App\Http\Controllers\Admin\RiderController::class, 'forceDelete'])->name('riders.force-delete');
-    Route::post('/riders/bulk-restore', [App\Http\Controllers\Admin\RiderController::class, 'bulkRestore'])->name('riders.bulk-restore');
-    Route::post('/riders/bulk-force-delete', [App\Http\Controllers\Admin\RiderController::class, 'bulkForceDelete'])->name('riders.bulk-force-delete');
-    Route::post('/riders/{rider}/toggle-verification', [App\Http\Controllers\Admin\RiderController::class, 'toggleVerification'])->name('riders.toggle-verification');
-    Route::post('/riders/{rider}/update-status', [App\Http\Controllers\Admin\RiderController::class, 'updateStatus'])->name('riders.update-status');
-    Route::resource('riders', App\Http\Controllers\Admin\RiderController::class);
+    Route::get('/riders/data', [RiderController::class, 'getData'])->name('riders.data');
+    Route::get('/riders/trash-data', [RiderController::class, 'getTrashData'])->name('riders.trash-data');
+    Route::get('/riders/trash', [RiderController::class, 'trash'])->name('riders.trash');
+    Route::put('/riders/restore/{id}', [RiderController::class, 'restore'])->name('riders.restore');
+    Route::delete('/riders/force-delete/{id}', [RiderController::class, 'forceDelete'])->name('riders.force-delete');
+    Route::post('/riders/bulk-restore', [RiderController::class, 'bulkRestore'])->name('riders.bulk-restore');
+    Route::post('/riders/bulk-force-delete', [RiderController::class, 'bulkForceDelete'])->name('riders.bulk-force-delete');
+    Route::post('/riders/{rider}/toggle-verification', [RiderController::class, 'toggleVerification'])->name('riders.toggle-verification');
+    Route::post('/riders/{rider}/update-status', [RiderController::class, 'updateStatus'])->name('riders.update-status');
+    Route::resource('riders', RiderController::class);
 
     /// ========== HUB ROUTES ==========
     // DataTable routes (must be before resource routes)
-    Route::get('/hubs/data', [App\Http\Controllers\Admin\HubController::class, 'getData'])->name('hubs.data');
-    Route::get('/hubs/trash-data', [App\Http\Controllers\Admin\HubController::class, 'getTrashData'])->name('hubs.trash-data');
+    Route::get('/hubs/data', [HubController::class, 'getData'])->name('hubs.data');
+    Route::get('/hubs/trash-data', [HubController::class, 'getTrashData'])->name('hubs.trash-data');
 
     // Trash management routes
-    Route::get('/hubs/trash', [App\Http\Controllers\Admin\HubController::class, 'trash'])->name('hubs.trash');
-    Route::put('/hubs/restore/{id}', [App\Http\Controllers\Admin\HubController::class, 'restore'])->name('hubs.restore');
-    Route::delete('/hubs/force-delete/{id}', [App\Http\Controllers\Admin\HubController::class, 'forceDelete'])->name('hubs.force-delete');
+    Route::get('/hubs/trash', [HubController::class, 'trash'])->name('hubs.trash');
+    Route::put('/hubs/restore/{id}', [HubController::class, 'restore'])->name('hubs.restore');
+    Route::delete('/hubs/force-delete/{id}', [HubController::class, 'forceDelete'])->name('hubs.force-delete');
 
     // Bulk operations
-    Route::post('/hubs/bulk-restore', [App\Http\Controllers\Admin\HubController::class, 'bulkRestore'])->name('hubs.bulk-restore');
-    Route::post('/hubs/bulk-force-delete', [App\Http\Controllers\Admin\HubController::class, 'bulkForceDelete'])->name('hubs.bulk-force-delete');
+    Route::post('/hubs/bulk-restore', [HubController::class, 'bulkRestore'])->name('hubs.bulk-restore');
+    Route::post('/hubs/bulk-force-delete', [HubController::class, 'bulkForceDelete'])->name('hubs.bulk-force-delete');
 
     // Toggle status
-    Route::get('/hubs/{hub}/toggle-status', [App\Http\Controllers\Admin\HubController::class, 'toggleStatus'])->name('hubs.toggle-status');
+    Route::get('/hubs/{hub}/toggle-status', [HubController::class, 'toggleStatus'])->name('hubs.toggle-status');
 
     // Resource route (must be last)
-    Route::resource('hubs', App\Http\Controllers\Admin\HubController::class);
+    Route::resource('hubs', HubController::class);
 
 
     Route::get('/notifications/fetch', [DashboardController::class, 'fetchNotifications'])->name('notifications.fetch');
@@ -135,18 +130,18 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     // Reports Routes
     Route::prefix('reports')->name('reports.')->group(function () {
-        Route::get('/earnings', [App\Http\Controllers\Admin\ReportController::class, 'earnings'])->name('earnings');
-        Route::get('/delivery', [App\Http\Controllers\Admin\ReportController::class, 'delivery'])->name('delivery');
-        Route::get('/earnings/export', [App\Http\Controllers\Admin\ReportController::class, 'exportEarnings'])->name('earnings.export');
-        Route::get('/delivery/export', [App\Http\Controllers\Admin\ReportController::class, 'exportDelivery'])->name('delivery.export');
+        Route::get('/earnings', [ReportController::class, 'earnings'])->name('earnings');
+        Route::get('/delivery', [ReportController::class, 'delivery'])->name('delivery');
+        Route::get('/earnings/export', [ReportController::class, 'exportEarnings'])->name('earnings.export');
+        Route::get('/delivery/export', [ReportController::class, 'exportDelivery'])->name('delivery.export');
     });
 
     // Admin Profile Routes
     Route::prefix('profile')->name('profile.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Admin\ProfileController::class, 'index'])->name('index');
-        Route::post('/update', [App\Http\Controllers\Admin\ProfileController::class, 'update'])->name('update');
-        Route::post('/update-picture', [App\Http\Controllers\Admin\ProfileController::class, 'updatePicture'])->name('update-picture');
-        Route::post('/change-password', [App\Http\Controllers\Admin\ProfileController::class, 'changePassword'])->name('change-password');
+        Route::get('/', [ProfileController::class, 'index'])->name('index');
+        Route::post('/update', [ProfileController::class, 'update'])->name('update');
+        Route::post('/update-picture', [ProfileController::class, 'updatePicture'])->name('update-picture');
+        Route::post('/change-password', [ProfileController::class, 'changePassword'])->name('change-password');
     });
 });
 

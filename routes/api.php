@@ -6,11 +6,7 @@ use App\Http\Controllers\API\ParcelController;
 use App\Http\Controllers\API\RiderController;
 use App\Http\Controllers\API\ReportController;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-*/
+// API Routes
 
 // ==================== PUBLIC ROUTES ====================
 Route::post('/register', [AuthController::class, 'register']);

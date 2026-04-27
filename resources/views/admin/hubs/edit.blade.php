@@ -18,7 +18,10 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label class="form-label">Hub Name *</label>
+                        <label class="form-label">
+                            Hub Name
+                            <span class="required-star">*</span>
+                        </label>
                         <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
                                value="{{ old('name', $hub->name) }}" required>
                         @error('name')
@@ -27,7 +30,10 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Hub Code *</label>
+                        <label class="form-label">
+                            Hub Code
+                            <span class="required-star">*</span>
+                        </label>
                         <input type="text" name="code" class="form-control @error('code') is-invalid @enderror"
                                value="{{ old('code', $hub->code) }}" required>
                         <small class="text-muted">Unique identifier for the hub</small>
@@ -57,7 +63,10 @@
 
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label class="form-label">Address *</label>
+                        <label class="form-label">
+                            Address
+                            <span class="required-star">*</span>
+                        </label>
                         <textarea name="address" class="form-control @error('address') is-invalid @enderror"
                                   rows="4" required>{{ old('address', $hub->address) }}</textarea>
                         @error('address')
@@ -86,8 +95,14 @@
             </div>
 
             <div class="mt-4">
-                <button type="submit" class="btn btn-primary">Update Hub</button>
-                <a href="{{ route('admin.hubs.index') }}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <iconify-icon icon="solar:check-circle-line-duotone"></iconify-icon>
+                    Update Hub
+                </button>
+                <a href="{{ route('admin.hubs.index') }}" class="btn btn-secondary">
+                    <iconify-icon icon="solar:arrow-left-line-duotone"></iconify-icon>
+                    Cancel
+                </a>
             </div>
         </form>
     </div>
