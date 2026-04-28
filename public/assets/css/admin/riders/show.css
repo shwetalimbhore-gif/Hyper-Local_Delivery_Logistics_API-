@@ -1,0 +1,326 @@
+/**
+ * Rider Show Page Styles
+ * File: public/assets/css/admin/riders/show.css
+ */
+
+/* ============================================
+   Card Styles
+   ============================================ */
+.rider-details-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    background: #ffffff;
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0;
+}
+
+/* Card Header Styles */
+.card-header {
+    padding: 0.875rem 1.25rem;
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+}
+
+.card-header.bg-primary {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+}
+
+.card-header.bg-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+}
+
+.card-header.bg-info {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+}
+
+.card-header.bg-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+}
+
+.card-header.bg-secondary {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+}
+
+.card-header h6 {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+/* ============================================
+   Table Styles
+   ============================================ */
+.table-borderless td,
+.table-borderless th {
+    padding: 0.5rem 0;
+    border: none;
+}
+
+.table-borderless th {
+    font-weight: 600;
+    color: #374151;
+    width: 35%;
+}
+
+.table-borderless td {
+    color: #4b5563;
+}
+
+/* Employee ID */
+.employee-id {
+    font-family: monospace;
+    font-weight: 600;
+    color: #4f46e5;
+    background: #e0e7ff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+/* ============================================
+   Badge Styles
+   ============================================ */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0.35rem 0.75rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.badge-available {
+    background-color: #10b981;
+    color: white;
+}
+
+.badge-busy {
+    background-color: #f59e0b;
+    color: #1f2937;
+}
+
+.badge-offline {
+    background-color: #6b7280;
+    color: white;
+}
+
+.badge-vehicle {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+}
+
+/* ============================================
+   Statistics Box Styles
+   ============================================ */
+.stat-box {
+    text-align: center;
+    padding: 0.5rem;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.stat-value.text-success {
+    color: #10b981 !important;
+}
+
+.stat-value.text-danger {
+    color: #ef4444 !important;
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    color: #6b757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 0.25rem;
+}
+
+/* ============================================
+   Progress Bar Styles
+   ============================================ */
+.progress-custom {
+    background: #e5e7eb;
+    border-radius: 10px;
+    height: 8px;
+    overflow: hidden;
+}
+
+.progress-bar-custom {
+    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+    border-radius: 10px;
+    height: 100%;
+    transition: width 0.5s ease;
+    animation: slideIn 0.5s ease;
+}
+
+@keyframes slideIn {
+    from {
+        width: 0;
+    }
+    to {
+        width: var(--progress-width);
+    }
+}
+
+/* ============================================
+   Rating Styles
+   ============================================ */
+.rating-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #f59e0b;
+}
+
+.rating-stars iconify-icon {
+    font-size: 1rem;
+    color: #f59e0b;
+    vertical-align: middle;
+}
+
+/* ============================================
+   Button Styles
+   ============================================ */
+.btn {
+    padding: 0.375rem 0.75rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-warning {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.btn-warning:hover {
+    background-color: #d97706;
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background-color: #ef4444;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #dc2626;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: #6b7280;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #4b5563;
+    transform: translateY(-1px);
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+}
+
+/* ============================================
+   Modal Styles
+   ============================================ */
+.modal-content {
+    border-radius: 12px;
+    border: none;
+    overflow: hidden;
+}
+
+.modal-header.bg-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+}
+
+.modal-header .modal-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-footer {
+    justify-content: center;
+    gap: 1rem;
+    border-top: 1px solid #e5e7eb;
+    padding: 1rem 1.5rem;
+}
+
+/* ============================================
+   Responsive Styles
+   ============================================ */
+@media (max-width: 768px) {
+    .rider-details-card {
+        margin: 0.5rem;
+    }
+
+    .card-title {
+        font-size: 1rem;
+    }
+
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .btn-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+    }
+
+    .table-borderless th,
+    .table-borderless td {
+        font-size: 0.8rem;
+    }
+
+    .modal-body {
+        padding: 1rem;
+    }
+}
+
+/* ============================================
+   Print Styles
+   ============================================ */
+@media print {
+    .btn,
+    .btn-group,
+    .modal {
+        display: none !important;
+    }
+
+    .rider-details-card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+
+    .card-header {
+        background: #f0f0f0 !important;
+        color: #000 !important;
+    }
+}

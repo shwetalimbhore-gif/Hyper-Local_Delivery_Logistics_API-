@@ -2,8 +2,12 @@
 
 @section('title', 'Edit Rider')
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('assets/css/admin/riders/edit.css') }}">
+@endpush
+
 @section('content')
-<div class="card">
+<div class="card rider-edit-card">
     <div class="card-header">
         <h5 class="card-title mb-0">
             <iconify-icon icon="solar:pen-line-duotone"></iconify-icon>
@@ -20,7 +24,7 @@
                     <!-- Personal Information -->
                     <div class="mb-3">
                         <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
+                        <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror"
                                value="{{ old('name', $rider->user->name ?? '') }}" required>
                         @error('name')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -29,7 +33,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">Email <span class="text-danger">*</span></label>
-                        <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
+                        <input type="email" name="email" id="email" class="form-control @error('email') is-invalid @enderror"
                                value="{{ old('email', $rider->user->email ?? '') }}" required>
                         @error('email')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -38,7 +42,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">Phone <span class="text-danger">*</span></label>
-                        <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror"
+                        <input type="text" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror"
                                value="{{ old('phone', $rider->user->phone ?? '') }}" required>
                         @error('phone')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -47,7 +51,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">Employee ID <span class="text-danger">*</span></label>
-                        <input type="text" name="employee_id" class="form-control @error('employee_id') is-invalid @enderror"
+                        <input type="text" name="employee_id" id="employee_id" class="form-control @error('employee_id') is-invalid @enderror"
                                value="{{ old('employee_id', $rider->employee_id) }}" required>
                         @error('employee_id')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -56,7 +60,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">Address</label>
-                        <textarea name="address" class="form-control @error('address') is-invalid @enderror"
+                        <textarea name="address" id="address" class="form-control @error('address') is-invalid @enderror"
                                   rows="2">{{ old('address', $rider->user->address ?? '') }}</textarea>
                         @error('address')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -66,7 +70,7 @@
                     <!-- Vehicle Information -->
                     <div class="mb-3">
                         <label class="form-label">Vehicle Type <span class="text-danger">*</span></label>
-                        <select name="vehicle_type" class="form-select @error('vehicle_type') is-invalid @enderror" required>
+                        <select name="vehicle_type" id="vehicle_type" class="form-select @error('vehicle_type') is-invalid @enderror" required>
                             <option value="">Select Vehicle Type</option>
                             <option value="bike" {{ old('vehicle_type', $rider->vehicle_type) == 'bike' ? 'selected' : '' }}>Bike</option>
                             <option value="scooty" {{ old('vehicle_type', $rider->vehicle_type) == 'scooty' ? 'selected' : '' }}>Scooty</option>
@@ -80,7 +84,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">Vehicle Number <span class="text-danger">*</span></label>
-                        <input type="text" name="vehicle_number" class="form-control @error('vehicle_number') is-invalid @enderror"
+                        <input type="text" name="vehicle_number" id="vehicle_number" class="form-control @error('vehicle_number') is-invalid @enderror"
                                value="{{ old('vehicle_number', $rider->vehicle_number) }}" required>
                         @error('vehicle_number')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -89,7 +93,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">Vehicle Model</label>
-                        <input type="text" name="vehicle_model" class="form-control @error('vehicle_model') is-invalid @enderror"
+                        <input type="text" name="vehicle_model" id="vehicle_model" class="form-control @error('vehicle_model') is-invalid @enderror"
                                value="{{ old('vehicle_model', $rider->vehicle_model) }}">
                         @error('vehicle_model')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -101,7 +105,7 @@
                     <!-- Hub Assignment -->
                     <div class="mb-3">
                         <label class="form-label">Hub Assignment <span class="text-danger">*</span></label>
-                        <select name="hub_id" class="form-select @error('hub_id') is-invalid @enderror" required>
+                        <select name="hub_id" id="hub_id" class="form-select @error('hub_id') is-invalid @enderror" required>
                             <option value="">Select Hub</option>
                             @foreach($hubs as $hub)
                                 <option value="{{ $hub->id }}" {{ old('hub_id', $rider->hub_id) == $hub->id ? 'selected' : '' }}>
@@ -117,19 +121,19 @@
                     <!-- Capacity Information -->
                     <div class="mb-3">
                         <label class="form-label">Max Weight Capacity (kg)</label>
-                        <input type="number" step="0.01" name="max_weight_capacity" class="form-control"
+                        <input type="number" step="0.01" name="max_weight_capacity" id="max_weight_capacity" class="form-control"
                                value="{{ old('max_weight_capacity', $rider->max_weight_capacity) }}" placeholder="e.g., 50">
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Max Size Capacity (cubic meter)</label>
-                        <input type="number" step="0.01" name="max_size_capacity" class="form-control"
+                        <input type="number" step="0.01" name="max_size_capacity" id="max_size_capacity" class="form-control"
                                value="{{ old('max_size_capacity', $rider->max_size_capacity) }}" placeholder="e.g., 2.5">
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">License Number</label>
-                        <input type="text" name="license_number" class="form-control @error('license_number') is-invalid @enderror"
+                        <input type="text" name="license_number" id="license_number" class="form-control @error('license_number') is-invalid @enderror"
                                value="{{ old('license_number', $rider->license_number) }}">
                         @error('license_number')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -139,7 +143,7 @@
                     <!-- Rider Status -->
                     <div class="mb-3">
                         <label class="form-label">Rider Status <span class="text-danger">*</span></label>
-                        <select name="status" class="form-select @error('status') is-invalid @enderror" required>
+                        <select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
                             <option value="available" {{ old('status', $rider->status) == 'available' ? 'selected' : '' }}>
                                 🟢 Available
                             </option>
@@ -171,7 +175,7 @@
                     <!-- Password Change -->
                     <div class="mb-3">
                         <label class="form-label">New Password</label>
-                        <input type="password" name="password" class="form-control @error('password') is-invalid @enderror"
+                        <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror"
                                placeholder="Leave blank to keep current password">
                         <small class="text-muted">Leave blank if you don't want to change the password</small>
                         @error('password')
@@ -181,7 +185,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">Confirm Password</label>
-                        <input type="password" name="password_confirmation" class="form-control"
+                        <input type="password" name="password_confirmation" id="confirm_password" class="form-control"
                                placeholder="Confirm new password">
                     </div>
 
@@ -225,13 +229,5 @@
 @endsection
 
 @push('scripts')
-<script>
-$(document).ready(function() {
-    $('#editRiderForm').on('submit', function() {
-        const submitBtn = $('#submitBtn');
-        submitBtn.html('<span class="spinner-border spinner-border-sm me-2"></span>Updating...');
-        submitBtn.prop('disabled', true);
-    });
-});
-</script>
+<script src="{{ asset('assets/js/admin/riders/edit.js') }}"></script>
 @endpush

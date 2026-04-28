@@ -273,7 +273,7 @@ class RiderController extends Controller
         }
     }
 
-    /**
+   /**
      * Soft delete the specified rider.
      */
     public function destroy($id)
@@ -281,35 +281,62 @@ class RiderController extends Controller
         try {
             $rider = Rider::findOrFail($id);
 
-            // Check if rider has active parcels
+            // ✅ CHECK IF RIDER IS BUSY
+            if ($rider->status === 'busy') {
+                if (request()->ajax() || request()->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Cannot delete rider because they are currently BUSY with active deliveries. Please wait until deliveries are completed.'
+                    ], 400);
+                }
+
+                return redirect()->route('admin.riders.show', $rider->id)
+                    ->with('error', 'Cannot delete rider because they are currently BUSY with active deliveries.');
+            }
+
+            // Check if rider has active parcels (additional safety)
             $activeParcels = $rider->assignedParcels()
                 ->whereHas('status', function($q) {
                     $q->whereNotIn('slug', ['delivered', 'cancelled', 'returned_to_sender']);
                 })->count();
 
             if ($activeParcels > 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Cannot delete rider because they have {$activeParcels} active parcel(s). Please reassign or complete the deliveries first."
-                ], 400);
+                $message = "Cannot delete rider because they have {$activeParcels} active parcel(s). Please reassign or complete the deliveries first.";
+
+                if (request()->ajax() || request()->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $message
+                    ], 400);
+                }
+
+                return redirect()->route('admin.riders.show', $rider->id)
+                    ->with('error', $message);
             }
 
             // Soft delete the rider
             $rider->delete();
 
-            // Also soft delete the user (optional - comment if you want to keep user)
-            // $rider->user->delete();
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Rider moved to trash successfully.'
+                ]);
+            }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Rider moved to trash successfully.'
-            ]);
+            return redirect()->route('admin.riders.index')
+                ->with('success', 'Rider moved to trash successfully.');
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete rider: ' . $e->getMessage()
-            ], 500);
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete rider: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()->route('admin.riders.show', $id)
+                ->with('error', 'Failed to delete rider: ' . $e->getMessage());
         }
     }
     /**
