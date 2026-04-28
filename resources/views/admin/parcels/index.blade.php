@@ -3,7 +3,7 @@
 @section('title', 'Manage Parcels')
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('assets/css/admin/parcels-index.css') }}">
+<link rel="stylesheet" href="{{ asset('assets/css/admin/parcels/index.css') }}">
 <link rel="stylesheet" href="{{ asset('assets/css/admin/auto-assign.css') }}">
 @endpush
 
@@ -139,6 +139,6 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('assets/js/admin/parcels-index.js') }}"></script>
+<script src="{{ asset('assets/js/admin/parcels/index.js') }}"></script>
 <script src="{{ asset('assets/js/admin/auto-assign.js') }}"></script>
 @endpush

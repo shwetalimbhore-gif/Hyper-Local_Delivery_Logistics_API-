@@ -9,6 +9,7 @@ use App\Models\Rider;
 use App\Models\Hub;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 
 class DashboardController extends Controller
@@ -32,10 +33,16 @@ class DashboardController extends Controller
             ->take(10)
             ->get();
 
+        $statusCounts = Parcel::select('status_id', DB::raw('count(*) as count'))
+        ->groupBy('status_id')
+        ->get();
+
+        $totalStatusCount = $statusCounts->sum('count');
+
         return view('admin.dashboard', compact(
             'totalParcels', 'deliveredParcels', 'totalRiders',
             'activeRiders', 'totalHubs', 'newParcels',
-            'deliveryRate', 'recentParcels'
+            'deliveryRate', 'recentParcels', 'statusCounts', 'totalStatusCount'
         ));
     }
 

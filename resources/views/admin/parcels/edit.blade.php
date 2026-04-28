@@ -3,7 +3,7 @@
 @section('title', 'Edit Parcel - ' . $parcel->tracking_number)
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('assets/css/admin/parcels-edit.css') }}">
+<link rel="stylesheet" href="{{ asset('assets/css/admin/parcels/edit.css') }}">
 @endpush
 
 @section('content')
@@ -313,5 +313,5 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('assets/js/admin/parcels-edit.js') }}"></script>
+<script src="{{ asset('assets/js/admin/parcels/edit.js') }}"></script>
 @endpush

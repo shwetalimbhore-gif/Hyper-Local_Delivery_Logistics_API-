@@ -79,8 +79,10 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/parcels/bulk-force-delete', [ParcelController::class, 'bulkForceDelete'])->name('parcels.bulk-force-delete');
 
     // Auto assign
+     Route::post('/parcels/find-rider', [ParcelController::class, 'findBestRider'])->name('parcels.find-rider');
     Route::post('/parcels/auto-assign', [ParcelController::class, 'autoAssignAll'])->name('parcels.auto-assign');
-    Route::post('/parcels/find-rider', [ParcelController::class, 'findBestRider'])->name('parcels.find-rider');
+
+    Route::resource('parcels', ParcelController::class);
 
     // Standard CRUD routes for parcels
     Route::get('/parcels', [ParcelController::class, 'index'])->name('parcels.index');

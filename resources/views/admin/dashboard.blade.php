@@ -10,63 +10,71 @@
 <div class="row">
     <!-- Stats Cards -->
     <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card bg-primary text-white h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <h6 class="mb-1 text-white-50">Total Parcels</h6>
-                        <h2 class="mb-0 text-white">{{ $totalParcels ?? 0 }}</h2>
+        <a href="{{ route('admin.parcels.index') }}">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="mb-1 text-white-50">Total Parcels</h6>
+                            <h2 class="mb-0 text-white">{{ $totalParcels ?? 0 }}</h2>
+                        </div>
+                        <iconify-icon icon="solar:box-line-duotone" class="fs-1 text-white-50"></iconify-icon>
                     </div>
-                    <iconify-icon icon="solar:box-line-duotone" class="fs-1 text-white-50"></iconify-icon>
+                    <small class="mt-2 d-block text-white-50">+{{ $newParcels ?? 0 }} this week</small>
                 </div>
-                <small class="mt-2 d-block text-white-50">+{{ $newParcels ?? 0 }} this week</small>
             </div>
-        </div>
+        </a>
     </div>
 
     <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card bg-success text-white h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <h6 class="mb-1 text-white-50">Delivered</h6>
-                        <h2 class="mb-0 text-white">{{ $deliveredParcels ?? 0 }}</h2>
+        <a href="{{ route('admin.parcels.index') }}">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="mb-1 text-white-50">Delivered</h6>
+                            <h2 class="mb-0 text-white">{{ $deliveredParcels ?? 0 }}</h2>
+                        </div>
+                        <iconify-icon icon="solar:check-circle-line-duotone" class="fs-1 text-white-50"></iconify-icon>
                     </div>
-                    <iconify-icon icon="solar:check-circle-line-duotone" class="fs-1 text-white-50"></iconify-icon>
+                    <small class="mt-2 d-block text-white-50">Rate: {{ $deliveryRate ?? 0 }}%</small>
                 </div>
-                <small class="mt-2 d-block text-white-50">Rate: {{ $deliveryRate ?? 0 }}%</small>
             </div>
-        </div>
+        </a>
     </div>
 
     <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card bg-warning text-dark h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <h6 class="mb-1">Active Riders</h6>
-                        <h2 class="mb-0">{{ $activeRiders ?? 0 }}</h2>
+        <a href="{{ route('admin.riders.index') }}">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="mb-1">Active Riders</h6>
+                            <h2 class="mb-0">{{ $activeRiders ?? 0 }}</h2>
+                        </div>
+                        <iconify-icon icon="solar:bicycle-line-duotone" class="fs-1"></iconify-icon>
                     </div>
-                    <iconify-icon icon="solar:bicycle-line-duotone" class="fs-1"></iconify-icon>
+                    <small class="mt-2 d-block">Total: {{ $totalRiders ?? 0 }}</small>
                 </div>
-                <small class="mt-2 d-block">Total: {{ $totalRiders ?? 0 }}</small>
             </div>
-        </div>
+        </a>
     </div>
 
     <div class="col-lg-3 col-md-6 mb-4">
-        <div class="card bg-info text-white h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <h6 class="mb-1 text-white-50">Total Hubs</h6>
-                        <h2 class="mb-0 text-white">{{ $totalHubs ?? 0 }}</h2>
+        <a href="{{ route('admin.hubs.index') }}">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="mb-1 text-white-50">Total Hubs</h6>
+                            <h2 class="mb-0 text-white">{{ $totalHubs ?? 0 }}</h2>
+                        </div>
+                        <iconify-icon icon="solar:warehouse-line-duotone" class="fs-1 text-white-50"></iconify-icon>
                     </div>
-                    <iconify-icon icon="solar:warehouse-line-duotone" class="fs-1 text-white-50"></iconify-icon>
+                    <small class="mt-2 d-block text-white-50">Active Locations</small>
                 </div>
-                <small class="mt-2 d-block text-white-50">Active Locations</small>
             </div>
-        </div>
+        </a>
     </div>
 </div>
 
@@ -181,7 +189,8 @@
                                 <span>{{ $status->count }}</span>
                             </div>
                             <div class="progress" style="height: 8px;">
-                                <div class="progress-bar" style="width: {{ ($status->count / max(array_sum(array_column($statusCounts->toArray(), 'count')), 1)) * 100 }}%; background-color: {{ $status->color_code ?? '#007bff' }};"></div>
+                                <div class="progress-bar" style="width: {{ ($status->count / max($totalStatusCount, 1)) * 100 }}%;
+                                        background-color: {{ $status->color_code ?? '#007bff' }};"></div>
                             </div>
                         </div>
                     @endforeach
@@ -216,4 +225,5 @@
 
 @push('scripts')
 <script src="{{ asset('assets/js/admin/dashboard.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 @endpush
