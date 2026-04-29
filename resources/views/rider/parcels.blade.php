@@ -16,9 +16,9 @@
                 My Parcels
             </h5>
             <div class="dropdown filter-dropdown">
-                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="statusFilterButton" data-bs-toggle="dropdown">
                     <iconify-icon icon="solar:filter-line-duotone"></iconify-icon>
-                    Filter by Status
+                    <span id="statusFilterLabel">Filter by Status</span>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li>
@@ -49,8 +49,8 @@
         @endif
 
         <div class="table-responsive">
-            <input type="hidden" id="statusFilterValue" value="">
-            <table class="table table-hover" id="riderParcelsTable" width="100%" data-ajax="{{ route('rider.parcels.data') }}">
+            <input type="hidden" id="statusFilterValue" value="{{ $statusFilter ?? '' }}">
+            <table class="table table-hover" id="riderParcelsTable" width="100%" data-ajax="{{ route('rider.parcels.filter-data') }}">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -143,5 +143,5 @@
 @push('scripts')
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
-<script src="{{ asset('assets/js/rider/parcels.js') }}"></script>
+<script src="{{ asset('assets/js/rider/parcels.js') }}?v={{ filemtime(public_path('assets/js/rider/parcels.js')) }}"></script>
 @endpush

@@ -118,9 +118,8 @@ class RiderController extends Controller
      */
     public function parcels(Request $request)
     {
-        $statusFilter = $request->get('status');
-        $statuses = ParcelStatus::where('is_rider_updatable', true)
-            ->orWhereIn('slug', ['delivered', 'failed-delivery', 'returned-to-hub', 'assigned'])
+        $statusFilter = $request->get('status', '');
+        $statuses = ParcelStatus::query()
             ->orderBy('sequence_order')
             ->get();
 
@@ -139,6 +138,14 @@ class RiderController extends Controller
                 ->where('assigned_rider_id', $riderId)
                 ->select('parcels.*');
 
+            $statusFilter = $request->input('status_slug', $request->input('status'));
+
+            if (!empty($statusFilter)) {
+                $parcels->whereHas('status', function ($query) use ($statusFilter) {
+                    $query->where('slug', $statusFilter);
+                });
+            }
+
             return DataTables::eloquent($parcels)
                 ->editColumn('weight', function($parcel) {
                     return $parcel->weight . ' kg';
@@ -154,6 +161,12 @@ class RiderController extends Controller
                     $color = $parcel->status->color_code ?? '#6c757d';
                     return '<span class="badge" style="background-color: ' . $color . '; color: white; padding: 5px 10px;">'
                         . e($parcel->status->display_name ?? 'Unknown') . '</span>';
+                })
+                ->filterColumn('status_badge', function($query, $keyword) {
+                    $query->whereHas('status', function($statusQuery) use ($keyword) {
+                        $statusQuery->where('display_name', 'like', "%{$keyword}%")
+                            ->orWhere('slug', 'like', "%{$keyword}%");
+                    });
                 })
                 ->addColumn('action', function($parcel) {
                     $canUpdate = in_array($parcel->status->slug, ['assigned', 'picked-up', 'out-for-delivery', 'failed-delivery']);
@@ -287,6 +300,7 @@ class RiderController extends Controller
             } elseif ($newStatus->slug === 'out-for-delivery') {
                 $this->sendNotificationToAdmins('🚚 Out for Delivery', "Parcel #{$parcel->tracking_number} is out for delivery with {$rider->user->name}", 'info');
             }
+            $rider->syncStatusWithAssignments();
             DB::commit();
 
             return response()->json([

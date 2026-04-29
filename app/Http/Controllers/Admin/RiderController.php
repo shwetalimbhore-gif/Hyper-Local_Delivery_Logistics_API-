@@ -128,7 +128,9 @@ class RiderController extends Controller
      */
     public function create()
     {
-        $hubs = Hub::where('is_active', true)->get();
+        $hubs = Hub::where('is_active', true)
+            ->orderBy('name')
+            ->get();
         return view('admin.riders.create', compact('hubs'));
     }
 
@@ -221,7 +223,9 @@ class RiderController extends Controller
                 ->with('error', 'Rider user account not found. Please contact support.');
         }
 
-        $hubs = Hub::where('is_active', true)->get();
+        $hubs = Hub::where('is_active', true)
+            ->orderBy('name')
+            ->get();
         return view('admin.riders.edit', compact('rider', 'hubs'));
     }
 
@@ -259,6 +263,7 @@ class RiderController extends Controller
                 'license_number' => $request->license_number,
                 'max_weight_capacity' => $request->max_weight_capacity,
                 'max_size_capacity' => $request->max_size_capacity,
+                'status' => $request->status,
                 'is_verified' => $request->has('is_verified'),
             ]);
 

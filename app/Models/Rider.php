@@ -149,8 +149,8 @@ class Rider extends Model
             $query->where('hub_id', $hubId);
         }
 
-        return $query->orderBy('total_deliveries', 'asc') // Least busy first
-            ->orderBy('rating', 'desc') // Higher rating first
+        return $query->orderByDesc('rating')
+            ->orderBy('total_deliveries', 'asc')
             ->get();
     }
 
@@ -175,8 +175,30 @@ class Rider extends Model
             $query->where('hub_id', $hubId);
         }
 
-        return $query->orderBy('total_deliveries', 'asc') // Least busy first
-            ->orderBy('rating', 'desc') // Highest rating first
+        return $query->orderByDesc('rating')
+            ->orderBy('total_deliveries', 'asc')
             ->first();
+    }
+
+    /**
+     * Keep rider availability in sync with active parcel assignments.
+     */
+    public function syncStatusWithAssignments()
+    {
+        $hasActiveParcel = $this->assignedParcels()
+            ->whereHas('status', function ($query) {
+                $query->whereNotIn('slug', [
+                    'delivered',
+                    'cancelled',
+                    'returned-to-hub',
+                    'returned-to-sender',
+                ]);
+            })
+            ->exists();
+
+        $this->status = $hasActiveParcel ? 'busy' : 'available';
+        $this->save();
+
+        return $this;
     }
 }

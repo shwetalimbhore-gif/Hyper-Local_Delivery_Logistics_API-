@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rule;
 
 class RiderStoreRequest extends FormRequest
 {
@@ -21,7 +22,10 @@ class RiderStoreRequest extends FormRequest
             'phone' => 'required|string|max:20',
             'address' => 'nullable|string',
             'password' => 'required|string|min:8',
-            'hub_id' => 'required|exists:hubs,id',
+            'hub_id' => [
+                'required',
+                Rule::exists('hubs', 'id')->where('is_active', true),
+            ],
             'employee_id' => 'required|string|unique:riders,employee_id',
             'vehicle_type' => 'required|in:bike,scooter,bicycle,car,truck',
             'vehicle_number' => 'nullable|string|max:50',
@@ -43,7 +47,7 @@ class RiderStoreRequest extends FormRequest
             'password.required' => 'Password is required',
             'password.min' => 'Password must be at least 8 characters',
             'hub_id.required' => 'Hub assignment is required',
-            'hub_id.exists' => 'Selected hub does not exist',
+            'hub_id.exists' => 'Selected hub does not exist or is inactive',
             'employee_id.required' => 'Employee ID is required',
             'employee_id.unique' => 'Employee ID already exists',
             'vehicle_type.required' => 'Vehicle type is required',

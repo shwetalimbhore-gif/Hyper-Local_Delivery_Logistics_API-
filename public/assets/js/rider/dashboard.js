@@ -90,11 +90,6 @@ function initStatusToggle() {
 
                     // Show success message
                     showToast('Status updated successfully!', 'success');
-
-                    // Reload page after 1 second
-                    setTimeout(function() {
-                        location.reload();
-                    }, 1000);
                 } else {
                     showToast(response.message || 'Failed to update status', 'error');
                     $dropdownBtn.html(originalText);

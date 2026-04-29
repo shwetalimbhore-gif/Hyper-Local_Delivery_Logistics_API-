@@ -73,9 +73,10 @@
                         <select name="vehicle_type" id="vehicle_type" class="form-select @error('vehicle_type') is-invalid @enderror" required>
                             <option value="">Select Vehicle Type</option>
                             <option value="bike" {{ old('vehicle_type', $rider->vehicle_type) == 'bike' ? 'selected' : '' }}>Bike</option>
-                            <option value="scooty" {{ old('vehicle_type', $rider->vehicle_type) == 'scooty' ? 'selected' : '' }}>Scooty</option>
+                            <option value="scooter" {{ old('vehicle_type', $rider->vehicle_type) == 'scooter' ? 'selected' : '' }}>Scooter</option>
+                            <option value="bicycle" {{ old('vehicle_type', $rider->vehicle_type) == 'bicycle' ? 'selected' : '' }}>Bicycle</option>
                             <option value="car" {{ old('vehicle_type', $rider->vehicle_type) == 'car' ? 'selected' : '' }}>Car</option>
-                            <option value="van" {{ old('vehicle_type', $rider->vehicle_type) == 'van' ? 'selected' : '' }}>Van</option>
+                            <option value="truck" {{ old('vehicle_type', $rider->vehicle_type) == 'truck' ? 'selected' : '' }}>Truck</option>
                         </select>
                         @error('vehicle_type')
                             <div class="invalid-feedback">{{ $message }}</div>

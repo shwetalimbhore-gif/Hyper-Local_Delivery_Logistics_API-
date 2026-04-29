@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Requests\Admin\ParcelStoreRequest;
 use App\Http\Requests\Admin\ParcelUpdateRequest;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ParcelController extends Controller
@@ -155,6 +156,7 @@ class ParcelController extends Controller
         }
 
         $parcel = Parcel::create($validated);
+        $this->syncRidersForParcel($parcel, null);
 
         return redirect()->route('admin.parcels.index')
             ->with('success', 'Parcel created successfully. Tracking #: ' . $parcel->tracking_number);
@@ -162,8 +164,20 @@ class ParcelController extends Controller
 
     public function edit(Parcel $parcel)
     {
-        $hubs = Hub::where('is_active', true)->get();
-        $riders = Rider::with('user')->where('status', 'available')->get();
+        $hubs = Hub::where('is_active', true)
+            ->orderBy('name')
+            ->get();
+        $riders = Rider::with('user')
+            ->where('hub_id', $parcel->source_hub_id)
+            ->where(function ($query) use ($parcel) {
+                $query->where('status', 'available');
+
+                if ($parcel->assigned_rider_id) {
+                    $query->orWhere('id', $parcel->assigned_rider_id);
+                }
+            })
+            ->orderByDesc('rating')
+            ->get();
         $statuses = ParcelStatus::all();
 
         return view('admin.parcels.edit', compact('parcel', 'hubs', 'riders', 'statuses'));
@@ -189,7 +203,24 @@ class ParcelController extends Controller
     public function update(ParcelUpdateRequest $request, Parcel $parcel)
     {
         $validated = $request->validated();
-        $parcel->update($validated);
+
+        DB::transaction(function () use ($parcel, $validated) {
+            $previousRiderId = $parcel->assigned_rider_id;
+
+            $newRiderId = $validated['assigned_rider_id'] ?? null;
+            $newStatus = isset($validated['status_id'])
+                ? ParcelStatus::find($validated['status_id'])
+                : null;
+
+            if ($newRiderId && $newRiderId !== $previousRiderId && !$this->isTerminalStatus($newStatus?->slug)) {
+                $assignedStatus = ParcelStatus::where('slug', 'assigned')->first();
+                $validated['status_id'] = $assignedStatus?->id ?? $validated['status_id'] ?? $parcel->status_id;
+                $validated['assigned_at'] = $parcel->assigned_at ?? now();
+            }
+
+            $parcel->update($validated);
+            $this->syncRidersForParcel($parcel->fresh('status'), $previousRiderId);
+        });
 
         return redirect()->route('admin.parcels.index')
             ->with('success', 'Parcel updated successfully');
@@ -344,7 +375,9 @@ class ParcelController extends Controller
         $request->validate([
             'weight' => 'required|numeric|min:0.1',
             'size' => 'required|numeric|min:0.1',
-            'hub_id' => 'nullable|exists:hubs,id',
+            'hub_id' => 'required|exists:hubs,id',
+            'parcel_id' => 'nullable|exists:parcels,id',
+            'assign' => 'nullable|boolean',
         ]);
 
         $bestRider = Rider::findBestRiderForParcel(
@@ -354,6 +387,26 @@ class ParcelController extends Controller
         );
 
         if ($bestRider) {
+            if ($request->boolean('assign') && $request->filled('parcel_id')) {
+                DB::transaction(function () use ($request, $bestRider) {
+                    $parcel = Parcel::findOrFail($request->parcel_id);
+                    $previousRiderId = $parcel->assigned_rider_id;
+                    $assignedStatus = ParcelStatus::where('slug', 'assigned')->firstOrFail();
+
+                    $parcel->update([
+                        'weight' => $request->weight,
+                        'size' => $request->size,
+                        'source_hub_id' => $request->hub_id,
+                        'assigned_rider_id' => $bestRider->id,
+                        'status_id' => $assignedStatus->id,
+                        'assigned_at' => now(),
+                    ]);
+
+                    $this->syncRidersForParcel($parcel->fresh('status'), $previousRiderId);
+                    $this->sendNotificationToRider($bestRider->id, $parcel->tracking_number);
+                });
+            }
+
             return response()->json([
                 'success' => true,
                 'rider' => [
@@ -362,7 +415,8 @@ class ParcelController extends Controller
                     'employee_id' => $bestRider->employee_id,
                     'max_weight_capacity' => $bestRider->max_weight_capacity,
                     'max_size_capacity' => $bestRider->max_size_capacity,
-                    'status' => $bestRider->status,
+                    'rating' => $bestRider->rating,
+                    'status' => $request->boolean('assign') ? 'busy' : $bestRider->status,
                 ]
             ]);
         }
@@ -400,6 +454,7 @@ class ParcelController extends Controller
 
                 $bestRider->status = 'busy';
                 $bestRider->save();
+                $this->syncRidersForParcel($parcel->fresh('status'), null);
 
                 $this->sendNotificationToRider($bestRider->id, $parcel->tracking_number);
                 $assignedCount++;
@@ -467,5 +522,21 @@ class ParcelController extends Controller
             ->findOrFail($id);
 
         return view('admin.parcels.show', compact('parcel'));
+    }
+
+    private function syncRidersForParcel(Parcel $parcel, $previousRiderId = null): void
+    {
+        if ($previousRiderId && $previousRiderId !== $parcel->assigned_rider_id) {
+            Rider::find($previousRiderId)?->syncStatusWithAssignments();
+        }
+
+        if ($parcel->assigned_rider_id) {
+            Rider::find($parcel->assigned_rider_id)?->syncStatusWithAssignments();
+        }
+    }
+
+    private function isTerminalStatus(?string $slug): bool
+    {
+        return in_array($slug, ['delivered', 'cancelled', 'returned-to-hub', 'returned-to-sender'], true);
     }
 }

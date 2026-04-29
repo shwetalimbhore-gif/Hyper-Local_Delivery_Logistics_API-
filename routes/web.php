@@ -154,6 +154,7 @@ Route::middleware(['auth'])->prefix('rider')->name('rider.')->group(function () 
     Route::get('/dashboard', [RiderRiderController::class, 'dashboard'])->name('dashboard');
 
     // Parcel Management
+    Route::get('/parcels/filter-data', [RiderRiderController::class, 'getParcelsData'])->name('parcels.filter-data');
     Route::get('/parcels/data', [RiderRiderController::class, 'getParcelsData'])->name('parcels.data');
     Route::get('/parcels', [RiderRiderController::class, 'parcels'])->name('parcels.index');
     Route::post('/parcels/{parcel}/update-status', [RiderRiderController::class, 'updateParcelStatus'])->name('parcels.update-status');

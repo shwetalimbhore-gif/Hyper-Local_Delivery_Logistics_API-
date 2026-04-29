@@ -104,6 +104,15 @@ class ParcelController extends Controller
             ], 422);
         }
 
+        if (!$this->riderBelongsToHub($request->assigned_rider_id, $request->source_hub_id)) {
+            return response()->json([
+                'success' => false,
+                'errors' => [
+                    'assigned_rider_id' => ['Selected rider must belong to the selected source hub.']
+                ]
+            ], 422);
+        }
+
         DB::beginTransaction();
 
         try {
@@ -191,12 +200,37 @@ class ParcelController extends Controller
             ], 422);
         }
 
-        $parcel->update($validator->validated());
+        $validated = $validator->validated();
+        $targetHubId = $validated['source_hub_id'] ?? $parcel->source_hub_id;
+
+        if (!$this->riderBelongsToHub($validated['assigned_rider_id'] ?? null, $targetHubId)) {
+            return response()->json([
+                'success' => false,
+                'errors' => [
+                    'assigned_rider_id' => ['Selected rider must belong to the selected source hub.']
+                ]
+            ], 422);
+        }
+
+        DB::transaction(function () use ($parcel, $validated) {
+            $previousRiderId = $parcel->assigned_rider_id;
+            $data = $validated;
+            $newStatus = isset($data['status_id']) ? ParcelStatus::find($data['status_id']) : null;
+
+            if (!empty($data['assigned_rider_id']) && $data['assigned_rider_id'] !== $previousRiderId && !$this->isTerminalStatus($newStatus?->slug)) {
+                $assignedStatus = ParcelStatus::where('slug', 'assigned')->first();
+                $data['status_id'] = $assignedStatus?->id ?? $data['status_id'] ?? $parcel->status_id;
+                $data['assigned_at'] = now();
+            }
+
+            $parcel->update($data);
+            $this->syncRidersForParcel($parcel->fresh('status'), $previousRiderId);
+        });
 
         return response()->json([
             'success' => true,
             'message' => 'Parcel updated successfully',
-            'data' => $parcel
+            'data' => $parcel->fresh(['status', 'assignedRider.user', 'sourceHub'])
         ]);
     }
 
@@ -302,7 +336,6 @@ class ParcelController extends Controller
                     $rider->earnings += $parcel->delivery_charge * 0.7;
                     $rider->successful_deliveries++;
                     $rider->total_deliveries++;
-                    $rider->status = 'available';
                     $rider->save();
                 }
             } elseif ($newStatus->slug === 'failed-delivery' && $parcel->assigned_rider_id) {
@@ -315,10 +348,11 @@ class ParcelController extends Controller
             } elseif ($newStatus->slug === 'returned-to-hub' && $parcel->assigned_rider_id) {
                 $rider = Rider::find($parcel->assigned_rider_id);
                 if ($rider) {
-                    $rider->status = 'available';
                     $rider->save();
                 }
             }
+
+            $this->syncRidersForParcel($parcel->fresh('status'));
 
             DB::commit();
 
@@ -421,5 +455,32 @@ class ParcelController extends Controller
                 'last_updated' => $parcel->updated_at->format('Y-m-d H:i:s'),
             ]
         ]);
+    }
+
+    private function syncRidersForParcel(Parcel $parcel, $previousRiderId = null): void
+    {
+        if ($previousRiderId && $previousRiderId !== $parcel->assigned_rider_id) {
+            Rider::find($previousRiderId)?->syncStatusWithAssignments();
+        }
+
+        if ($parcel->assigned_rider_id) {
+            Rider::find($parcel->assigned_rider_id)?->syncStatusWithAssignments();
+        }
+    }
+
+    private function isTerminalStatus(?string $slug): bool
+    {
+        return in_array($slug, ['delivered', 'cancelled', 'returned-to-hub', 'returned-to-sender'], true);
+    }
+
+    private function riderBelongsToHub($riderId, $hubId): bool
+    {
+        if (!$riderId) {
+            return true;
+        }
+
+        return Rider::where('id', $riderId)
+            ->where('hub_id', $hubId)
+            ->exists();
     }
 }

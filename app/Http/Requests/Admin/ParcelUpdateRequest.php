@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use App\Models\Rider;
 
 class ParcelUpdateRequest extends FormRequest
 {
@@ -48,6 +49,26 @@ class ParcelUpdateRequest extends FormRequest
             'assigned_rider_id.exists' => 'Selected rider does not exist',
             'status_id.exists' => 'Selected status does not exist',
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $riderId = $this->input('assigned_rider_id');
+            $hubId = $this->input('source_hub_id');
+
+            if (!$riderId || !$hubId) {
+                return;
+            }
+
+            $sameHub = Rider::where('id', $riderId)
+                ->where('hub_id', $hubId)
+                ->exists();
+
+            if (!$sameHub) {
+                $validator->errors()->add('assigned_rider_id', 'Selected rider must belong to the selected source hub.');
+            }
+        });
     }
 
     protected function failedValidation(Validator $validator): void

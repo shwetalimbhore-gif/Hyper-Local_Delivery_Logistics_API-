@@ -3,6 +3,8 @@
  */
 
 let currentParcelId = null;
+let riderParcelsTable = null;
+let selectedStatusFilter = '';
 
 // Show message function
 function showMessage(message, type) {
@@ -16,13 +18,22 @@ function showMessage(message, type) {
 // Initialize DataTable
 function initParcelsDataTable() {
     if ($.fn.DataTable && $('#riderParcelsTable').length) {
+        selectedStatusFilter = $('#statusFilterValue').val() || '';
+
         const table = $('#riderParcelsTable').DataTable({
             processing: true,
             serverSide: true,
             ajax: {
                 url: $('#riderParcelsTable').data('ajax') || "{{ route('rider.parcels.data') }}",
+                type: 'GET',
+                cache: false,
                 data: function(d) {
-                    d.status = $('#statusFilterValue').val();
+                    selectedStatusFilter = $('#statusFilterValue').val() || selectedStatusFilter || '';
+                    d.status = selectedStatusFilter;
+                    d.status_slug = selectedStatusFilter;
+                },
+                error: function(xhr) {
+                    console.error('Rider parcels DataTable error:', xhr.responseText || xhr.statusText);
                 }
             },
             columns: [
@@ -32,7 +43,7 @@ function initParcelsDataTable() {
                 { data: 'address_short', name: 'receiver_address' },
                 { data: 'weight', name: 'weight' },
                 { data: 'status_badge', name: 'status_badge', orderable: false },
-                { data: 'action', name: 'action', orderable: false }
+                { data: 'action', name: 'action', orderable: false, searchable: false }
             ],
             order: [[0, 'desc']],
             pageLength: 15,
@@ -44,6 +55,7 @@ function initParcelsDataTable() {
             }
         });
 
+        riderParcelsTable = table;
         return table;
     }
     return null;
@@ -51,21 +63,57 @@ function initParcelsDataTable() {
 
 // Filter by status handler
 function initFilterHandlers(table) {
-    $('.filter-status').click(function(e) {
+    $(document).off('click.riderParcelFilter', '.filter-status').on('click.riderParcelFilter', '.filter-status', function(e) {
         e.preventDefault();
-        const status = $(this).data('status');
+        const status = $(this).attr('data-status') || '';
+        const label = $.trim($(this).text()) || 'All Parcels';
+
+        selectedStatusFilter = status;
         $('#statusFilterValue').val(status);
+        $('#statusFilterLabel').text(status ? label : 'All Parcels');
+        updateStatusFilterUrl(status);
 
         // Update active state in dropdown
         $('.filter-status').removeClass('active bg-primary text-white');
         $(this).addClass('active bg-primary text-white');
 
-        if (table) {
-            table.ajax.reload();
+        const activeTable = riderParcelsTable ||
+            ($.fn.DataTable && $.fn.dataTable.isDataTable('#riderParcelsTable')
+                ? $('#riderParcelsTable').DataTable()
+                : table);
+
+        if (activeTable) {
+            activeTable.ajax.reload(null, true);
         } else {
-            window.location.href = `${window.location.pathname}?status=${status}`;
+            console.warn('Rider parcels DataTable is not initialized; status filter was not applied.');
         }
     });
+}
+
+function updateStatusFilterUrl(status) {
+    const url = new URL(window.location.href);
+
+    if (status) {
+        url.searchParams.set('status', status);
+    } else {
+        url.searchParams.delete('status');
+    }
+
+    window.history.replaceState({}, '', url.toString());
+}
+
+function initInitialStatusFilter() {
+    const urlStatus = new URLSearchParams(window.location.search).get('status') || '';
+    const selectedStatus = $('#statusFilterValue').val() || urlStatus;
+    selectedStatusFilter = selectedStatus;
+    $('#statusFilterValue').val(selectedStatus);
+    const matchingItem = $(`.filter-status[data-status="${selectedStatus}"]`);
+
+    if (matchingItem.length) {
+        $('.filter-status').removeClass('active bg-primary text-white');
+        matchingItem.addClass('active bg-primary text-white');
+        $('#statusFilterLabel').text(selectedStatus ? $.trim(matchingItem.text()) : 'All Parcels');
+    }
 }
 
 // Load available statuses for modal
@@ -161,7 +209,7 @@ function initStatusModalHandlers() {
                     showMessage(response.message, 'success');
                     setTimeout(function() {
                         $('#updateStatusModal').modal('hide');
-                        $('#riderParcelsTable').DataTable().ajax.reload();
+                        $('#riderParcelsTable').DataTable().ajax.reload(null, false);
                         $('#submitStatusUpdate').prop('disabled', false).html('Update Status');
                     }, 1500);
                 }
@@ -185,6 +233,7 @@ function initAlerts() {
 // Document Ready
 $(document).ready(function() {
     const table = initParcelsDataTable();
+    initInitialStatusFilter();
     initFilterHandlers(table);
     initStatusModalHandlers();
     initAlerts();

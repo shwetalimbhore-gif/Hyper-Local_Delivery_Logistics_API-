@@ -2,13 +2,11 @@
  * Admin Parcels Edit Page JavaScript
  */
 
-// Auto assign rider function
 function autoAssignRider() {
     let weight = parseFloat(document.getElementById('weight').value) || 0;
     let size = parseFloat(document.getElementById('size').value) || 0;
     let hubId = document.getElementById('sourceHubId').value;
 
-    // Validation
     if (weight === 0) {
         showValidationError('weight', 'Please enter parcel weight first');
         return;
@@ -24,12 +22,10 @@ function autoAssignRider() {
         return;
     }
 
-    // Show loading state
     let autoAssignBtn = document.getElementById('autoAssignBtn');
     let originalText = autoAssignBtn.innerHTML;
     setButtonLoading(autoAssignBtn, true, 'Finding best rider...');
 
-    // AJAX request to find best rider
     $.ajax({
         url: $('#autoAssignBtn').data('url') || '/admin/parcels/find-rider',
         method: 'POST',
@@ -37,7 +33,9 @@ function autoAssignRider() {
             _token: $('meta[name="csrf-token"]').attr('content'),
             weight: weight,
             size: size,
-            hub_id: hubId
+            hub_id: hubId,
+            parcel_id: $('#autoAssignBtn').data('parcel-id'),
+            assign: 1
         },
         success: function(response) {
             if (response.success && response.rider) {
@@ -47,7 +45,7 @@ function autoAssignRider() {
             }
         },
         error: function(xhr) {
-            let errorMsg = xhr.responseJSON?.error || 'Unknown error occurred';
+            let errorMsg = xhr.responseJSON?.message || xhr.responseJSON?.error || 'Unknown error occurred';
             showAlertMessage(errorMsg, 'danger');
         },
         complete: function() {
@@ -56,14 +54,12 @@ function autoAssignRider() {
     });
 }
 
-// Show validation error
 function showValidationError(fieldId, message) {
     let field = document.getElementById(fieldId);
     field.focus();
     showAlertMessage(message, 'danger');
 }
 
-// Set button loading state
 function setButtonLoading(button, isLoading, loadingText) {
     if (isLoading) {
         button.disabled = true;
@@ -76,32 +72,25 @@ function setButtonLoading(button, isLoading, loadingText) {
     }
 }
 
-// Handle auto assign success
 function handleAutoAssignSuccess(response) {
-    // Select the rider in dropdown
     $('#riderSelect').val(response.rider.id);
 
-    // Show success message
-    showAlertMessage('✓ Rider auto-assigned successfully!', 'success');
-
-    // Update status select to "Assigned"
     let assignedStatusId = $('#statusSelect option[data-status-slug="assigned"]').val();
     if (assignedStatusId) {
         $('#statusSelect').val(assignedStatusId);
     }
 
-    // Display rider details
+    showAlertMessage('Rider auto-assigned successfully. Parcel status is now Assigned and rider is Busy.', 'success');
     showRiderDetailsModal(response.rider);
 }
 
-// Show rider details modal
 function showRiderDetailsModal(rider) {
     let modalHtml = `
         <div class="modal fade" id="riderDetailsModal" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header bg-success text-white">
-                        <h5 class="modal-title">✓ Rider Auto-Assigned</h5>
+                        <h5 class="modal-title">Rider Auto-Assigned</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -109,8 +98,9 @@ function showRiderDetailsModal(rider) {
                             <tr><th width="40%">Name:</th><td>${rider.name}</td></tr>
                             <tr><th>Employee ID:</th><td>${rider.employee_id}</td></tr>
                             <tr><th>Max Weight:</th><td>${rider.max_weight_capacity} kg</td></tr>
-                            <tr><th>Max Size:</th><td>${rider.max_size_capacity} cm³</td></tr>
-                            <tr><th>Status:</th><td><span class="badge bg-success">${rider.status}</span></td></tr>
+                            <tr><th>Max Size:</th><td>${rider.max_size_capacity} cm3</td></tr>
+                            <tr><th>Rating:</th><td>${rider.rating ?? 'N/A'}</td></tr>
+                            <tr><th>Status:</th><td><span class="badge bg-warning text-dark">${rider.status}</span></td></tr>
                         </table>
                     </div>
                     <div class="modal-footer">
@@ -121,19 +111,16 @@ function showRiderDetailsModal(rider) {
         </div>
     `;
 
-    // Remove existing modal if any
     $('#riderDetailsModal').remove();
     $('body').append(modalHtml);
     $('#riderDetailsModal').modal('show');
 }
 
-// Handle no rider found
 function handleNoRiderFound(weight, size, hubId) {
-    let message = `❌ No available rider found!\n\nParcel Requirements:\n• Weight: ${weight} kg\n• Size: ${size} cm³\n• Hub ID: ${hubId}\n\nPlease check:\n• Rider availability in this hub\n• Rider weight/size capacity\n• Rider status (must be "available")`;
+    let message = `No available rider found!\n\nParcel Requirements:\n- Weight: ${weight} kg\n- Size: ${size} cm3\n- Hub ID: ${hubId}\n\nPlease check rider availability, capacity, and hub assignment.`;
     alert(message);
 }
 
-// Show alert message
 function showAlertMessage(message, type) {
     let alertDiv = $('#autoAssignMessage');
     alertDiv.removeClass('alert-success alert-danger alert-info')
@@ -146,7 +133,6 @@ function showAlertMessage(message, type) {
     }, 3000);
 }
 
-// Initialize form submission loading
 function initFormSubmit() {
     const form = document.getElementById('parcelForm');
     const submitBtn = document.getElementById('submitBtn');
@@ -159,7 +145,30 @@ function initFormSubmit() {
     }
 }
 
-// Document Ready
+function filterRidersBySelectedHub() {
+    const selectedHubId = $('#sourceHubId').val();
+    const riderSelect = $('#riderSelect');
+
+    riderSelect.find('option').each(function() {
+        const option = $(this);
+        const riderHubId = option.data('hub');
+
+        if (!option.val()) {
+            option.show();
+            return;
+        }
+
+        option.toggle(String(riderHubId) === String(selectedHubId));
+    });
+
+    const selectedOption = riderSelect.find('option:selected');
+    if (selectedOption.val() && String(selectedOption.data('hub')) !== String(selectedHubId)) {
+        riderSelect.val('');
+    }
+}
+
 $(document).ready(function() {
     initFormSubmit();
+    filterRidersBySelectedHub();
+    $('#sourceHubId').on('change', filterRidersBySelectedHub);
 });

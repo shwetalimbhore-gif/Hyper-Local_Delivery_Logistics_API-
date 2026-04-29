@@ -45,7 +45,7 @@ function initializeDataTable() {
             { data: 'receiver_name', name: 'receiver_name' },
             { data: 'weight', name: 'weight' },
             { data: 'status_html', name: 'status', orderable: false, searchable: false },
-            { data: 'rider_name', name: 'rider_name', orderable: false },
+            { data: 'rider_name', name: 'rider_name', orderable: false, searchable: false },
             { data: 'created_at', name: 'created_at' },
             { data: 'actions', name: 'actions', orderable: false, searchable: false }
         ],

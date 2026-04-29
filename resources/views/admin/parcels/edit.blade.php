@@ -258,6 +258,7 @@
                                         @endforeach
                                     </select>
                                     <button type="button" class="btn btn-primary" id="autoAssignBtn"
+                                            data-parcel-id="{{ $parcel->id }}"
                                             data-url="{{ route('admin.parcels.find-rider') }}"
                                             onclick="autoAssignRider()">
                                         <iconify-icon icon="solar:magic-stick-line-duotone"></iconify-icon>
