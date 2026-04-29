@@ -257,7 +257,7 @@
                     Create Parcel
                 </button>
                 <button type="button" class="btn btn-success" id="autoAssignBtn"
-                        data-url="{{ route('admin.parcels.find-best-rider') }}">
+                        data-url="{{ route('admin.parcels.find-rider') }}">
                     <iconify-icon icon="solar:magic-stick-3-line-duotone"></iconify-icon>
                     Auto-Assign Best Rider
                 </button>

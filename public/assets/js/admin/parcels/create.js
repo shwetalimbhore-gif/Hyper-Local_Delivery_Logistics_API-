@@ -1,6 +1,7 @@
 /**
  * Parcel Create Page JavaScript
  * File: public/assets/js/admin/parcels/create.js
+ * Pure JavaScript validations only - No Laravel validation rules
  */
 
 $(document).ready(function() {
@@ -68,7 +69,6 @@ function initializeFormValidation() {
  */
 function validateNameField(field) {
     const value = field.val().trim();
-    const fieldName = field.attr('name');
     let isValid = true;
     let errorMessage = '';
 
@@ -104,7 +104,6 @@ function validateNameField(field) {
  */
 function validatePhoneField(field) {
     const value = field.val().trim();
-    const fieldName = field.attr('name');
     let isValid = true;
     let errorMessage = '';
 
@@ -115,7 +114,7 @@ function validatePhoneField(field) {
         errorMessage = getFieldLabel(field) + ' is required';
         isValid = false;
     } else if (!/^[6-9][0-9]{9}$/.test(value)) {
-        errorMessage = 'Please enter a valid 10-digit mobile number';
+        errorMessage = 'Please enter a valid 10-digit mobile number starting with 6-9';
         isValid = false;
     }
 
@@ -143,19 +142,19 @@ function validateEmailField(field) {
     if (value && value !== '') {  // Email is optional
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
         if (!emailRegex.test(value)) {
-            errorMessage = 'Please enter a valid email address';
+            errorMessage = 'Please enter a valid email address (e.g., name@example.com)';
             isValid = false;
         } else if (value.length > 100) {
             errorMessage = 'Email cannot exceed 100 characters';
             isValid = false;
+        } else {
+            field.addClass('is-valid');
         }
     }
 
     if (!isValid) {
         field.addClass('is-invalid');
         field.after(`<div class="invalid-feedback">${errorMessage}</div>`);
-    } else if (value && value !== '') {
-        field.addClass('is-valid');
     }
 
     return isValid;
@@ -173,17 +172,23 @@ function validateTextField(field) {
     field.removeClass('is-invalid is-valid');
     field.next('.invalid-feedback').remove();
 
-    if (fieldName.includes('address') || fieldName === 'parcel_name') {
+    if (fieldName === 'sender_address' || fieldName === 'receiver_address') {
         if (!value) {
             errorMessage = getFieldLabel(field) + ' is required';
             isValid = false;
         } else if (value.length < 5) {
-            errorMessage = getFieldLabel(field) + ' must be at least 5 characters';
+            errorMessage = 'Please enter a complete address (minimum 5 characters)';
             isValid = false;
         } else if (value.length > 500) {
-            errorMessage = getFieldLabel(field) + ' cannot exceed 500 characters';
+            errorMessage = 'Address cannot exceed 500 characters';
             isValid = false;
         }
+    }
+
+    // Parcel description is optional, only validate length if provided
+    if (fieldName === 'parcel_description' && value && value.length > 500) {
+        errorMessage = 'Description cannot exceed 500 characters';
+        isValid = false;
     }
 
     if (!isValid) {
@@ -211,15 +216,24 @@ function validateNumberField(field) {
     if (!value) {
         errorMessage = getFieldLabel(field) + ' is required';
         isValid = false;
-    } else if (isNaN(value) || parseFloat(value) <= 0) {
-        errorMessage = getFieldLabel(field) + ' must be a positive number';
-        isValid = false;
-    } else if (fieldName === 'weight' && parseFloat(value) > 1000) {
-        errorMessage = 'Weight cannot exceed 1000 kg';
-        isValid = false;
-    } else if (fieldName === 'delivery_charge' && parseFloat(value) > 100000) {
-        errorMessage = 'Delivery charge cannot exceed ₹100,000';
-        isValid = false;
+    } else {
+        const numValue = parseFloat(value);
+        if (isNaN(numValue)) {
+            errorMessage = getFieldLabel(field) + ' must be a valid number';
+            isValid = false;
+        } else if (numValue <= 0) {
+            errorMessage = getFieldLabel(field) + ' must be greater than 0';
+            isValid = false;
+        } else if (fieldName === 'weight' && numValue > 1000) {
+            errorMessage = 'Weight cannot exceed 1000 kg';
+            isValid = false;
+        } else if (fieldName === 'size' && numValue > 1000) {
+            errorMessage = 'Size cannot exceed 1000 cm³';
+            isValid = false;
+        } else if (fieldName === 'delivery_charge' && numValue > 100000) {
+            errorMessage = 'Delivery charge cannot exceed ₹1,00,000';
+            isValid = false;
+        }
     }
 
     if (!isValid) {
@@ -244,7 +258,7 @@ function validateSelectField(field) {
     field.next('.invalid-feedback').remove();
 
     if (!value || value === '') {
-        errorMessage = getFieldLabel(field) + ' is required';
+        errorMessage = 'Please select a source hub';
         isValid = false;
     }
 
@@ -357,7 +371,7 @@ function initializeAutoAssign() {
         btn.prop('disabled', true);
 
         $.ajax({
-            url: $('#autoAssignBtn').data('url') || '/admin/parcels/find-best-rider',
+            url: '/admin/parcels/find-best-rider',
             method: 'POST',
             data: {
                 _token: $('meta[name="csrf-token"]').attr('content'),
@@ -385,7 +399,7 @@ function initializeAutoAssign() {
                     const riderInfo = `
                         <div class="alert alert-success mt-2">
                             <iconify-icon icon="solar:bicycle-line-duotone"></iconify-icon>
-                            <strong>Assigned Rider:</strong> ${response.rider.name}
+                            <strong>Assigned Rider:</strong> ${escapeHtml(response.rider.name)}
                             (Capacity: ${response.rider.max_weight_capacity}kg)
                         </div>
                     `;
@@ -433,12 +447,41 @@ function initializeNumericValidation() {
 function showNotification(message, type = 'success') {
     $('.custom-notification').remove();
 
+    let bgColor = '#10b981';
+    let icon = 'check-circle';
+
+    if (type === 'error') {
+        bgColor = '#ef4444';
+        icon = 'danger-circle';
+    } else if (type === 'warning') {
+        bgColor = '#f59e0b';
+        icon = 'info-circle';
+    }
+
     const notification = $(`
-        <div class="custom-notification ${type}">
-            <iconify-icon icon="solar:${type === 'success' ? 'check-circle' : (type === 'error' ? 'danger-circle' : 'info-circle')}-line-duotone"></iconify-icon>
+        <div class="custom-notification">
+            <iconify-icon icon="solar:${icon}-line-duotone"></iconify-icon>
             <span>${escapeHtml(message)}</span>
         </div>
     `);
+
+    notification.css({
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        zIndex: 9999,
+        backgroundColor: bgColor,
+        color: 'white',
+        border: 'none',
+        padding: '12px 20px',
+        borderRadius: '8px',
+        fontSize: '14px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        animation: 'slideInRight 0.3s ease'
+    });
 
     $('body').append(notification);
 
@@ -460,6 +503,28 @@ function escapeHtml(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+// Add animation styles if not present
+if (!$('#parcel-create-styles').length) {
+    const style = $('<style id="parcel-create-styles">')
+        .text(`
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+
+            .custom-notification {
+                z-index: 10000;
+            }
+        `);
+    $('head').append(style);
 }
 
 // Make functions globally accessible
