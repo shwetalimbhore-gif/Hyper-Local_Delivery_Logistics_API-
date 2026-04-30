@@ -8,7 +8,8 @@
     <title>@yield('title', 'Admin Dashboard') - HyperLocal Delivery</title>
     <link rel="shortcut icon" type="image/png" href="{{ asset('assets/images/logos/favicon.png') }}" />
     <link rel="stylesheet" href="{{ asset('assets/css/styles.min.css') }}" />
-    {{-- <link href="{{ asset('assets/css/theme.css') }}" rel="stylesheet"> --}}
+    <link href="{{ asset('assets/css/theme.css') }}" rel="stylesheet">
+
 
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
@@ -315,7 +316,7 @@
     <!-- SweetAlert2 for better modals -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    {{-- <script src="{{ asset('assets/js/theme.js') }}"></script> --}}
+    <script src="{{ asset('assets/js/theme.js') }}"></script>
 
     <script>
         // Function to refresh Iconify icons after dynamic content loads

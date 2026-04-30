@@ -1,166 +1,200 @@
 @extends('layouts.admin')
 
-@section('title', 'Admin Profile')
-
-@push('styles')
-<link rel="stylesheet" href="{{ asset('assets/css/admin/profile.css') }}">
-@endpush
+@section('title', 'My Profile')
 
 @section('content')
-<div class="row">
-    <!-- Profile Card -->
-    <div class="col-md-4 mb-4">
-        <div class="card profile-card">
-            <div class="card-body text-center">
-                <!-- Profile Picture -->
-                <div class="profile-avatar mb-3">
-                    <img id="profilePreview"
-                         src="{{ $admin->profile_image ? asset('storage/' . $admin->profile_image) : asset('assets/images/profile/user-1.jpg') }}"
-                         alt="Profile Picture">
-                    <button type="button" class="upload-btn" onclick="document.getElementById('profileImageInput').click();">
-                        <iconify-icon icon="solar:camera-line-duotone"></iconify-icon>
-                    </button>
-                    <form id="profileImageForm" action="{{ route('admin.profile.update-picture') }}" method="POST" enctype="multipart/form-data" style="display: none;">
-                        @csrf
-                        <input type="file" name="profile_image" id="profileImageInput" accept="image/*" onchange="uploadProfileImage(this)">
-                    </form>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <iconify-icon icon="solar:user-circle-line-duotone"></iconify-icon>
+                        My Profile
+                    </h5>
                 </div>
+                <div class="card-body">
+                    @if(session('success'))
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <iconify-icon icon="solar:check-circle-line-duotone"></iconify-icon>
+                            {{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
 
-                <h4 class="mb-1">{{ $admin->name }}</h4>
-                <p class="text-muted mb-2">{{ $admin->email }}</p>
-                <span class="badge bg-primary">{{ $admin->role->name ?? 'Administrator' }}</span>
+                    @if(session('error'))
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <iconify-icon icon="solar:danger-circle-line-duotone"></iconify-icon>
+                            {{ session('error') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
 
-                <hr class="my-3">
+                    @if($errors->any())
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <iconify-icon icon="solar:danger-circle-line-duotone"></iconify-icon>
+                            Please fix the following errors:
+                            <ul class="mb-0 mt-2">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
 
-                <div class="row">
-                    <div class="col-6">
-                        <h6 class="mb-0">{{ $admin->created_at->format('d M Y') }}</h6>
-                        <small class="text-muted">Joined Date</small>
-                    </div>
-                    <div class="col-6">
-                        <h6 class="mb-0">{{ $admin->phone ?? 'N/A' }}</h6>
-                        <small class="text-muted">Phone</small>
-                    </div>
-                </div>
-            </div>
-        </div>
+                    <div class="row">
+                        <!-- Profile Image Column -->
+                        <div class="col-md-4">
+                            <div class="text-center mb-4">
+                                <div class="profile-image-container mb-3">
+                                    @if(Auth::user()->profile_image)
+                                        <img src="{{ Storage::url(Auth::user()->profile_image) }}"
+                                             alt="Profile Image"
+                                             class="rounded-circle img-fluid"
+                                             style="width: 150px; height: 150px; object-fit: cover;">
+                                    @else
+                                        <div class="default-avatar rounded-circle bg-primary d-flex align-items-center justify-content-center mx-auto"
+                                             style="width: 150px; height: 150px;">
+                                            <span class="display-1 text-white">
+                                                {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                                            </span>
+                                        </div>
+                                    @endif
+                                </div>
 
-        <!-- Quick Stats -->
-        <div class="card stats-card">
-            <div class="card-header">
-                <h6 class="mb-0">Quick Stats</h6>
-            </div>
-            <div class="card-body">
-                <div class="stats-list">
-                    <div class="stats-item">
-                        <span class="stats-label">Total Parcels:</span>
-                        <span class="stats-value">{{ \App\Models\Parcel::count() }}</span>
-                    </div>
-                    <div class="stats-item">
-                        <span class="stats-label">Total Riders:</span>
-                        <span class="stats-value">{{ \App\Models\Rider::count() }}</span>
-                    </div>
-                    <div class="stats-item">
-                        <span class="stats-label">Total Hubs:</span>
-                        <span class="stats-value">{{ \App\Models\Hub::count() }}</span>
-                    </div>
-                    <div class="stats-item">
-                        <span class="stats-label">Total Earnings:</span>
-                        <span class="stats-value text-success">₹{{ number_format(\App\Models\Payment::where('payment_status', 'completed')->sum('amount'), 2) }}</span>
+                                <form action="{{ url('/profile/update-picture') }}" method="POST" enctype="multipart/form-data" id="uploadImageForm">
+                                    @csrf
+                                    <label class="btn btn-outline-primary btn-sm">
+                                        <iconify-icon icon="solar:camera-line-duotone"></iconify-icon>
+                                        Change Photo
+                                        <input type="file" name="profile_image" class="d-none" accept="image/*" onchange="this.form.submit()">
+                                    </label>
+                                </form>
+                                <small class="text-muted d-block mt-2">JPG, PNG, GIF (Max 2MB)</small>
+                            </div>
+                        </div>
+
+                        <!-- Profile Information Column -->
+                        <div class="col-md-8">
+                            <form action="{{ url('/profile/update') }}" method="POST">
+                                @csrf
+
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Full Name *</label>
+                                        <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
+                                               value="{{ old('name', Auth::user()->name) }}" required>
+                                        @error('name')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Email Address *</label>
+                                        <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
+                                               value="{{ old('email', Auth::user()->email) }}" required>
+                                        @error('email')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Phone Number</label>
+                                        <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror"
+                                               value="{{ old('phone', Auth::user()->phone ?? '9876543210') }}">
+                                        @error('phone')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Role</label>
+                                        <input type="text" class="form-control" value="Admin" disabled>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Address</label>
+                                    <textarea name="address" class="form-control @error('address') is-invalid @enderror" rows="3">{{ old('address', Auth::user()->address ?? 'Admin Office, Main Hub, Andheri East, Mumbai') }}</textarea>
+                                    @error('address')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Member Since</label>
+                                    <input type="text" class="form-control" value="{{ Auth::user()->created_at->format('F d, Y') }}" disabled>
+                                </div>
+
+                                <div class="text-end">
+                                    <button type="button" class="btn btn-secondary me-2" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                                        <iconify-icon icon="solar:lock-password-line-duotone"></iconify-icon>
+                                        Change Password
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <iconify-icon icon="solar:save-line-duotone"></iconify-icon>
+                                        Update Profile
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Edit Profile Form -->
-    <div class="col-md-8 mb-4">
-        <div class="card form-card">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <iconify-icon icon="solar:user-circle-line-duotone"></iconify-icon>
-                    Edit Profile Information
-                </h6>
-            </div>
-            <div class="card-body">
-                @if(session('success'))
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        {{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                @endif
-
-                <form id="profileForm" action="{{ route('admin.profile.update') }}" method="POST">
-                    @csrf
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Full Name</label>
-                            <input type="text" name="name" class="form-control" value="{{ $admin->name }}" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Email Address</label>
-                            <input type="email" name="email" class="form-control" value="{{ $admin->email }}" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Phone Number</label>
-                            <input type="text" name="phone" class="form-control" value="{{ $admin->phone }}">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Role</label>
-                            <input type="text" class="form-control" value="{{ $admin->role->name ?? 'Admin' }}" disabled>
-                        </div>
-                        <div class="col-12 mb-3">
-                            <label class="form-label">Address</label>
-                            <textarea name="address" class="form-control" rows="3">{{ $admin->address }}</textarea>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary" id="saveProfileBtn">
-                        <iconify-icon icon="solar:save-line-duotone"></iconify-icon>
-                        Save Changes
-                    </button>
-                </form>
-
-                <div id="profileMessage" class="alert-message" style="display: none;"></div>
-            </div>
-        </div>
-
-        <!-- Change Password Card -->
-        <div class="card form-card mt-4">
-            <div class="card-header">
-                <h6 class="mb-0">
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
                     <iconify-icon icon="solar:lock-password-line-duotone"></iconify-icon>
                     Change Password
-                </h6>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="card-body">
-                <form id="passwordForm" action="{{ route('admin.profile.change-password') }}" method="POST">
-                    @csrf
+            <form action="{{ url('/profile/change-password') }}" method="POST">
+                @csrf
+                <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Current Password</label>
+                        <label class="form-label">Current Password *</label>
                         <input type="password" name="current_password" class="form-control" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">New Password</label>
-                        <input type="password" name="new_password" class="form-control" required>
+                        <label class="form-label">New Password *</label>
+                        <input type="password" name="password" class="form-control" required>
                         <small class="text-muted">Minimum 8 characters</small>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Confirm New Password</label>
-                        <input type="password" name="new_password_confirmation" class="form-control" required>
+                        <label class="form-label">Confirm New Password *</label>
+                        <input type="password" name="password_confirmation" class="form-control" required>
                     </div>
-                    <button type="submit" class="btn btn-primary" id="changePasswordBtn">
-                        <iconify-icon icon="solar:lock-password-line-duotone"></iconify-icon>
-                        Change Password
-                    </button>
-                </form>
-
-                <div id="passwordMessage" class="alert-message" style="display: none;"></div>
-            </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Password</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 @endsection
 
-@push('scripts')
-<script src="{{ asset('assets/js/admin/profile.js') }}"></script>
+@push('styles')
+<style>
+    .default-avatar {
+        background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+    }
+
+    .profile-image-container img {
+        border: 3px solid #198754;
+        padding: 3px;
+    }
+</style>
 @endpush

@@ -2,59 +2,123 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\View\View;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class ProfileController extends Controller
 {
     /**
-     * Display the user's profile form.
+     * Display user profile from database
      */
-    public function edit(Request $request): View
+    public function index()
     {
-        return view('profile.edit', [
-            'user' => $request->user(),
-        ]);
-    }
+        // Get the authenticated user with all data
+        $user = Auth::user();
 
-    /**
-     * Update the user's profile information.
-     */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
-    {
-        $request->user()->fill($request->validated());
-
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        // Debug: Check if user is loaded
+        if (!$user) {
+            return redirect()->route('login')->with('error', 'Please login first');
         }
 
-        $request->user()->save();
+        // Load user data with relationships if needed
+        // $user->load('role'); // If you have role relationship
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return view('admin.profile.index', compact('user'));
     }
 
     /**
-     * Delete the user's account.
+     * Update user profile in database
      */
-    public function destroy(Request $request): RedirectResponse
+    public function update(Request $request)
     {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
-        ]);
+        try {
+            $user = Auth::user();
 
-        $user = $request->user();
+            if (!$user) {
+                return redirect()->back()->with('error', 'User not found');
+            }
 
-        Auth::logout();
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email,' . $user->id,
+                'phone' => 'nullable|string|max:20',
+                'address' => 'nullable|string|max:500',
+            ]);
 
-        $user->delete();
+            // Update user in database
+            $updated = $user->update($validated);
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+            if ($updated) {
+                return redirect()->back()->with('success', 'Profile updated successfully!');
+            } else {
+                return redirect()->back()->with('error', 'Failed to update profile');
+            }
 
-        return Redirect::to('/');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Database error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update profile picture
+     */
+    public function updatePicture(Request $request)
+    {
+        try {
+            $request->validate([
+                'profile_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            ]);
+
+            $user = Auth::user();
+
+            if ($request->hasFile('profile_image')) {
+                // Delete old image
+                if ($user->profile_image && Storage::disk('public')->exists($user->profile_image)) {
+                    Storage::disk('public')->delete($user->profile_image);
+                }
+
+                // Upload new image
+                $path = $request->file('profile_image')->store('profile_images', 'public');
+                $user->profile_image = $path;
+                $user->save();
+            }
+
+            return redirect()->back()->with('success', 'Profile picture updated!');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to upload image: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Change password
+     */
+    public function changePassword(Request $request)
+    {
+        try {
+            $request->validate([
+                'current_password' => 'required',
+                'password' => 'required|min:8|confirmed',
+            ]);
+
+            $user = Auth::user();
+
+            // Check current password
+            if (!Hash::check($request->current_password, $user->password)) {
+                return redirect()->back()->withErrors(['current_password' => 'Current password is incorrect']);
+            }
+
+            // Update password
+            $user->password = Hash::make($request->password);
+            $user->save();
+
+            return redirect()->back()->with('success', 'Password changed successfully!');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to change password: ' . $e->getMessage());
+        }
     }
 }

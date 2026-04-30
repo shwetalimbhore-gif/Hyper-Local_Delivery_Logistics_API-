@@ -138,13 +138,17 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::get('/delivery/export', [ReportController::class, 'exportDelivery'])->name('delivery.export');
     });
 
-    // Admin Profile Routes
-    Route::prefix('profile')->name('profile.')->group(function () {
-        Route::get('/', [ProfileController::class, 'index'])->name('index');
-        Route::post('/update', [ProfileController::class, 'update'])->name('update');
-        Route::post('/update-picture', [ProfileController::class, 'updatePicture'])->name('update-picture');
-        Route::post('/change-password', [ProfileController::class, 'changePassword'])->name('change-password');
-    });
+    // Profile view
+    Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
+
+    // Profile update
+    Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
+
+    // Profile picture update
+    Route::post('/profile/update-picture', [ProfileController::class, 'updatePicture'])->name('profile.update-picture');
+
+    // Change password
+    Route::post('/profile/change-password', [ProfileController::class, 'changePassword'])->name('profile.change-password');
 });
 
 
@@ -154,7 +158,7 @@ Route::middleware(['auth'])->prefix('rider')->name('rider.')->group(function () 
     Route::get('/dashboard', [RiderRiderController::class, 'dashboard'])->name('dashboard');
 
     // Parcel Management
-    Route::get('/parcels/filter-data', [RiderRiderController::class, 'getParcelsData'])->name('parcels.filter-data');
+    Route::get('/parcels/filter-data', [RiderRiderController::class, 'getParcelsData'])->name('rider.parcels.filter-data');
     Route::get('/parcels/data', [RiderRiderController::class, 'getParcelsData'])->name('parcels.data');
     Route::get('/parcels', [RiderRiderController::class, 'parcels'])->name('parcels.index');
     Route::post('/parcels/{parcel}/update-status', [RiderRiderController::class, 'updateParcelStatus'])->name('parcels.update-status');
