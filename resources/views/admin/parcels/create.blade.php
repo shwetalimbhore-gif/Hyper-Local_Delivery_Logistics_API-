@@ -256,11 +256,11 @@
                     <iconify-icon icon="solar:add-circle-line-duotone"></iconify-icon>
                     Create Parcel
                 </button>
-                <button type="button" class="btn btn-success" id="autoAssignBtn"
+                {{-- <button type="button" class="btn btn-success" id="autoAssignBtn"
                         data-url="{{ route('admin.parcels.find-rider') }}">
                     <iconify-icon icon="solar:magic-stick-3-line-duotone"></iconify-icon>
                     Auto-Assign Best Rider
-                </button>
+                </button> --}}
                 <a href="{{ route('admin.parcels.index') }}" class="btn btn-secondary">
                     <iconify-icon icon="solar:arrow-left-line-duotone"></iconify-icon>
                     Cancel

@@ -8,6 +8,7 @@
     <title>@yield('title', 'Admin Dashboard') - HyperLocal Delivery</title>
     <link rel="shortcut icon" type="image/png" href="{{ asset('assets/images/logos/favicon.png') }}" />
     <link rel="stylesheet" href="{{ asset('assets/css/styles.min.css') }}" />
+    {{-- <link href="{{ asset('assets/css/theme.css') }}" rel="stylesheet"> --}}
 
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
@@ -21,140 +22,159 @@
     <div class="page-wrapper" id="main-wrapper" data-layout="vertical" data-navbarbg="skin6" data-sidebartype="full"
         data-sidebar-position="fixed" data-header-position="fixed">
 
-        <!-- Sidebar Start -->
-        <aside class="left-sidebar">
-            <div>
-                <div class="brand-logo d-flex align-items-center justify-content-between">
-                    <a href="{{ route('admin.dashboard') }}" class="text-nowrap logo-img">
-                        <img src="{{ asset('assets/images/logos/logo.svg') }}" alt="Logo" />
-                    </a>
-                    <div class="close-btn d-xl-none d-block sidebartoggler cursor-pointer" id="sidebarCollapse">
-                        <i class="ti ti-x fs-8"></i>
-                    </div>
+    <!-- Sidebar Start -->
+    <aside class="left-sidebar">
+        <div>
+            <div class="brand-logo d-flex align-items-center justify-content-between">
+                <a href="{{ route('admin.dashboard') }}" class="text-nowrap logo-img">
+                    <img src="{{ asset('assets/images/logos/logo.svg') }}" alt="Logo" />
+                </a>
+                <div class="close-btn d-xl-none d-block sidebartoggler cursor-pointer" id="sidebarCollapse">
+                    <i class="ti ti-x fs-8"></i>
                 </div>
-
-                <nav class="sidebar-nav scroll-sidebar" data-simplebar="">
-                    <ul id="sidebarnav">
-                        <!-- Navigation Header -->
-                        <li class="nav-small-cap">
-                            <iconify-icon icon="solar:menu-dots-linear" class="nav-small-cap-icon fs-4"></iconify-icon>
-                            <span class="hide-menu">Navigation</span>
-                        </li>
-
-                        <!-- Dashboard -->
-                        <li class="sidebar-item">
-                            <a class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
-                               href="{{ route('admin.dashboard') }}">
-                                <iconify-icon icon="solar:atom-line-duotone"></iconify-icon>
-                                <span class="hide-menu">Dashboard</span>
-                            </a>
-                        </li>
-
-                        <!-- Parcels Dropdown -->
-                        <li class="sidebar-item">
-                            <a class="sidebar-link has-arrow {{ request()->routeIs('admin.parcels.*') ? 'active' : '' }}"
-                               href="javascript:void(0)" aria-expanded="false">
-                                <iconify-icon icon="solar:box-line-duotone"></iconify-icon>
-                                <span class="hide-menu">Parcels</span>
-                            </a>
-                            <ul aria-expanded="false" class="collapse first-level">
-                                <li class="sidebar-item">
-                                    <a class="sidebar-link {{ request()->routeIs('admin.parcels.index') ? 'active' : '' }}"
-                                       href="{{ route('admin.parcels.index') }}">
-                                        <iconify-icon icon="solar:list-line-duotone"></iconify-icon>
-                                        <span class="hide-menu">All Parcels</span>
-                                    </a>
-                                </li>
-                                <li class="sidebar-item">
-                                    <a class="sidebar-link {{ request()->routeIs('admin.parcels.trash') ? 'active' : '' }}"
-                                       href="{{ route('admin.parcels.trash') }}">
-                                        <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
-                                        <span class="hide-menu">Trash</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-
-                        <!-- Riders Dropdown -->
-                        <li class="sidebar-item">
-                            <a class="sidebar-link has-arrow {{ request()->routeIs('admin.riders.*') ? 'active' : '' }}"
-                               href="javascript:void(0)" aria-expanded="false">
-                                <iconify-icon icon="solar:bicycle-line-duotone"></iconify-icon>
-                                <span class="hide-menu">Riders</span>
-                            </a>
-                            <ul aria-expanded="false" class="collapse first-level">
-                                <li class="sidebar-item">
-                                    <a class="sidebar-link {{ request()->routeIs('admin.riders.index') ? 'active' : '' }}"
-                                       href="{{ route('admin.riders.index') }}">
-                                        <iconify-icon icon="solar:list-line-duotone"></iconify-icon>
-                                        <span class="hide-menu">All Riders</span>
-                                    </a>
-                                </li>
-                                <li class="sidebar-item">
-                                    <a class="sidebar-link {{ request()->routeIs('admin.riders.trash') ? 'active' : '' }}"
-                                       href="{{ route('admin.riders.trash') }}">
-                                        <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
-                                        <span class="hide-menu">Trash</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-
-                        <!-- Hubs Dropdown -->
-                        <li class="sidebar-item">
-                            <a class="sidebar-link has-arrow {{ request()->routeIs('admin.hubs.*') ? 'active' : '' }}"
-                               href="javascript:void(0)" aria-expanded="false">
-                                <iconify-icon icon="solar:warehouse-line-duotone"></iconify-icon>
-                                <span class="hide-menu">Hubs</span>
-                            </a>
-                            <ul aria-expanded="false" class="collapse first-level">
-                                <li class="sidebar-item">
-                                    <a class="sidebar-link {{ request()->routeIs('admin.hubs.index') ? 'active' : '' }}"
-                                       href="{{ route('admin.hubs.index') }}">
-                                        <iconify-icon icon="solar:list-line-duotone"></iconify-icon>
-                                        <span class="hide-menu">All Hubs</span>
-                                    </a>
-                                </li>
-                                <li class="sidebar-item">
-                                    <a class="sidebar-link {{ request()->routeIs('admin.hubs.trash') ? 'active' : '' }}"
-                                       href="{{ route('admin.hubs.trash') }}">
-                                        <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
-                                        <span class="hide-menu">Trash</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-
-                        <!-- Divider -->
-                        <li>
-                            <span class="sidebar-divider lg"></span>
-                        </li>
-
-                        <!-- Reports Section -->
-                        <li class="nav-small-cap">
-                            <iconify-icon icon="solar:menu-dots-linear" class="nav-small-cap-icon fs-4"></iconify-icon>
-                            <span class="hide-menu">Reports</span>
-                        </li>
-
-                        <li class="sidebar-item">
-                            <a class="sidebar-link {{ request()->routeIs('admin.reports.earnings') ? 'active' : '' }}"
-                               href="{{ route('admin.reports.earnings') }}">
-                                <iconify-icon icon="solar:chart-line-duotone"></iconify-icon>
-                                <span class="hide-menu">Earnings</span>
-                            </a>
-                        </li>
-
-                        <li class="sidebar-item">
-                            <a class="sidebar-link {{ request()->routeIs('admin.reports.delivery') ? 'active' : '' }}"
-                               href="{{ route('admin.reports.delivery') }}">
-                                <iconify-icon icon="solar:document-text-line-duotone"></iconify-icon>
-                                <span class="hide-menu">Delivery Reports</span>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
             </div>
-        </aside>
+
+            <nav class="sidebar-nav scroll-sidebar" data-simplebar="">
+                <ul id="sidebarnav">
+                    <!-- Navigation Header -->
+                    <li class="nav-small-cap">
+                        <iconify-icon icon="solar:menu-dots-linear" class="nav-small-cap-icon fs-4"></iconify-icon>
+                        <span class="hide-menu">Navigation</span>
+                    </li>
+
+                    <!-- Dashboard -->
+                    <li class="sidebar-item">
+                        <a class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
+                        href="{{ route('admin.dashboard') }}">
+                            <iconify-icon icon="solar:atom-line-duotone"></iconify-icon>
+                            <span class="hide-menu">Dashboard</span>
+                        </a>
+                    </li>
+
+                    <!-- Parcels Dropdown -->
+                    <li class="sidebar-item">
+                        <a class="sidebar-link has-arrow {{ request()->routeIs('admin.parcels.*') ? 'active' : '' }}"
+                        href="javascript:void(0)" aria-expanded="false">
+                            <iconify-icon icon="solar:box-line-duotone"></iconify-icon>
+                            <span class="hide-menu">Parcels</span>
+                        </a>
+                        <ul aria-expanded="false" class="collapse first-level">
+                            <li class="sidebar-item">
+                                <a class="sidebar-link {{ request()->routeIs('admin.parcels.index') ? 'active' : '' }}"
+                                href="{{ route('admin.parcels.index') }}">
+                                    <iconify-icon icon="solar:list-line-duotone"></iconify-icon>
+                                    <span class="hide-menu">All Parcels</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-item">
+                                <a class="sidebar-link {{ request()->routeIs('admin.parcels.trash') ? 'active' : '' }}"
+                                href="{{ route('admin.parcels.trash') }}">
+                                    <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
+                                    <span class="hide-menu">Trash</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Riders Dropdown -->
+                    <li class="sidebar-item">
+                        <a class="sidebar-link has-arrow {{ request()->routeIs('admin.riders.*') ? 'active' : '' }}"
+                        href="javascript:void(0)" aria-expanded="false">
+                            <iconify-icon icon="solar:bicycle-line-duotone"></iconify-icon>
+                            <span class="hide-menu">Riders</span>
+                        </a>
+                        <ul aria-expanded="false" class="collapse first-level">
+                            <li class="sidebar-item">
+                                <a class="sidebar-link {{ request()->routeIs('admin.riders.index') ? 'active' : '' }}"
+                                href="{{ route('admin.riders.index') }}">
+                                    <iconify-icon icon="solar:list-line-duotone"></iconify-icon>
+                                    <span class="hide-menu">All Riders</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-item">
+                                <a class="sidebar-link {{ request()->routeIs('admin.riders.trash') ? 'active' : '' }}"
+                                href="{{ route('admin.riders.trash') }}">
+                                    <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
+                                    <span class="hide-menu">Trash</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Hubs Dropdown -->
+                    <li class="sidebar-item">
+                        <a class="sidebar-link has-arrow {{ request()->routeIs('admin.hubs.*') ? 'active' : '' }}"
+                        href="javascript:void(0)" aria-expanded="false">
+                            <iconify-icon icon="solar:warehouse-line-duotone"></iconify-icon>
+                            <span class="hide-menu">Hubs</span>
+                        </a>
+                        <ul aria-expanded="false" class="collapse first-level">
+                            <li class="sidebar-item">
+                                <a class="sidebar-link {{ request()->routeIs('admin.hubs.index') ? 'active' : '' }}"
+                                href="{{ route('admin.hubs.index') }}">
+                                    <iconify-icon icon="solar:list-line-duotone"></iconify-icon>
+                                    <span class="hide-menu">All Hubs</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-item">
+                                <a class="sidebar-link {{ request()->routeIs('admin.hubs.trash') ? 'active' : '' }}"
+                                href="{{ route('admin.hubs.trash') }}">
+                                    <iconify-icon icon="solar:trash-bin-trash-line-duotone"></iconify-icon>
+                                    <span class="hide-menu">Trash</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Divider -->
+                    <li>
+                        <span class="sidebar-divider lg"></span>
+                    </li>
+
+                    <!-- Reports Section -->
+                    <li class="nav-small-cap">
+                        <iconify-icon icon="solar:menu-dots-linear" class="nav-small-cap-icon fs-4"></iconify-icon>
+                        <span class="hide-menu">Reports</span>
+                    </li>
+
+                    <li class="sidebar-item">
+                        <a class="sidebar-link {{ request()->routeIs('admin.reports.earnings') ? 'active' : '' }}"
+                        href="{{ route('admin.reports.earnings') }}">
+                            <iconify-icon icon="solar:chart-line-duotone"></iconify-icon>
+                            <span class="hide-menu">Earnings</span>
+                        </a>
+                    </li>
+
+                    <li class="sidebar-item">
+                        <a class="sidebar-link {{ request()->routeIs('admin.reports.delivery') ? 'active' : '' }}"
+                        href="{{ route('admin.reports.delivery') }}">
+                            <iconify-icon icon="solar:document-text-line-duotone"></iconify-icon>
+                            <span class="hide-menu">Delivery Reports</span>
+                        </a>
+                    </li>
+
+                    <!-- Spacer to push logout to bottom -->
+                    <li class="mt-auto"></li>
+
+                    <!-- Divider before logout -->
+                    <li>
+                        <span class="sidebar-divider lg"></span>
+                    </li>
+
+                    <!-- Logout Button at the bottom -->
+                    <li class="sidebar-item">
+                        <form method="POST" action="{{ route('logout') }}" class="d-block w-100">
+                            @csrf
+                            <button type="submit" class="sidebar-link w-100 text-start" style="background: none; border: none; cursor: pointer;">
+                                <iconify-icon icon="solar:logout-2-line-duotone"></iconify-icon>
+                                <span class="hide-menu">Logout</span>
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </aside>
         <!-- Sidebar End -->
 
         <!-- Main Wrapper -->
@@ -294,6 +314,8 @@
 
     <!-- SweetAlert2 for better modals -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    {{-- <script src="{{ asset('assets/js/theme.js') }}"></script> --}}
 
     <script>
         // Function to refresh Iconify icons after dynamic content loads

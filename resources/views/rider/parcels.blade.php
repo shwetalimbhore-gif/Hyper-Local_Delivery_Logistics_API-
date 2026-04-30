@@ -16,10 +16,10 @@
                 My Parcels
             </h5>
             <div class="dropdown filter-dropdown">
-                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="statusFilterButton" data-bs-toggle="dropdown">
+                {{-- <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="statusFilterButton" data-bs-toggle="dropdown">
                     <iconify-icon icon="solar:filter-line-duotone"></iconify-icon>
                     <span id="statusFilterLabel">Filter by Status</span>
-                </button>
+                </button> --}}
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li>
                         <a class="dropdown-item filter-status" href="#" data-status="">
@@ -50,7 +50,7 @@
 
         <div class="table-responsive">
             <input type="hidden" id="statusFilterValue" value="{{ $statusFilter ?? '' }}">
-            <table class="table table-hover" id="riderParcelsTable" width="100%" data-ajax="{{ route('rider.parcels.filter-data') }}">
+            <table class="table table-hover" id="riderParcelsTable" width="100%" data-ajax="{{ route('rider.parcels.data') }}">
                 <thead>
                     <tr>
                         <th>ID</th>

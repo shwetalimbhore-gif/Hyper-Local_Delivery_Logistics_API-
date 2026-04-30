@@ -177,7 +177,7 @@
 
 <!-- Parcel Status Distribution (Simple) -->
 <div class="row mt-4">
-    <div class="col-md-6">
+    {{-- <div class="col-md-6">
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Parcel Status Distribution</h5>
@@ -185,8 +185,8 @@
                     @foreach($statusCounts ?? [] as $status)
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
-                                <span>{{ $status->display_name ?? $status->name }}</span>
-                                <span>{{ $status->count }}</span>
+                                <span class="fw-bold" style="color: #000 !important;">{{ $status->display_name ?? $status->name }}</span>
+                                <span class="fw-bold" style="color: #000 !important;">{{ $status->count }}</span>
                             </div>
                             <div class="progress" style="height: 8px;">
                                 <div class="progress-bar" style="width: {{ ($status->count / max($totalStatusCount, 1)) * 100 }}%;
@@ -197,7 +197,8 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> --}}
+
 
     <div class="col-md-6">
         <div class="card">
