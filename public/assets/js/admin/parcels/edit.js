@@ -107,111 +107,105 @@ function filterRidersByHub() {
     });
 }
 
-/**
- * Auto assign rider based on weight, size, and hub
- */
-function autoAssignRider() {
-    var weight = parseFloat($('#weight').val()) || 0;
-    var size = parseFloat($('#size').val()) || 0;
-    var hubId = $('#sourceHubId').val();
-    var parcelId = $('#autoAssignBtn').data('parcel-id');
+    /**
+     * Auto assign rider function - FIXED VERSION
+     */
+    function autoAssignRider() {
+        let weight = parseFloat($('#weight').val()) || 0;
+        let size = parseFloat($('#size').val()) || 0;
+        let hubId = $('#sourceHubId').val();
+        let parcelId = getParcelIdFromUrl();
 
-    // Validation
-    if (weight <= 0) {
-        showAlertMessage('Please enter a valid weight (minimum 0.1 kg)', 'danger');
-        $('#weight').focus();
-        return;
-    }
-
-    if (size <= 0) {
-        showAlertMessage('Please enter a valid size (minimum 0.1 cm³)', 'danger');
-        $('#size').focus();
-        return;
-    }
-
-    if (!hubId) {
-        showAlertMessage('Please select a source hub first', 'danger');
-        $('#sourceHubId').focus();
-        return;
-    }
-
-    // Show loading state
-    var autoAssignBtn = $('#autoAssignBtn');
-    var originalText = autoAssignBtn.html();
-    autoAssignBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Finding...');
-
-    // Clear any existing error messages
-    $('#autoAssignMessage').hide();
-
-    $.ajax({
-        url: $('#autoAssignBtn').data('url'),
-        method: 'POST',
-        data: {
-            _token: $('meta[name="csrf-token"]').attr('content'),
-            weight: weight,
-            size: size,
-            hub_id: hubId,
-            parcel_id: parcelId,
-            assign: 1
-        },
-        success: function(response) {
-            console.log('Auto assign response:', response);
-
-            if (response.success && response.rider) {
-                // Success - Update the UI without refresh
-
-                // 1. Update the rider select dropdown
-                $('#riderSelect').val(response.rider.id);
-
-                // 2. Auto-set status to assigned
-                var assignedStatusId = $('#statusSelect option[data-status-slug="assigned"]').val();
-                if (assignedStatusId) {
-                    $('#statusSelect').val(assignedStatusId);
-                    // Update the quick status select as well
-                    $('#quickStatusSelect').val(assignedStatusId);
-                }
-
-                // 3. Update the status display if there's a badge
-                if ($('.current-status-badge').length) {
-                    var statusText = $('#statusSelect option:selected').text();
-                    $('.current-status-badge').html('<span class="badge bg-primary">' + statusText + '</span>');
-                }
-
-                // 4. Show success message (not error)
-                showAlertMessage('✓ Rider "' + response.rider.name + '" assigned successfully! Status set to "Assigned".', 'success');
-
-                // 5. Show rider details modal (optional)
-                showRiderDetails(response.rider);
-
-                // 6. Trigger a custom event to update any other components
-                $(document).trigger('parcel-auto-assigned', [response.rider]);
-
-            } else {
-                // No rider found - show warning, not error
-                showAlertMessage('⚠️ No available rider found for these requirements. Please check rider capacity and hub assignment.', 'warning');
-            }
-        },
-        error: function(xhr) {
-            console.error('Auto assign error:', xhr);
-            var errorMsg = 'Failed to assign rider';
-            try {
-                var response = JSON.parse(xhr.responseText);
-                errorMsg = response.message || response.error || 'Failed to assign rider';
-            } catch(e) {
-                errorMsg = xhr.statusText || 'Failed to assign rider';
-            }
-            // Show as warning instead of error
-            showAlertMessage('⚠️ ' + errorMsg, 'warning');
-        },
-        complete: function() {
-            // Re-enable button
-            autoAssignBtn.prop('disabled', false).html(originalText);
-
-            // Re-enable the submit button if it was disabled
-            $('#submitBtn').prop('disabled', false);
+        // Validation
+        if (weight <= 0) {
+            showNotification('Please enter parcel weight first', 'error');
+            $('#weight').focus();
+            return;
         }
-    });
-}
+
+        if (size <= 0) {
+            showNotification('Please enter parcel size first', 'error');
+            $('#size').focus();
+            return;
+        }
+
+        if (!hubId) {
+            showNotification('Please select a source hub first', 'error');
+            $('#sourceHubId').focus();
+            return;
+        }
+
+        // Show loading state
+        const btn = $('#autoAssignBtn');
+        const originalText = btn.html();
+        btn.prop('disabled', true);
+        btn.html('<span class="spinner-border spinner-border-sm me-2"></span>Finding best rider...');
+
+        $.ajax({
+            url: btn.data('url'),
+            method: 'POST',
+            data: {
+                _token: $('meta[name="csrf-token"]').attr('content'),
+                weight: weight,
+                size: size,
+                hub_id: hubId,
+                parcel_id: parcelId
+            },
+            success: function(response) {
+                // ✅ Check success flag properly
+                if (response.success === true) {
+                    handleAutoAssignSuccess(response);
+                } else {
+                    // ✅ Show error message but NO error modal/alert
+                    showNotification(response.message || 'No rider found', 'error');
+                }
+            },
+            error: function(xhr) {
+                // ✅ Only show error for server errors (500)
+                let message = 'Server error occurred';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    message = xhr.responseJSON.message;
+                }
+                showNotification(message, 'error');
+            },
+            complete: function() {
+                btn.prop('disabled', false);
+                btn.html(originalText);
+            }
+        });
+    }
+
+    // ✅ FIXED: Handle successful assignment
+    function handleAutoAssignSuccess(response) {
+        const rider = response.rider;
+        
+        // Select rider in dropdown
+        $('#riderSelect').val(rider.id);
+        
+        // Create hidden input for assigned rider
+        if ($('#assigned_rider_id').length === 0) {
+            $('<input>').attr({
+                type: 'hidden',
+                name: 'assigned_rider_id',
+                id: 'assigned_rider_id',
+                value: rider.id
+            }).appendTo('#parcelForm');
+        } else {
+            $('#assigned_rider_id').val(rider.id);
+        }
+        
+        // Auto-change status to "Assigned"
+        let assignedStatusId = $('#statusSelect option[data-status-slug="assigned"]').val();
+        if (assignedStatusId) {
+            $('#statusSelect').val(assignedStatusId);
+        }
+        
+        // ✅ Show success notification (NOT error)
+        showNotification(`✓ Rider "${rider.name}" assigned successfully! Status changed to "Assigned".`, 'success');
+        
+        // Show rider details modal (optional - can be removed)
+        showRiderDetailsModal(rider);
+    }
 
 /**
  * Show rider details in a modal

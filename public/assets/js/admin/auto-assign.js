@@ -1,5 +1,5 @@
 /**
- * Auto-Assign Functionality
+ * Auto-Assign Functionality - FIXED VERSION
  * File: assets/js/admin/auto-assign.js
  */
 
@@ -15,7 +15,7 @@ function setupAutoAssignEvents() {
         e.preventDefault();
 
         if (autoAssignInProgress) {
-            showAutoToast('Auto-assignment already in progress. Please wait.', 'info');
+            showSmallMessage('Auto-assignment already in progress. Please wait.', 'info');
             return;
         }
 
@@ -71,8 +71,8 @@ function showAutoAssignConfirmation() {
         showCancelButton: true,
         confirmButtonColor: '#28a745',
         cancelButtonColor: '#d33',
-        confirmButtonText: '<iconify-icon icon="solar:smartphone-rotate-line-duotone" class="me-2"></iconify-icon>Yes, Auto-Assign Now!',
-        cancelButtonText: '<iconify-icon icon="solar:close-circle-line-duotone" class="me-2"></iconify-icon>Cancel',
+        confirmButtonText: 'Yes, Auto-Assign Now!',
+        cancelButtonText: 'Cancel',
         width: '600px'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -111,6 +111,7 @@ function performAutoAssign() {
         data: {
             _token: $('meta[name="csrf-token"]').attr('content')
         },
+        dataType: 'json',
         success: function(response) {
             clearInterval(progressInterval);
             $('#assignProgressBar').css('width', '100%');
@@ -118,15 +119,30 @@ function performAutoAssign() {
             setTimeout(() => {
                 progressModal.hide();
 
-                if (response.success) {
-                    showAutoAssignResults(response);
-                    showAutoToast(response.message || 'Auto-assignment completed successfully!', 'success');
-
-                    // CRITICAL: Refresh DataTable after assignment
+                // ✅ CRITICAL: Check if response has success flag
+                if (response && response.success === true) {
+                    // Show success message (small toast, not error)
+                    showSmallMessage(response.message || 'Auto-assignment completed successfully!', 'success');
+                    
+                    // Show results in modal if there are assignments
+                    if (response.assigned > 0) {
+                        showAutoAssignResults(response);
+                    }
+                    
+                    // ✅ CRITICAL: Immediately refresh DataTable
                     refreshDataTableAndUI();
 
+                } else if (response && response.success === false) {
+                    // Show error message only when actually failed
+                    showSmallMessage(response.message || 'Auto-assignment failed', 'error');
+                    
+                    // Still refresh to show any partial updates
+                    refreshDataTableAndUI();
+                    
                 } else {
-                    showAutoToast(response.message || 'Auto-assignment failed', 'error');
+                    // Handle unexpected response format
+                    showSmallMessage('Auto-assignment completed', 'success');
+                    refreshDataTableAndUI();
                 }
             }, 500);
         },
@@ -135,12 +151,22 @@ function performAutoAssign() {
             progressModal.hide();
 
             let errorMsg = 'An error occurred during auto-assignment';
+            
+            // Try to extract error message from response
             if (xhr.responseJSON && xhr.responseJSON.message) {
                 errorMsg = xhr.responseJSON.message;
+            } else if (xhr.responseText) {
+                try {
+                    const parsed = JSON.parse(xhr.responseText);
+                    if (parsed.message) errorMsg = parsed.message;
+                } catch(e) {}
             }
 
-            showAutoToast(errorMsg, 'error');
+            showSmallMessage(errorMsg, 'error');
             console.error('Auto-assign error:', xhr);
+            
+            // Still try to refresh table
+            refreshDataTableAndUI();
         },
         complete: function() {
             autoAssignInProgress = false;
@@ -149,38 +175,107 @@ function performAutoAssign() {
     });
 }
 
-// NEW FUNCTION: Refresh DataTable and UI without page reload
+// ✅ IMPROVED: Refresh DataTable and UI without page reload
 function refreshDataTableAndUI() {
     console.log('Refreshing DataTable...');
-
-    // Method 1: Using global parcelsTable variable
-    if (typeof parcelsTable !== 'undefined' && parcelsTable) {
-        parcelsTable.ajax.reload(null, false);
-        console.log('DataTable reloaded using parcelsTable');
-    }
-    // Method 2: Using window.parcelsDataTable
-    else if (typeof window.parcelsDataTable !== 'undefined' && window.parcelsDataTable) {
-        window.parcelsDataTable.ajax.reload(null, false);
-        console.log('DataTable reloaded using window.parcelsDataTable');
-    }
-    // Method 3: Find DataTable by selector
-    else if ($.fn.DataTable && $('#parcelsTable').length) {
-        const table = $('#parcelsTable').DataTable();
-        if (table) {
-            table.ajax.reload(null, false);
-            console.log('DataTable reloaded by selector');
+    
+    // Give a small delay to ensure backend has processed
+    setTimeout(function() {
+        let refreshed = false;
+        
+        // Method 1: Using global parcelsTable variable
+        if (typeof parcelsTable !== 'undefined' && parcelsTable) {
+            parcelsTable.ajax.reload(function() {
+                console.log('DataTable reloaded successfully via parcelsTable');
+                showSmallMessage('Table refreshed!', 'success');
+            }, false);
+            refreshed = true;
+            return;
         }
-    }
-
-    // Refresh icons after table reload
-    setTimeout(() => {
-        if (typeof iconify !== 'undefined') {
-            iconify.scan();
+        
+        // Method 2: Using window.parcelsDataTable
+        if (typeof window.parcelsDataTable !== 'undefined' && window.parcelsDataTable) {
+            window.parcelsDataTable.ajax.reload(function() {
+                console.log('DataTable reloaded via window.parcelsDataTable');
+                showSmallMessage('Table refreshed!', 'success');
+            }, false);
+            refreshed = true;
+            return;
         }
-    }, 500);
+        
+        // Method 3: Find DataTable by selector
+        if ($.fn.DataTable && $('#parcelsTable').length) {
+            const table = $('#parcelsTable').DataTable();
+            if (table) {
+                table.ajax.reload(function() {
+                    console.log('DataTable reloaded by selector');
+                    showSmallMessage('Table refreshed!', 'success');
+                }, false);
+                refreshed = true;
+                return;
+            }
+        }
+        
+        // Method 4: If table exists but not initialized, try to reinitialize
+        if ($('#parcelsTable').length && !refreshed) {
+            console.log('Attempting to reinitialize DataTable');
+            location.reload();
+        }
+        
+        // Refresh icons after table reload
+        setTimeout(() => {
+            if (typeof iconify !== 'undefined') {
+                iconify.scan();
+            }
+        }, 500);
+        
+    }, 300);
 }
 
-// NEW FUNCTION: Show quick assign confirmation for single parcel
+// Show small toast message (NOT a big modal)
+function showSmallMessage(message, type = 'success') {
+    // Remove existing toasts
+    $('.custom-small-toast').remove();
+
+    const icon = type === 'success' ? 'check-circle' : 
+                 type === 'error' ? 'danger-circle' : 'info-circle';
+    
+    const bgColor = type === 'success' ? '#28a745' : 
+                    type === 'error' ? '#dc3545' : '#17a2b8';
+
+    const toast = $(`
+        <div class="custom-small-toast" style="position: fixed; bottom: 20px; right: 20px; z-index: 99999; 
+                    background: ${bgColor}; color: white; padding: 10px 18px; border-radius: 8px; 
+                    display: flex; align-items: center; gap: 10px; 
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+                    font-size: 14px; font-weight: 500;
+                    animation: slideInRight 0.3s ease;">
+            <iconify-icon icon="solar:${icon}-line-duotone" style="font-size: 18px;"></iconify-icon>
+            <span>${escapeHtml(message)}</span>
+            <button type="button" style="background: none; border: none; color: white; cursor: pointer; margin-left: 10px;" class="toast-close-btn">
+                <iconify-icon icon="solar:close-circle-line-duotone" style="font-size: 16px;"></iconify-icon>
+            </button>
+        </div>
+    `);
+
+    $('body').append(toast);
+
+    // Auto close after 4 seconds
+    setTimeout(() => {
+        toast.fadeOut(300, function() {
+            $(this).remove();
+        });
+    }, 4000);
+
+    // Close on button click
+    toast.find('.toast-close-btn').on('click', function() {
+        toast.fadeOut(300, function() {
+            $(this).remove();
+        });
+    });
+}
+
+// Show quick assign confirmation for single parcel
 function showQuickAssignConfirmation(parcelId, trackingNumber, button) {
     Swal.fire({
         title: 'Quick Assign Parcel',
@@ -188,19 +283,13 @@ function showQuickAssignConfirmation(parcelId, trackingNumber, button) {
             <p>Find the best available rider for parcel <strong>${escapeHtml(trackingNumber)}</strong>?</p>
             <div class="alert alert-info mt-3 text-start">
                 <iconify-icon icon="solar:info-circle-line-duotone" class="me-2"></iconify-icon>
-                The system will automatically find the most suitable rider based on:
-                <ul class="mt-2 mb-0">
-                    <li>Current availability</li>
-                    <li>Weight capacity</li>
-                    <li>Size capacity</li>
-                    <li>Hub location</li>
-                </ul>
+                The system will automatically find the most suitable rider based on availability and capacity.
             </div>
         `,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#28a745',
-        confirmButtonText: '<iconify-icon icon="solar:magic-stick-3-line-duotone" class="me-2"></iconify-icon>Assign Now',
+        confirmButtonText: 'Assign Now',
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -209,9 +298,8 @@ function showQuickAssignConfirmation(parcelId, trackingNumber, button) {
     });
 }
 
-// NEW FUNCTION: Perform quick assign for a single parcel
+// Perform quick assign for a single parcel
 function performQuickAssign(parcelId, trackingNumber, button) {
-    // Show loading state on button
     const originalHtml = button.html();
     button.html('<span class="spinner-border spinner-border-sm" role="status"></span>');
     button.prop('disabled', true);
@@ -224,26 +312,19 @@ function performQuickAssign(parcelId, trackingNumber, button) {
         },
         success: function(response) {
             if (response.success) {
-                showAutoToast(response.message || 'Parcel assigned successfully!', 'success');
-
-                // Refresh DataTable
+                showSmallMessage(response.message || 'Parcel assigned successfully!', 'success');
                 refreshDataTableAndUI();
 
                 Swal.fire({
                     title: 'Success!',
-                    html: `
-                        <iconify-icon icon="solar:check-circle-line-duotone" class="text-success" style="font-size: 48px;"></iconify-icon>
-                        <p class="mt-3">${response.message}</p>
-                        ${response.rider ? `<div class="alert alert-success mt-3">
-                            <strong>Assigned to:</strong> ${escapeHtml(response.rider.name)}
-                        </div>` : ''}
-                    `,
+                    text: response.message,
                     icon: 'success',
-                    confirmButtonText: 'OK'
+                    confirmButtonText: 'OK',
+                    timer: 2000,
+                    showConfirmButton: false
                 });
             } else {
-                showAutoToast(response.message || 'No suitable rider found', 'error');
-                Swal.fire('Failed!', response.message || 'No suitable rider available', 'error');
+                showSmallMessage(response.message || 'No suitable rider found', 'error');
             }
         },
         error: function(xhr) {
@@ -251,8 +332,7 @@ function performQuickAssign(parcelId, trackingNumber, button) {
             if (xhr.responseJSON && xhr.responseJSON.message) {
                 message = xhr.responseJSON.message;
             }
-            showAutoToast(message, 'error');
-            Swal.fire('Error!', message, 'error');
+            showSmallMessage(message, 'error');
         },
         complete: function() {
             button.html(originalHtml);
@@ -261,131 +341,66 @@ function performQuickAssign(parcelId, trackingNumber, button) {
     });
 }
 
+// Show auto assign results in modal
 function showAutoAssignResults(response) {
     const assigned = response.assigned || 0;
     const failed = response.failed || 0;
 
+    // Only show modal if there are assignments
+    if (assigned === 0 && failed === 0) {
+        return;
+    }
+
     let detailsHtml = '';
     if (response.details && response.details.length > 0) {
         detailsHtml = `
-            <div class="mt-4">
-                <h6 class="mb-3">
-                    <iconify-icon icon="solar:clipboard-list-line-duotone" class="me-2"></iconify-icon>
-                    Assignment Details (${response.details.length} parcels)
-                </h6>
-                <div class="assignment-details-scroll">
-                    <table class="table table-sm table-hover details-table">
-                        <thead>
+            <div class="mt-3" style="max-height: 300px; overflow-y: auto;">
+                <table class="table table-sm">
+                    <thead>
+                        <tr><th>Tracking</th><th>Rider</th><th>Weight</th></tr>
+                    </thead>
+                    <tbody>
+                        ${response.details.map((detail, index) => `
                             <tr>
-                                <th>#</th>
-                                <th>Tracking Number</th>
-                                <th>Assigned To</th>
-                                <th>Weight</th>
+                                <td>${escapeHtml(detail.tracking)}</small>
+                                <td>${escapeHtml(detail.rider)}</small>
+                                <td>${detail.weight} kg</small>
                             </tr>
-                        </thead>
-                        <tbody>
-                            ${response.details.map((detail, index) => `
-                                <tr>
-                                    <td>${index + 1}</td>
-                                    <td><strong>${escapeHtml(detail.tracking)}</strong></td>
-                                    <td>
-                                        <iconify-icon icon="solar:user-circle-line-duotone" class="me-1"></iconify-icon>
-                                        ${escapeHtml(detail.rider)}
-                                    </td>
-                                    <td>${detail.weight} kg</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
+                        `).join('')}
+                    </tbody>
+                </table>
             </div>
         `;
     }
 
     let resultHtml = `
         <div class="text-center">
-            <iconify-icon icon="solar:checklist-line-duotone" class="result-icon ${assigned > 0 ? 'success' : 'warning'}" style="font-size: 64px;"></iconify-icon>
-            <h4 class="mt-3 mb-4">Assignment Complete!</h4>
-
-            <div class="row g-3 mb-4">
+            <h4>Assignment Complete!</h4>
+            <div class="row mt-3">
                 <div class="col-6">
-                    <div class="result-card bg-success">
-                        <div class="card-body text-center">
-                            <h3 class="mb-0">${assigned}</h3>
-                            <small>Parcels Assigned</small>
-                        </div>
+                    <div style="background: #28a745; color: white; padding: 15px; border-radius: 8px;">
+                        <h3 class="mb-0">${assigned}</h3>
+                        <small>Assigned</small>
                     </div>
                 </div>
                 <div class="col-6">
-                    <div class="result-card bg-warning">
-                        <div class="card-body text-center">
-                            <h3 class="mb-0">${failed}</h3>
-                            <small>Failed to Assign</small>
-                        </div>
+                    <div style="background: #ffc107; color: #333; padding: 15px; border-radius: 8px;">
+                        <h3 class="mb-0">${failed}</h3>
+                        <small>Failed</small>
                     </div>
                 </div>
             </div>
-
-            ${response.message ? `
-                <div class="alert alert-info">
-                    <iconify-icon icon="solar:info-circle-line-duotone" class="me-2"></iconify-icon>
-                    ${escapeHtml(response.message)}
-                </div>
-            ` : ''}
-
             ${detailsHtml}
-
-            <div class="alert alert-secondary mt-3 small">
-                <iconify-icon icon="solar:info-circle-line-duotone" class="me-2"></iconify-icon>
-                <strong>Info:</strong> Only parcels with status "pending" and riders with status "available" were considered.
-                ${assigned > 0 ? 'Assigned riders have been marked as "busy".' : ''}
-            </div>
-
-            <div class="alert alert-success mt-3 small">
+            <div class="alert alert-success mt-3">
                 <iconify-icon icon="solar:refresh-line-duotone" class="me-2"></iconify-icon>
-                <strong>DataTable has been refreshed automatically!</strong> No need to reload the page.
+                Table has been refreshed automatically!
             </div>
         </div>
     `;
 
     $('#resultContent').html(resultHtml);
-
-    // Show result modal
     const resultModal = new bootstrap.Modal(document.getElementById('autoAssignResultModal'));
     resultModal.show();
-}
-
-function showAutoToast(message, type = 'success') {
-    // Remove existing toasts
-    $('.custom-toast').remove();
-
-    const icon = type === 'success' ? 'check-circle-line-duotone' :
-                 type === 'error' ? 'danger-circle-line-duotone' :
-                 'info-circle-line-duotone';
-
-    const toast = $(`
-        <div class="custom-toast ${type}">
-            <iconify-icon icon="solar:${icon}"></iconify-icon>
-            <div class="toast-message">${escapeHtml(message)}</div>
-            <iconify-icon icon="solar:close-circle-line-duotone" class="toast-close"></iconify-icon>
-        </div>
-    `);
-
-    $('body').append(toast);
-
-    // Auto close after 5 seconds
-    setTimeout(() => {
-        toast.fadeOut(300, function() {
-            $(this).remove();
-        });
-    }, 5000);
-
-    // Close on click
-    toast.find('.toast-close').on('click', function() {
-        toast.fadeOut(300, function() {
-            $(this).remove();
-        });
-    });
 }
 
 function escapeHtml(str) {
@@ -398,9 +413,23 @@ function escapeHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
+// Add animation style
+if (!$('#auto-toast-style').length) {
+    const style = $('<style id="auto-toast-style">')
+        .text(`
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            .custom-small-toast {
+                font-family: system-ui, -apple-system, sans-serif;
+            }
+        `);
+    $('head').append(style);
+}
+
 // Export for debugging
 window.autoAssign = {
-    showToast: showAutoToast,
     refreshTable: refreshDataTableAndUI,
     isInProgress: () => autoAssignInProgress
 };

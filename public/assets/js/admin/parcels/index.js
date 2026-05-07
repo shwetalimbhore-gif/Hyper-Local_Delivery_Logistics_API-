@@ -216,3 +216,4 @@ window.getParcelsDataTable = function() {
 
 // Log confirmation
 console.log('DataTable exposed globally:', parcelsTable ? 'Yes' : 'No');
+

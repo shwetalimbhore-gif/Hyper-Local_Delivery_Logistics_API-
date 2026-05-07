@@ -428,7 +428,7 @@ class ParcelController extends Controller
     }
 
     /**
-     * Find the best rider for a parcel (API endpoint)
+     * Find the best rider for auto-assignment (AJAX endpoint)
      */
     public function findBestRider(Request $request)
     {
@@ -437,81 +437,91 @@ class ParcelController extends Controller
                 'weight' => 'required|numeric|min:0.1',
                 'size' => 'required|numeric|min:0.1',
                 'hub_id' => 'required|exists:hubs,id',
-                'parcel_id' => 'nullable|exists:parcels,id',
-                'assign' => 'nullable|boolean',
+                'parcel_id' => 'required|exists:parcels,id'
             ]);
 
-            $bestRider = Rider::findBestRiderForParcel(
-                $request->weight,
-                $request->size,
-                $request->hub_id
-            );
+            $parcel = Parcel::find($request->parcel_id);
+            
+            // ✅ Check if parcel is already assigned
+            if ($parcel->assigned_rider_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Parcel is already assigned to a rider.',
+                    'already_assigned' => true
+                ], 200); // ← 200 OK, not 404
+            }
+
+            // Find best available rider
+            $bestRider = Rider::where('status', 'available')
+                ->where('hub_id', $parcel->source_hub_id)
+                ->where(function($q) use ($request) {
+                    $q->where('max_weight_capacity', '>=', $request->weight)
+                    ->orWhereNull('max_weight_capacity');
+                })
+                ->where(function($q) use ($request) {
+                    $q->where('max_size_capacity', '>=', $request->size)
+                    ->orWhereNull('max_size_capacity');
+                })
+                ->orderBy('rating', 'desc')
+                ->orderBy('total_deliveries', 'asc')
+                ->with('user')
+                ->first();
 
             if ($bestRider) {
-                if ($request->boolean('assign') && $request->filled('parcel_id')) {
-                    DB::transaction(function () use ($request, $bestRider) {
-                        $parcel = Parcel::findOrFail($request->parcel_id);
-                        $previousRiderId = $parcel->assigned_rider_id;
-                        $assignedStatus = ParcelStatus::where('slug', 'assigned')->firstOrFail();
+                $assignedStatus = ParcelStatus::where('slug', 'assigned')->first();
+                
+                // Assign parcel to rider
+                $parcel->assigned_rider_id = $bestRider->id;
+                $parcel->status_id = $assignedStatus->id;
+                $parcel->assigned_at = now();
+                $parcel->save();
+                
+                // Update rider status to busy
+                $bestRider->status = 'busy';
+                $bestRider->save();
+                
+                // Send notification
+                $this->sendNotificationToRider($bestRider->id, $parcel->tracking_number);
 
-                        $parcel->update([
-                            'weight' => $request->weight,
-                            'size' => $request->size,
-                            'source_hub_id' => $request->hub_id,
-                            'assigned_rider_id' => $bestRider->id,
-                            'status_id' => $assignedStatus->id,
-                            'assigned_at' => now(),
-                        ]);
-
-                        // Update rider status
-                        $bestRider->status = 'busy';
-                        $bestRider->save();
-
-                        $this->syncRidersForParcel($parcel->fresh('status'), $previousRiderId);
-
-                        // Send notification to rider
-                        $this->sendNotificationToRider($bestRider->id, $parcel->tracking_number);
-                    });
-                }
-
-                // Return success response
+                // ✅ Return success with 200 status code
                 return response()->json([
                     'success' => true,
-                    'message' => 'Rider assigned successfully',
+                    'message' => "✓ Parcel #{$parcel->tracking_number} assigned to rider '{$bestRider->user->name}' successfully!",
                     'rider' => [
                         'id' => $bestRider->id,
-                        'name' => $bestRider->user->name,
+                        'name' => $bestRider->user->name ?? 'Unknown',
                         'employee_id' => $bestRider->employee_id,
                         'max_weight_capacity' => $bestRider->max_weight_capacity,
                         'max_size_capacity' => $bestRider->max_size_capacity,
                         'rating' => $bestRider->rating,
                         'status' => $bestRider->status,
+                    ],
+                    'parcel' => [
+                        'id' => $parcel->id,
+                        'tracking_number' => $parcel->tracking_number,
+                        'status' => 'assigned'
                     ]
-                ]);
+                ], 200); // ← Explicit 200 OK
             }
 
-            // No rider found - return success false with message
+            // ✅ No rider found - return 200 with success=false, NOT 404
             return response()->json([
                 'success' => false,
-                'message' => 'No available rider found. Please check rider capacity and hub assignment.',
-                'requirements' => [
+                'message' => 'No available rider found in this hub with sufficient capacity. Please check: (1) Riders exist in this hub, (2) Rider status is "available", (3) Rider has enough capacity.',
+                'debug_info' => [
+                    'hub_id' => $parcel->source_hub_id,
                     'weight' => $request->weight,
-                    'size' => $request->size,
-                    'hub_id' => $request->hub_id
+                    'size' => $request->size
                 ]
-            ]);
+            ], 200); // ← 200 OK, not 404
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
-            \Log::error('Find best rider error: ' . $e->getMessage());
+            Log::error('Auto assign error: ' . $e->getMessage());
+            
+            // ✅ Error response with 500 status code
             return response()->json([
                 'success' => false,
-                'message' => 'Error finding rider: ' . $e->getMessage()
+                'message' => 'Server error: ' . $e->getMessage()
             ], 500);
         }
     }

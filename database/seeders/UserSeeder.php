@@ -34,8 +34,8 @@ class UserSeeder extends Seeder
             // Rider 1
             [
                 'role_id' => 2, // Rider role
-                'name' => 'Rahul Sharma',
-                'email' => 'rahul.rider@hyperlocal.com',
+                'name' => 'Ravi Sharma',
+                'email' => 'ravi.rider@hyperlocal.com',
                 'password' => Hash::make('password123'),
                 'phone' => '9876543211',
                 'address' => 'Shanti Nagar, Andheri East, Mumbai - 400069',
