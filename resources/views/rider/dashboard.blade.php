@@ -16,8 +16,40 @@
                     <div>
                         <h3 class="text-white mb-2">Welcome back, {{ Auth::user()->name }}!</h3>
                         <p class="text-white-50 mb-0">Ready for deliveries? You have {{ $activeParcels->count() }} active parcels.</p>
+
+                        <div class="status-dropdown-container">
+                            <div class="dropdown">
+                                <button class="btn btn-light dropdown-toggle status-btn" type="button" id="statusDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <iconify-icon icon="solar:{{ Auth::user()->rider->status == 'available' ? 'check-circle-line-duotone' : (Auth::user()->rider->status == 'busy' ? 'clock-circle-line-duotone' : 'power-off-line-duotone') }}" class="me-1"></iconify-icon>
+                                    Status:
+                                    <span class="{{ Auth::user()->rider->status == 'available' ? 'text-success' : (Auth::user()->rider->status == 'busy' ? 'text-warning' : 'text-danger') }}">
+                                        {{ ucfirst(Auth::user()->rider->status) }}
+                                    </span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="statusDropdown">
+                                    <li>
+                                        <a class="dropdown-item update-status-link" href="#" data-status="available">
+                                            <iconify-icon icon="solar:check-circle-line-duotone" class="text-success me-2"></iconify-icon>
+                                            Available
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item update-status-link" href="#" data-status="busy">
+                                            <iconify-icon icon="solar:clock-circle-line-duotone" class="text-warning me-2"></iconify-icon>
+                                            Busy
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item update-status-link" href="#" data-status="offline">
+                                            <iconify-icon icon="solar:power-off-line-duotone" class="text-danger me-2"></iconify-icon>
+                                            Offline
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
-                    <div class="status-dropdown-container">
+                    {{-- <div class="status-dropdown-container">
                         <div class="dropdown">
                             <button class="btn btn-light dropdown-toggle status-btn" type="button" id="statusDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                 <iconify-icon icon="solar:{{ Auth::user()->rider->status == 'available' ? 'check-circle-line-duotone' : (Auth::user()->rider->status == 'busy' ? 'clock-circle-line-duotone' : 'power-off-line-duotone') }}" class="me-1"></iconify-icon>
@@ -47,7 +79,7 @@
                                 </li>
                             </ul>
                         </div>
-                    </div>
+                    </div> --}}
                 </div>
             </div>
         </div>
@@ -94,9 +126,9 @@
                     </div>
                     <iconify-icon icon="solar:chart-line-duotone" class="card-icon text-white-50"></iconify-icon>
                 </div>
-                <small class="text-white-50">
+                {{-- <small class="text-white-50">
                     ({{ $successfulDeliveries ?? 0 }}/{{ $totalAssignedDeliveries ?? 0 }} deliveries)
-                </small>
+                </small> --}}
             </div>
         </div>
     </div>

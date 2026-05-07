@@ -1,499 +1,277 @@
 /**
- * Rider Create Form Validation
- * File: public/assets/js/admin/riders/create.js
- * Pure JavaScript validations only - No Laravel validation rules
+ * Initialize input restrictions (prevent unwanted characters)
  */
+function initializeInputRestrictions() {
+    // Name field: No numbers allowed
+    $('#name').on('keypress', function(e) {
+        const charCode = e.which ? e.which : e.keyCode;
+        // Allow letters (A-Z, a-z), spaces, hyphens, dots, and control keys
+        const char = String.fromCharCode(charCode);
+        const allowedRegex = /^[a-zA-Z\s\-\.]$/;
 
-$(document).ready(function() {
-    initCreateFormValidation();
-});
-
-let isSubmitting = false;
-
-function initCreateFormValidation() {
-    const form = $('#riderForm');
-    const submitBtn = form.find('button[type="submit"]');
-
-    // Real-time validations on input and blur events
-    $('#name, #employee_id, #vehicle_number').on('input blur', function() {
-        validateField($(this));
-    });
-
-    $('#email').on('input blur', function() {
-        validateEmail($(this));
-    });
-
-    $('#phone').on('input blur', function() {
-        validatePhone($(this));
-    });
-
-    $('#password').on('input blur', function() {
-        validatePassword($(this));
-    });
-
-    $('#hub_id, #vehicle_type').on('change', function() {
-        validateSelect($(this));
-    });
-
-    $('#max_weight_capacity, #max_size_capacity').on('input blur', function() {
-        validateNumberField($(this));
-    });
-
-    // Clear validation on focus
-    $('input, textarea, select').on('focus', function() {
-        $(this).removeClass('is-invalid is-valid');
-        $(this).next('.invalid-feedback').remove();
-    });
-
-    // Form submit validation
-    form.on('submit', function(e) {
-        // Prevent double submission
-        if (isSubmitting) {
+        if (!allowedRegex.test(char) && charCode !== 8 && charCode !== 0 && charCode !== 13) {
             e.preventDefault();
+            showValidationError('Only letters, spaces, hyphens, and dots are allowed in name field');
+            return false;
+        }
+        return true;
+    });
+
+    // Employee ID: Only letters and numbers, max 6 characters, auto uppercase
+    $('#employee_id').on('keypress', function(e) {
+        const charCode = e.which ? e.which : e.keyCode;
+        const char = String.fromCharCode(charCode);
+        const currentValue = $(this).val();
+
+        // Allow letters (A-Z, a-z) and numbers (0-9)
+        if (!/^[A-Za-z0-9]$/.test(char) && charCode !== 8 && charCode !== 0 && charCode !== 13) {
+            e.preventDefault();
+            showValidationError('Employee ID can only contain letters and numbers', 'warning');
             return false;
         }
 
-        // Validate all fields
-        if (!validateForm()) {
+        // Limit to 6 characters
+        if (currentValue.length >= 6 && charCode !== 8 && charCode !== 0 && charCode !== 13) {
             e.preventDefault();
-            showValidationError('Please fix the errors before submitting');
+            showValidationError('Employee ID cannot exceed 6 characters', 'warning');
             return false;
         }
-
-        // Show loading state
-        isSubmitting = true;
-        submitBtn.prop('disabled', true);
-        submitBtn.html('<span class="spinner-border spinner-border-sm me-2"></span>Creating Rider...');
 
         return true;
     });
-}
 
-/**
- * Generic field validation
- */
-function validateField(field) {
-    const fieldName = field.attr('name');
-    const value = field.val().trim();
-    let isValid = true;
-    let errorMessage = '';
+    // Add input event for immediate uppercase conversion and formatting
+    $('#employee_id').on('input', function() {
+        let value = $(this).val();
+        let uppercaseValue = value.toUpperCase();
 
-    // Remove existing validation classes and messages
-    field.removeClass('is-invalid is-valid');
-    field.next('.invalid-feedback').remove();
+        // Remove any non-alphanumeric characters
+        uppercaseValue = uppercaseValue.replace(/[^A-Z0-9]/g, '');
 
-    // Validate based on field name
-    switch(fieldName) {
-        case 'name':
-            if (!value) {
-                errorMessage = 'Full name is required';
-                isValid = false;
-            } else if (value.length < 2) {
-                errorMessage = 'Full name must be at least 2 characters';
-                isValid = false;
-            } else if (value.length > 100) {
-                errorMessage = 'Full name cannot exceed 100 characters';
-                isValid = false;
-            } else if (!/^[a-zA-Z\s\-\.]+$/.test(value)) {
-                errorMessage = 'Full name can only contain letters, spaces, hyphens, and dots';
-                isValid = false;
+        // Auto-replace first three characters with RID if they are not already
+        if (uppercaseValue.length >= 3) {
+            const firstThree = uppercaseValue.substring(0, 3);
+            if (firstThree !== 'RID') {
+                // Check if the first three characters are a case-insensitive match
+                if (firstThree.toUpperCase() === 'RID') {
+                    uppercaseValue = 'RID' + uppercaseValue.substring(3);
+                } else if (uppercaseValue.length >= 3) {
+                    // If it's not RID at all, force it to start with RID
+                    uppercaseValue = 'RID' + uppercaseValue.substring(3);
+                }
             }
-            break;
-
-        case 'employee_id':
-            if (!value) {
-                errorMessage = 'Employee ID is required';
-                isValid = false;
-            } else if (value.length < 3) {
-                errorMessage = 'Employee ID must be at least 3 characters';
-                isValid = false;
-            } else if (value.length > 20) {
-                errorMessage = 'Employee ID cannot exceed 20 characters';
-                isValid = false;
-            } else if (!/^[A-Za-z0-9-]+$/.test(value)) {
-                errorMessage = 'Employee ID can only contain letters, numbers, and hyphens';
-                isValid = false;
+        } else if (uppercaseValue.length === 2) {
+            // If only 2 characters, check if they are 'RI'
+            if (uppercaseValue !== 'RI') {
+                uppercaseValue = 'RI' + uppercaseValue.substring(2);
             }
-            break;
-
-        case 'vehicle_number':
-            if (!value) {
-                errorMessage = 'Vehicle number is required';
-                isValid = false;
-            } else if (value.length < 4) {
-                errorMessage = 'Please enter a valid vehicle number';
-                isValid = false;
-            } else if (value.length > 20) {
-                errorMessage = 'Vehicle number cannot exceed 20 characters';
-                isValid = false;
+        } else if (uppercaseValue.length === 1) {
+            // If only 1 character, it should be 'R'
+            if (uppercaseValue !== 'R') {
+                uppercaseValue = 'R';
             }
-            break;
-
-        case 'address':
-            if (value && value.length > 500) {
-                errorMessage = 'Address cannot exceed 500 characters';
-                isValid = false;
-            }
-            break;
-
-        case 'vehicle_model':
-            if (value && value.length > 100) {
-                errorMessage = 'Vehicle model cannot exceed 100 characters';
-                isValid = false;
-            }
-            break;
-
-        case 'license_number':
-            if (value && value.length > 50) {
-                errorMessage = 'License number cannot exceed 50 characters';
-                isValid = false;
-            }
-            break;
-    }
-
-    // Display validation feedback
-    if (!isValid) {
-        field.addClass('is-invalid');
-        field.after(`<div class="invalid-feedback">${errorMessage}</div>`);
-    } else if (value) {
-        field.addClass('is-valid');
-    }
-
-    return isValid;
-}
-
-/**
- * Email validation
- */
-function validateEmail(emailField) {
-    const email = emailField.val().trim();
-    let isValid = true;
-    let errorMessage = '';
-
-    emailField.removeClass('is-invalid is-valid');
-    emailField.next('.invalid-feedback').remove();
-
-    if (!email) {
-        errorMessage = 'Email address is required';
-        isValid = false;
-    } else {
-        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        if (!emailRegex.test(email)) {
-            errorMessage = 'Please enter a valid email address (e.g., name@example.com)';
-            isValid = false;
-        } else if (email.length > 100) {
-            errorMessage = 'Email address cannot exceed 100 characters';
-            isValid = false;
         }
-    }
 
-    if (!isValid) {
-        emailField.addClass('is-invalid');
-        emailField.after(`<div class="invalid-feedback">${errorMessage}</div>`);
-    } else {
-        emailField.addClass('is-valid');
-    }
-
-    return isValid;
-}
-
-/**
- * Phone number validation
- */
-function validatePhone(phoneField) {
-    const phone = phoneField.val().trim();
-    let isValid = true;
-    let errorMessage = '';
-
-    phoneField.removeClass('is-invalid is-valid');
-    phoneField.next('.invalid-feedback').remove();
-
-    if (!phone) {
-        errorMessage = 'Phone number is required';
-        isValid = false;
-    } else {
-        // Indian mobile number validation (10 digits, starts with 6-9)
-        const mobileRegex = /^[6-9][0-9]{9}$/;
-
-        if (!mobileRegex.test(phone)) {
-            errorMessage = 'Please enter a valid 10-digit mobile number starting with 6-9';
-            isValid = false;
+        // Limit to 6 characters
+        if (uppercaseValue.length > 6) {
+            uppercaseValue = uppercaseValue.substring(0, 6);
         }
-    }
 
-    if (!isValid) {
-        phoneField.addClass('is-invalid');
-        phoneField.after(`<div class="invalid-feedback">${errorMessage}</div>`);
-    } else {
-        phoneField.addClass('is-valid');
-    }
-
-    return isValid;
-}
-
-/**
- * Password validation
- */
-function validatePassword(passwordField) {
-    const password = passwordField.val();
-    let isValid = true;
-    let errorMessage = '';
-
-    passwordField.removeClass('is-invalid is-valid');
-    passwordField.next('.invalid-feedback').remove();
-
-    if (!password) {
-        errorMessage = 'Password is required';
-        isValid = false;
-    } else if (password.length < 8) {
-        errorMessage = 'Password must be at least 8 characters long';
-        isValid = false;
-    } else if (password.length > 255) {
-        errorMessage = 'Password cannot exceed 255 characters';
-        isValid = false;
-    }
-
-    if (!isValid) {
-        passwordField.addClass('is-invalid');
-        passwordField.after(`<div class="invalid-feedback">${errorMessage}</div>`);
-    } else {
-        passwordField.addClass('is-valid');
-        // Show password strength indicator
-        showPasswordStrength(password);
-    }
-
-    return isValid;
-}
-
-/**
- * Show password strength indicator
- */
-function showPasswordStrength(password) {
-    // Remove existing strength indicator
-    $('.password-strength').remove();
-
-    if (password && password.length > 0) {
-        const strength = checkPasswordStrength(password);
-        const strengthHtml = `
-            <div class="password-strength mt-1">
-                <small class="text-muted">Password strength:
-                    <span class="strength-text" style="color: ${strength.color}">${strength.text}</span>
-                </small>
-                <div class="progress" style="height: 3px; margin-top: 2px;">
-                    <div class="progress-bar ${strength.class}"
-                         style="width: ${strength.percent}%; transition: width 0.3s ease;"></div>
-                </div>
-            </div>
-        `;
-        $('#password').after(strengthHtml);
-    }
-}
-
-/**
- * Check password strength
- */
-function checkPasswordStrength(password) {
-    let strength = 0;
-
-    if (password.length >= 8) strength++;
-    if (password.match(/[a-z]+/)) strength++;
-    if (password.match(/[A-Z]+/)) strength++;
-    if (password.match(/[0-9]+/)) strength++;
-    if (password.match(/[$@#&!]+/)) strength++;
-
-    const strengths = {
-        1: { text: 'Weak', class: 'bg-danger', color: '#ef4444', percent: 20 },
-        2: { text: 'Fair', class: 'bg-warning', color: '#f59e0b', percent: 40 },
-        3: { text: 'Good', class: 'bg-info', color: '#0ea5e9', percent: 60 },
-        4: { text: 'Strong', class: 'bg-primary', color: '#6366f1', percent: 80 },
-        5: { text: 'Very Strong', class: 'bg-success', color: '#10b981', percent: 100 }
-    };
-
-    return strengths[strength] || strengths[1];
-}
-
-/**
- * Select field validation
- */
-function validateSelect(selectField) {
-    const value = selectField.val();
-    let isValid = true;
-    let errorMessage = '';
-
-    selectField.removeClass('is-invalid is-valid');
-    selectField.next('.invalid-feedback').remove();
-
-    if (!value || value === '') {
-        const fieldName = selectField.attr('name');
-        if (fieldName === 'hub_id') {
-            errorMessage = 'Please select a hub';
-        } else if (fieldName === 'vehicle_type') {
-            errorMessage = 'Please select a vehicle type';
+        // Update the field value if changed
+        if ($(this).val() !== uppercaseValue) {
+            $(this).val(uppercaseValue);
         }
-        isValid = false;
-    }
 
-    if (!isValid) {
-        selectField.addClass('is-invalid');
-        selectField.after(`<div class="invalid-feedback">${errorMessage}</div>`);
-    } else {
-        selectField.addClass('is-valid');
-    }
-
-    return isValid;
-}
-
-/**
- * Number field validation
- */
-function validateNumberField(field) {
-    const value = field.val();
-    const fieldName = field.attr('name');
-    let isValid = true;
-    let errorMessage = '';
-
-    field.removeClass('is-invalid is-valid');
-    field.next('.invalid-feedback').remove();
-
-    if (value && value !== '') {
-        const numValue = parseFloat(value);
-        if (isNaN(numValue)) {
-            errorMessage = 'Please enter a valid number';
-            isValid = false;
-        } else if (numValue <= 0) {
-            errorMessage = 'Value must be greater than 0';
-            isValid = false;
-        } else if (fieldName === 'max_weight_capacity' && numValue > 1000) {
-            errorMessage = 'Maximum weight cannot exceed 1000 kg';
-            isValid = false;
-        } else if (fieldName === 'max_size_capacity' && numValue > 500) {
-            errorMessage = 'Maximum size cannot exceed 500 cm³';
-            isValid = false;
-        }
-    }
-
-    if (!isValid) {
-        field.addClass('is-invalid');
-        field.after(`<div class="invalid-feedback">${errorMessage}</div>`);
-    } else if (value && value !== '') {
-        field.addClass('is-valid');
-    }
-
-    return isValid;
-}
-
-/**
- * Full form validation before submit
- */
-function validateForm() {
-    let isValid = true;
-
-    // Validate required fields
-    if (!validateField($('#name'))) isValid = false;
-    if (!validateEmail($('#email'))) isValid = false;
-    if (!validatePhone($('#phone'))) isValid = false;
-    if (!validateField($('#employee_id'))) isValid = false;
-    if (!validateSelect($('#hub_id'))) isValid = false;
-    if (!validateSelect($('#vehicle_type'))) isValid = false;
-    if (!validateField($('#vehicle_number'))) isValid = false;
-    if (!validatePassword($('#password'))) isValid = false;
-
-    // Validate optional fields (only if they have values)
-    if ($('#max_weight_capacity').val() && $('#max_weight_capacity').val() !== '') {
-        if (!validateNumberField($('#max_weight_capacity'))) isValid = false;
-    }
-    if ($('#max_size_capacity').val() && $('#max_size_capacity').val() !== '') {
-        if (!validateNumberField($('#max_size_capacity'))) isValid = false;
-    }
-
-    return isValid;
-}
-
-/**
- * Show validation error message
- */
-function showValidationError(message) {
-    // Remove existing notification
-    $('.custom-notification').remove();
-
-    const notification = $(`
-        <div class="custom-notification error">
-            <iconify-icon icon="solar:danger-circle-line-duotone"></iconify-icon>
-            <span>${escapeHtml(message)}</span>
-        </div>
-    `);
-
-    notification.css({
-        position: 'fixed',
-        top: '20px',
-        right: '20px',
-        zIndex: 9999,
-        backgroundColor: '#ef4444',
-        color: 'white',
-        border: 'none',
-        padding: '12px 20px',
-        borderRadius: '8px',
-        fontSize: '14px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        animation: 'slideInRight 0.3s ease'
+        // Trigger validation
+        validateAndFormatEmployeeId($(this));
     });
 
-    $('body').append(notification);
+    // Phone field: Only numbers allowed, max 10 digits
+    $('#phone').on('keypress', function(e) {
+        const charCode = e.which ? e.which : e.keyCode;
+        const currentValue = $(this).val();
 
-    setTimeout(() => {
-        notification.fadeOut(300, function() {
-            $(this).remove();
-        });
-    }, 5000);
+        // Allow only numbers (0-9) and control keys
+        if (charCode < 48 || charCode > 57) {
+            if (charCode !== 8 && charCode !== 0 && charCode !== 13) {
+                e.preventDefault();
+                showValidationError('Only numbers are allowed in phone field');
+                return false;
+            }
+        }
+
+        // Prevent typing if already 10 digits
+        if (currentValue.length >= 10 && charCode !== 8 && charCode !== 0 && charCode !== 13) {
+            e.preventDefault();
+            showValidationError('Phone number cannot exceed 10 digits');
+            return false;
+        }
+
+        return true;
+    });
+
+    // Vehicle number: Allow letters and numbers only (will be auto-formatted)
+    $('#vehicle_number').on('keypress', function(e) {
+        const charCode = e.which ? e.which : e.keyCode;
+        const char = String.fromCharCode(charCode);
+        const currentValue = $(this).val();
+
+        // Allow letters (A-Z, a-z) and numbers (0-9)
+        if (!/^[A-Za-z0-9]$/.test(char) && charCode !== 8 && charCode !== 0 && charCode !== 13) {
+            e.preventDefault();
+            showValidationError('Vehicle number can only contain letters and numbers', 'warning');
+            return false;
+        }
+
+        // Limit to 10 characters
+        if (currentValue.length >= 10 && charCode !== 8 && charCode !== 0 && charCode !== 13) {
+            e.preventDefault();
+            showValidationError('Vehicle number cannot exceed 10 characters', 'warning');
+            return false;
+        }
+
+        return true;
+    });
+
+    // License number: Allow letters and numbers only
+    $('#license_number').on('keypress', function(e) {
+        const charCode = e.which ? e.which : e.keyCode;
+        const char = String.fromCharCode(charCode);
+        const currentValue = $(this).val();
+
+        // Allow letters (A-Z, a-z) and numbers (0-9)
+        if (!/^[A-Za-z0-9]$/.test(char) && charCode !== 8 && charCode !== 0 && charCode !== 13) {
+            e.preventDefault();
+            showValidationError('License number can only contain letters and numbers', 'warning');
+            return false;
+        }
+
+        // Limit to 15 characters
+        if (currentValue.length >= 15 && charCode !== 8 && charCode !== 0 && charCode !== 13) {
+            e.preventDefault();
+            showValidationError('License number cannot exceed 15 characters', 'warning');
+            return false;
+        }
+
+        return true;
+    });
+
+    // Weight and size fields: Only whole numbers (no decimals, no letters)
+    $('#max_weight_capacity, #max_size_capacity').on('keypress', function(e) {
+        const charCode = e.which ? e.which : e.keyCode;
+
+        // Allow only numbers (0-9) and control keys
+        if (charCode < 48 || charCode > 57) {
+            if (charCode !== 8 && charCode !== 0 && charCode !== 13) {
+                e.preventDefault();
+                showValidationError('Only whole numbers are allowed (no decimals or letters)');
+                return false;
+            }
+        }
+        return true;
+    });
+
+    // Remove decimals from weight and size fields on input
+    $('#max_weight_capacity, #max_size_capacity').on('input', function() {
+        let value = $(this).val();
+        if (value.includes('.')) {
+            value = value.split('.')[0];
+            $(this).val(value);
+            showValidationError('Only whole numbers are allowed (no decimals)');
+        }
+        validateNumberField($(this));
+    });
+
+    // Prevent pasting invalid characters
+    $('#name').on('paste', function(e) {
+        const pastedText = e.originalEvent.clipboardData.getData('text');
+        if (!/^[a-zA-Z\s\-\.]*$/.test(pastedText)) {
+            e.preventDefault();
+            showValidationError('Only letters, spaces, hyphens, and dots can be pasted in name field');
+            return false;
+        }
+    });
+
+    $('#employee_id').on('paste', function(e) {
+        const pastedText = e.originalEvent.clipboardData.getData('text');
+        // Convert to uppercase immediately
+        let cleanedText = pastedText.toUpperCase();
+        // Remove any non-alphanumeric characters
+        cleanedText = cleanedText.replace(/[^A-Z0-9]/g, '');
+
+        // Auto-format to start with RID
+        if (cleanedText.length >= 3) {
+            if (cleanedText.substring(0, 3) !== 'RID') {
+                cleanedText = 'RID' + cleanedText.substring(3);
+            }
+        }
+
+        // Check length
+        if (cleanedText.length > 6) {
+            e.preventDefault();
+            showValidationError('Employee ID cannot exceed 6 characters');
+            return false;
+        }
+
+        // Set the cleaned and formatted value
+        setTimeout(() => {
+            $(this).val(cleanedText);
+            validateAndFormatEmployeeId($(this));
+        }, 10);
+    });
+
+    $('#phone').on('paste', function(e) {
+        const pastedText = e.originalEvent.clipboardData.getData('text');
+        if (!/^\d*$/.test(pastedText)) {
+            e.preventDefault();
+            showValidationError('Only numbers can be pasted in phone field');
+            return false;
+        }
+        // Check length after paste
+        if (pastedText.length > 10) {
+            e.preventDefault();
+            showValidationError('Phone number cannot exceed 10 digits');
+            return false;
+        }
+    });
+
+    $('#vehicle_number').on('paste', function(e) {
+        const pastedText = e.originalEvent.clipboardData.getData('text');
+        // Allow letters and numbers only
+        if (!/^[A-Za-z0-9]*$/.test(pastedText)) {
+            e.preventDefault();
+            showValidationError('Vehicle number can only contain letters and numbers');
+            return false;
+        }
+        // Check length
+        if (pastedText.length > 10) {
+            e.preventDefault();
+            showValidationError('Vehicle number cannot exceed 10 characters');
+            return false;
+        }
+        // Will be formatted by the validateAndFormatVehicleNumber function
+        setTimeout(() => {
+            validateAndFormatVehicleNumber($(this));
+        }, 10);
+    });
+
+    $('#license_number').on('paste', function(e) {
+        const pastedText = e.originalEvent.clipboardData.getData('text');
+        // Allow letters and numbers only
+        if (!/^[A-Za-z0-9]*$/.test(pastedText)) {
+            e.preventDefault();
+            showValidationError('License number can only contain letters and numbers');
+            return false;
+        }
+        // Check length
+        if (pastedText.length > 15) {
+            e.preventDefault();
+            showValidationError('License number cannot exceed 15 characters');
+            return false;
+        }
+        // Will be formatted by the validateAndFormatLicenseNumber function
+        setTimeout(() => {
+            validateAndFormatLicenseNumber($(this));
+        }, 10);
+    });
 }
-
-/**
- * Escape HTML
- */
-function escapeHtml(str) {
-    if (!str) return '';
-    return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
-// Add animation styles if not present
-if (!$('#dynamic-styles').length) {
-    const style = $('<style id="dynamic-styles">')
-        .text(`
-            @keyframes slideInRight {
-                from {
-                    transform: translateX(100%);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-            }
-
-            .custom-notification {
-                z-index: 10000;
-            }
-
-            .password-strength .progress {
-                background-color: #e5e7eb;
-                border-radius: 10px;
-                overflow: hidden;
-            }
-
-            .password-strength .progress-bar {
-                transition: width 0.3s ease;
-            }
-        `);
-    $('head').append(style);
-}
-
-// Make functions globally accessible
-window.validateForm = validateForm;

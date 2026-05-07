@@ -27,8 +27,7 @@
                                id="name"
                                class="form-control @error('name') is-invalid @enderror"
                                value="{{ old('name') }}"
-                               placeholder="Enter hub name"
-                               required>
+                               placeholder="Enter hub name">
                         @error('name')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -44,8 +43,7 @@
                                id="code"
                                class="form-control @error('code') is-invalid @enderror"
                                value="{{ old('code') }}"
-                               placeholder="e.g., HUB001"
-                               required>
+                               placeholder="e.g., HUB001">
                         <small class="form-text">Unique identifier (Uppercase letters, numbers, hyphens only)</small>
                         @error('code')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -67,6 +65,7 @@
                         <input type="text"
                                name="phone"
                                id="phone"
+                               maxlength="10"
                                class="form-control"
                                value="{{ old('phone') }}"
                                placeholder="Enter phone number">
@@ -90,12 +89,13 @@
                             Address
                             <span class="required-star">*</span>
                         </label>
-                        <textarea name="address"
+                        <textarea
+                                  name="address"
                                   id="address"
                                   class="form-control @error('address') is-invalid @enderror"
                                   rows="4"
-                                  placeholder="Enter complete address"
-                                  required>{{ old('address') }}</textarea>
+                                  placeholder="Enter complete address">{{ old('address') }}
+                        </textarea>
                         @error('address')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror

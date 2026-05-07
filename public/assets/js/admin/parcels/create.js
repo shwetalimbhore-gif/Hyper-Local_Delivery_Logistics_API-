@@ -8,6 +8,7 @@ $(document).ready(function() {
     initializeFormValidation();
     initializeAutoAssign();
     initializeNumericValidation();
+    initializeInputRestrictions();
 });
 
 /**
@@ -25,6 +26,15 @@ function initializeFormValidation() {
         validatePhoneField($(this));
     });
 
+    // Restrict phone input to max 10 characters
+    $('#sender_phone, #receiver_phone').on('input', function() {
+        let value = $(this).val();
+        if (value.length > 10) {
+            $(this).val(value.slice(0, 10));
+            showNotification('Phone number cannot exceed 10 digits', 'warning');
+        }
+    });
+
     $('#sender_email, #receiver_email').on('input blur', function() {
         validateEmailField($(this));
     });
@@ -34,6 +44,18 @@ function initializeFormValidation() {
     });
 
     $('#weight, #size, #delivery_charge').on('input blur', function() {
+        validateNumberField($(this));
+    });
+
+    // Restrict weight and size to only whole numbers (no decimals)
+    $('#weight, #size').on('input', function() {
+        let value = $(this).val();
+        // Remove any decimal points and decimal values
+        if (value.includes('.')) {
+            value = value.split('.')[0];
+            $(this).val(value);
+            showNotification('Weight and Size accept only whole numbers (no decimals)', 'warning');
+        }
         validateNumberField($(this));
     });
 
@@ -65,6 +87,126 @@ function initializeFormValidation() {
 }
 
 /**
+ * Initialize input restrictions (prevent unwanted characters)
+ */
+function initializeInputRestrictions() {
+    // Name fields: No numbers allowed
+    $('#sender_name, #receiver_name, #parcel_name').on('keypress', function(e) {
+        const charCode = e.which ? e.which : e.keyCode;
+        // Allow letters (A-Z, a-z), spaces, hyphens, dots, and control keys
+        const char = String.fromCharCode(charCode);
+        const allowedRegex = /^[a-zA-Z\s\-\.]$/;
+
+        if (!allowedRegex.test(char) && charCode !== 8 && charCode !== 0 && charCode !== 13) {
+            e.preventDefault();
+            showNotification('Only letters, spaces, hyphens, and dots are allowed in name fields', 'warning');
+            return false;
+        }
+        return true;
+    });
+
+    // Phone fields: Only numbers allowed, max 10 digits
+    $('#sender_phone, #receiver_phone').on('keypress', function(e) {
+        const charCode = e.which ? e.which : e.keyCode;
+        const currentValue = $(this).val();
+
+        // Allow only numbers and control keys
+        if (charCode < 48 || charCode > 57) {
+            if (charCode !== 8 && charCode !== 0 && charCode !== 13) {
+                e.preventDefault();
+                showNotification('Only numbers are allowed in phone field', 'warning');
+                return false;
+            }
+        }
+
+        // Prevent typing if already 10 digits
+        if (currentValue.length >= 10 && charCode !== 8 && charCode !== 0 && charCode !== 13) {
+            e.preventDefault();
+            showNotification('Phone number cannot exceed 10 digits', 'warning');
+            return false;
+        }
+
+        return true;
+    });
+
+    // Weight and Size fields: Only whole numbers (no decimals, no letters)
+    $('#weight, #size').on('keypress', function(e) {
+        const charCode = e.which ? e.which : e.keyCode;
+        const char = String.fromCharCode(charCode);
+
+        // Allow only numbers (0-9) and control keys
+        if (charCode < 48 || charCode > 57) {
+            if (charCode !== 8 && charCode !== 0 && charCode !== 13) {
+                e.preventDefault();
+                showNotification('Only whole numbers are allowed (no decimals or letters)', 'warning');
+                return false;
+            }
+        }
+
+        return true;
+    });
+
+    // Delivery charge field: Allow numbers and decimal point
+    $('#delivery_charge').on('keypress', function(e) {
+        const charCode = e.which ? e.which : e.keyCode;
+        const char = String.fromCharCode(charCode);
+        const currentValue = $(this).val();
+
+        // Allow numbers (0-9), decimal point (46), and control keys
+        if ((charCode < 48 || charCode > 57) && charCode !== 46) {
+            if (charCode !== 8 && charCode !== 0 && charCode !== 13) {
+                e.preventDefault();
+                showNotification('Only numbers and decimal point are allowed', 'warning');
+                return false;
+            }
+        }
+
+        // Prevent multiple decimal points
+        if (charCode === 46 && currentValue.includes('.')) {
+            e.preventDefault();
+            showNotification('Only one decimal point allowed', 'warning');
+            return false;
+        }
+
+        return true;
+    });
+
+    // Prevent pasting invalid characters
+    $('#sender_name, #receiver_name, #parcel_name').on('paste', function(e) {
+        const pastedText = e.originalEvent.clipboardData.getData('text');
+        if (!/^[a-zA-Z\s\-\.]*$/.test(pastedText)) {
+            e.preventDefault();
+            showNotification('Only letters, spaces, hyphens, and dots can be pasted in name fields', 'warning');
+            return false;
+        }
+    });
+
+    $('#sender_phone, #receiver_phone').on('paste', function(e) {
+        const pastedText = e.originalEvent.clipboardData.getData('text');
+        if (!/^\d*$/.test(pastedText)) {
+            e.preventDefault();
+            showNotification('Only numbers can be pasted in phone fields', 'warning');
+            return false;
+        }
+        // Check length after paste
+        if (pastedText.length > 10) {
+            e.preventDefault();
+            showNotification('Phone number cannot exceed 10 digits', 'warning');
+            return false;
+        }
+    });
+
+    $('#weight, #size').on('paste', function(e) {
+        const pastedText = e.originalEvent.clipboardData.getData('text');
+        if (!/^\d+$/.test(pastedText)) {
+            e.preventDefault();
+            showNotification('Only whole numbers (no decimals) can be pasted in weight/size fields', 'warning');
+            return false;
+        }
+    });
+}
+
+/**
  * Validate name field
  */
 function validateNameField(field) {
@@ -85,7 +227,10 @@ function validateNameField(field) {
         errorMessage = getFieldLabel(field) + ' cannot exceed 100 characters';
         isValid = false;
     } else if (!/^[a-zA-Z\s\-\.]+$/.test(value)) {
-        errorMessage = getFieldLabel(field) + ' can only contain letters, spaces, hyphens, and dots';
+        errorMessage = getFieldLabel(field) + ' can only contain letters, spaces, hyphens, and dots (no numbers allowed)';
+        isValid = false;
+    } else if (/\d/.test(value)) {
+        errorMessage = getFieldLabel(field) + ' cannot contain numbers';
         isValid = false;
     }
 
@@ -110,8 +255,18 @@ function validatePhoneField(field) {
     field.removeClass('is-invalid is-valid');
     field.next('.invalid-feedback').remove();
 
-    if (!value) {
+    // Check if contains any letters
+    if (/[a-zA-Z]/.test(value)) {
+        errorMessage = getFieldLabel(field) + ' cannot contain letters or text';
+        isValid = false;
+    } else if (!value) {
         errorMessage = getFieldLabel(field) + ' is required';
+        isValid = false;
+    } else if (!/^\d+$/.test(value)) {
+        errorMessage = 'Phone number can only contain digits (0-9)';
+        isValid = false;
+    } else if (value.length !== 10) {
+        errorMessage = 'Phone number must be exactly 10 digits';
         isValid = false;
     } else if (!/^[6-9][0-9]{9}$/.test(value)) {
         errorMessage = 'Please enter a valid 10-digit mobile number starting with 6-9';
@@ -216,6 +371,9 @@ function validateNumberField(field) {
     if (!value) {
         errorMessage = getFieldLabel(field) + ' is required';
         isValid = false;
+    } else if (/[a-zA-Z]/.test(value)) {
+        errorMessage = getFieldLabel(field) + ' cannot contain letters';
+        isValid = false;
     } else {
         const numValue = parseFloat(value);
         if (isNaN(numValue)) {
@@ -232,6 +390,12 @@ function validateNumberField(field) {
             isValid = false;
         } else if (fieldName === 'delivery_charge' && numValue > 100000) {
             errorMessage = 'Delivery charge cannot exceed ₹1,00,000';
+            isValid = false;
+        }
+
+        // Additional check for weight and size - must be whole numbers
+        if ((fieldName === 'weight' || fieldName === 'size') && !Number.isInteger(numValue)) {
+            errorMessage = getFieldLabel(field) + ' must be a whole number (no decimals)';
             isValid = false;
         }
     }
@@ -437,6 +601,7 @@ function initializeNumericValidation() {
         // Allow numbers, decimal point, and control keys
         if (charCode !== 46 && charCode > 31 && (charCode < 48 || charCode > 57)) {
             e.preventDefault();
+            showNotification('Only numbers are allowed in this field', 'warning');
         }
     });
 }

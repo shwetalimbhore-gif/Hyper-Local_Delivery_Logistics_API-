@@ -28,7 +28,7 @@
                         </label>
                         <input type="text" name="sender_name" id="sender_name"
                                class="form-control @error('sender_name') is-invalid @enderror"
-                               value="{{ old('sender_name') }}" required>
+                               value="{{ old('sender_name') }}"  >
                         @error('sender_name')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -40,7 +40,7 @@
                         </label>
                         <input type="text" name="sender_phone" id="sender_phone"
                                class="form-control @error('sender_phone') is-invalid @enderror"
-                               value="{{ old('sender_phone') }}" required>
+                               value="{{ old('sender_phone') }}" maxlength="10" >
                         @error('sender_phone')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -82,7 +82,7 @@
                         </label>
                         <input type="text" name="receiver_name" id="receiver_name"
                                class="form-control @error('receiver_name') is-invalid @enderror"
-                               value="{{ old('receiver_name') }}" required>
+                               value="{{ old('receiver_name') }}" >
                         @error('receiver_name')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -94,7 +94,7 @@
                         </label>
                         <input type="text" name="receiver_phone" id="receiver_phone"
                                class="form-control @error('receiver_phone') is-invalid @enderror"
-                               value="{{ old('receiver_phone') }}" required>
+                               value="{{ old('receiver_phone') }}" maxlength="10" >
                         @error('receiver_phone')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -138,7 +138,7 @@
                         </label>
                         <input type="text" name="parcel_name" id="parcel_name"
                                class="form-control @error('parcel_name') is-invalid @enderror"
-                               value="{{ old('parcel_name') }}" required>
+                               value="{{ old('parcel_name') }}" >
                         @error('parcel_name')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -152,7 +152,7 @@
                         </label>
                         <input type="number" step="0.01" name="weight" id="weight"
                                class="form-control @error('weight') is-invalid @enderror"
-                               value="{{ old('weight') }}" required>
+                               value="{{ old('weight') }}">
                         @error('weight')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -166,7 +166,7 @@
                         </label>
                         <input type="number" step="0.01" name="size" id="size"
                                class="form-control @error('size') is-invalid @enderror"
-                               value="{{ old('size') }}" required>
+                               value="{{ old('size') }}" >
                         @error('size')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -207,7 +207,7 @@
                         </label>
                         <input type="number" step="0.01" name="delivery_charge" id="delivery_charge"
                                class="form-control @error('delivery_charge') is-invalid @enderror"
-                               value="{{ old('delivery_charge') }}" required>
+                               value="{{ old('delivery_charge') }}" >
                         @error('delivery_charge')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror

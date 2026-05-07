@@ -195,7 +195,8 @@
     padding-top: 0.5rem;
 }
 
-.dataTables_wrapper .dataTables_length {
+.div.dataTables_wrapper div.dataTables_length select {
+    width: 100% !important;
     margin-bottom: 1rem;
 }
 

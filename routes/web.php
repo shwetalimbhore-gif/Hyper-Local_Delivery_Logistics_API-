@@ -65,9 +65,14 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
 
     // ========== PARCELS ROUTES  ==========
+
+    Route::put('parcels/{parcel}/update-status', [ParcelController::class, 'quickUpdateStatus'])
+        ->name('parcels.update-status');
     // Data endpoints
     Route::get('/parcels/data', [ParcelController::class, 'getData'])->name('parcels.data');
     Route::get('/parcels/trash-data', [ParcelController::class, 'getTrashData'])->name('parcels.trash-data');
+
+
 
     // Trash management
     Route::get('/parcels/trash', [ParcelController::class, 'trash'])->name('parcels.trash');

@@ -23,7 +23,7 @@
                         </label>
                         <input type="text" name="name" id="name"
                                class="form-control @error('name') is-invalid @enderror"
-                               value="{{ old('name') }}" required>
+                               value="{{ old('name') }}">
                         @error('name')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -33,9 +33,9 @@
                         <label class="form-label" for="email">
                             Email Address <span class="required-star">*</span>
                         </label>
-                        <input type="email" name="email" id="email"
+                        <input type="email" name="email" id="email" autocomplete="new-email"
                                class="form-control @error('email') is-invalid @enderror"
-                               value="{{ old('email') }}" required>
+                               value="{{ old('email') }}" >
                         @error('email')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -47,7 +47,7 @@
                         </label>
                         <input type="text" name="phone" id="phone"
                                class="form-control @error('phone') is-invalid @enderror"
-                               value="{{ old('phone') }}" required>
+                               value="{{ old('phone') }}" >
                         @error('phone')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -67,7 +67,7 @@
                         <label class="form-label" for="password">
                             Password <span class="required-star">*</span>
                         </label>
-                        <input type="password" name="password" id="password"
+                        <input type="password" name="password" id="password" autocomplete="off"
                                class="form-control @error('password') is-invalid @enderror" required>
                         <small class="text-muted">Minimum 8 characters</small>
                         @error('password')

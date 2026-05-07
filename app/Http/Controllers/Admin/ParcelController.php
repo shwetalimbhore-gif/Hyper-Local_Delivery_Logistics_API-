@@ -15,6 +15,8 @@ use App\Http\Requests\Admin\ParcelStoreRequest;
 use App\Http\Requests\Admin\ParcelUpdateRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\ParcelStatusHistory;
+
 
 class ParcelController extends Controller
 {
@@ -197,35 +199,93 @@ class ParcelController extends Controller
     //     return view('admin.parcels.edit', compact('parcel', 'riders', 'hubs', 'statuses'));
     // }
 
-    /**
+   /**
      * Update the specified parcel (Using FormRequest)
      */
     public function update(ParcelUpdateRequest $request, Parcel $parcel)
     {
-        $validated = $request->validated();
+        try {
+            $validated = $request->validated();
 
-        DB::transaction(function () use ($parcel, $validated) {
-            $previousRiderId = $parcel->assigned_rider_id;
+            DB::transaction(function () use ($parcel, $validated, $request) {
+                $previousRiderId = $parcel->assigned_rider_id;
+                $previousStatusId = $parcel->status_id;
+                $previousStatus = $parcel->status;
 
-            $newRiderId = $validated['assigned_rider_id'] ?? null;
-            $newStatus = isset($validated['status_id'])
-                ? ParcelStatus::find($validated['status_id'])
-                : null;
+                // Handle failure reason for failed delivery
+                if (isset($validated['status_id'])) {
+                    $newStatus = ParcelStatus::find($validated['status_id']);
 
-            if ($newRiderId && $newRiderId !== $previousRiderId && !$this->isTerminalStatus($newStatus?->slug)) {
-                $assignedStatus = ParcelStatus::where('slug', 'assigned')->first();
-                $validated['status_id'] = $assignedStatus?->id ?? $validated['status_id'] ?? $parcel->status_id;
-                $validated['assigned_at'] = $parcel->assigned_at ?? now();
-            }
+                    // If status is failed-delivery, store the failure reason
+                    if ($newStatus->slug === 'failed-delivery' && $request->filled('failure_reason')) {
+                        $validated['failure_reason'] = $request->failure_reason;
+                        $validated['failed_delivery_at'] = now();
+                        $validated['delivery_attempts'] = ($parcel->delivery_attempts ?? 0) + 1;
+                    }
 
-            $parcel->update($validated);
-            $this->syncRidersForParcel($parcel->fresh('status'), $previousRiderId);
-        });
+                    // Update timestamps based on new status
+                    switch ($newStatus->slug) {
+                        case 'assigned':
+                            if (!$parcel->assigned_at) {
+                                $validated['assigned_at'] = now();
+                            }
+                            break;
+                        case 'picked-up':
+                            $validated['picked_up_at'] = now();
+                            break;
+                        case 'out-for-delivery':
+                            $validated['out_for_delivery_at'] = now();
+                            break;
+                        case 'delivered':
+                            $validated['delivered_at'] = now();
+                            break;
+                        case 'returned-to-hub':
+                            $validated['returned_at'] = now();
+                            break;
+                    }
 
-        return redirect()->route('admin.parcels.index')
-            ->with('success', 'Parcel updated successfully');
+                    // Create status history record if status changed
+                    if ($validated['status_id'] != $previousStatusId) {
+                        ParcelStatusHistory::create([
+                            'parcel_id' => $parcel->id,
+                            'status_id' => $newStatus->id,
+                            'from_status_id' => $previousStatusId,
+                            'notes' => $request->notes ?? $request->failure_reason,
+                            'updated_by' => Auth::id(),
+                        ]);
+                    }
+                }
+
+                // Handle rider assignment
+                $newRiderId = $validated['assigned_rider_id'] ?? null;
+                $newStatus = isset($validated['status_id']) ? ParcelStatus::find($validated['status_id']) : null;
+
+                if ($newRiderId && $newRiderId !== $previousRiderId && !$this->isTerminalStatus($newStatus?->slug)) {
+                    $assignedStatus = ParcelStatus::where('slug', 'assigned')->first();
+                    $validated['status_id'] = $assignedStatus?->id ?? $validated['status_id'] ?? $parcel->status_id;
+                    $validated['assigned_at'] = $parcel->assigned_at ?? now();
+
+                    // Send notification to new rider
+                    $this->sendNotificationToRider($newRiderId, $parcel->tracking_number);
+                }
+
+                // Update the parcel
+                $parcel->update($validated);
+
+                // Sync rider statuses
+                $this->syncRidersForParcel($parcel->fresh('status'), $previousRiderId);
+            });
+
+            return redirect()->route('admin.parcels.index')
+                ->with('success', 'Parcel updated successfully');
+
+        } catch (\Exception $e) {
+            Log::error('Parcel update error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Failed to update parcel: ' . $e->getMessage())
+                ->withInput();
+        }
     }
-
 
     /**
      * Remove the specified parcel from storage (soft delete).
@@ -372,61 +432,89 @@ class ParcelController extends Controller
      */
     public function findBestRider(Request $request)
     {
-        $request->validate([
-            'weight' => 'required|numeric|min:0.1',
-            'size' => 'required|numeric|min:0.1',
-            'hub_id' => 'required|exists:hubs,id',
-            'parcel_id' => 'nullable|exists:parcels,id',
-            'assign' => 'nullable|boolean',
-        ]);
+        try {
+            $request->validate([
+                'weight' => 'required|numeric|min:0.1',
+                'size' => 'required|numeric|min:0.1',
+                'hub_id' => 'required|exists:hubs,id',
+                'parcel_id' => 'nullable|exists:parcels,id',
+                'assign' => 'nullable|boolean',
+            ]);
 
-        $bestRider = Rider::findBestRiderForParcel(
-            $request->weight,
-            $request->size,
-            $request->hub_id
-        );
+            $bestRider = Rider::findBestRiderForParcel(
+                $request->weight,
+                $request->size,
+                $request->hub_id
+            );
 
-        if ($bestRider) {
-            if ($request->boolean('assign') && $request->filled('parcel_id')) {
-                DB::transaction(function () use ($request, $bestRider) {
-                    $parcel = Parcel::findOrFail($request->parcel_id);
-                    $previousRiderId = $parcel->assigned_rider_id;
-                    $assignedStatus = ParcelStatus::where('slug', 'assigned')->firstOrFail();
+            if ($bestRider) {
+                if ($request->boolean('assign') && $request->filled('parcel_id')) {
+                    DB::transaction(function () use ($request, $bestRider) {
+                        $parcel = Parcel::findOrFail($request->parcel_id);
+                        $previousRiderId = $parcel->assigned_rider_id;
+                        $assignedStatus = ParcelStatus::where('slug', 'assigned')->firstOrFail();
 
-                    $parcel->update([
-                        'weight' => $request->weight,
-                        'size' => $request->size,
-                        'source_hub_id' => $request->hub_id,
-                        'assigned_rider_id' => $bestRider->id,
-                        'status_id' => $assignedStatus->id,
-                        'assigned_at' => now(),
-                    ]);
+                        $parcel->update([
+                            'weight' => $request->weight,
+                            'size' => $request->size,
+                            'source_hub_id' => $request->hub_id,
+                            'assigned_rider_id' => $bestRider->id,
+                            'status_id' => $assignedStatus->id,
+                            'assigned_at' => now(),
+                        ]);
 
-                    $this->syncRidersForParcel($parcel->fresh('status'), $previousRiderId);
-                    $this->sendNotificationToRider($bestRider->id, $parcel->tracking_number);
-                });
+                        // Update rider status
+                        $bestRider->status = 'busy';
+                        $bestRider->save();
+
+                        $this->syncRidersForParcel($parcel->fresh('status'), $previousRiderId);
+
+                        // Send notification to rider
+                        $this->sendNotificationToRider($bestRider->id, $parcel->tracking_number);
+                    });
+                }
+
+                // Return success response
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Rider assigned successfully',
+                    'rider' => [
+                        'id' => $bestRider->id,
+                        'name' => $bestRider->user->name,
+                        'employee_id' => $bestRider->employee_id,
+                        'max_weight_capacity' => $bestRider->max_weight_capacity,
+                        'max_size_capacity' => $bestRider->max_size_capacity,
+                        'rating' => $bestRider->rating,
+                        'status' => $bestRider->status,
+                    ]
+                ]);
             }
 
+            // No rider found - return success false with message
             return response()->json([
-                'success' => true,
-                'rider' => [
-                    'id' => $bestRider->id,
-                    'name' => $bestRider->user->name,
-                    'employee_id' => $bestRider->employee_id,
-                    'max_weight_capacity' => $bestRider->max_weight_capacity,
-                    'max_size_capacity' => $bestRider->max_size_capacity,
-                    'rating' => $bestRider->rating,
-                    'status' => $request->boolean('assign') ? 'busy' : $bestRider->status,
+                'success' => false,
+                'message' => 'No available rider found. Please check rider capacity and hub assignment.',
+                'requirements' => [
+                    'weight' => $request->weight,
+                    'size' => $request->size,
+                    'hub_id' => $request->hub_id
                 ]
             ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Find best rider error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error finding rider: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json([
-            'success' => false,
-            'message' => 'No available rider found'
-        ]);
     }
-
     /**
      * Auto-assign all pending parcels
      */
@@ -538,5 +626,290 @@ class ParcelController extends Controller
     private function isTerminalStatus(?string $slug): bool
     {
         return in_array($slug, ['delivered', 'cancelled', 'returned-to-hub', 'returned-to-sender'], true);
+    }
+
+    /**
+     * Update only the parcel status (from admin panel)
+     * This is separate from the full parcel update
+     */
+    public function updateStatus(Request $request, Parcel $parcel)
+    {
+        try {
+            // Manual validation for status update
+            $validated = $request->validate([
+                'status_id' => 'required|exists:parcel_statuses,id',
+                'notes' => 'nullable|string|max:500',
+                'failure_reason' => 'nullable|string|max:255',
+            ]);
+
+            $oldStatusId = $parcel->status_id;
+            $oldStatus = $parcel->status;
+            $newStatus = ParcelStatus::find($request->status_id);
+
+            if (!$newStatus) {
+                if ($request->expectsJson()) {
+                    return response()->json(['error' => 'Invalid status selected'], 400);
+                }
+                return redirect()->back()->with('error', 'Invalid status selected');
+            }
+
+            // If status is "failed-delivery", failure reason is required
+            if ($newStatus->slug === 'failed-delivery' && empty($request->failure_reason)) {
+                if ($request->expectsJson()) {
+                    return response()->json(['error' => 'Failure reason is required for failed delivery'], 422);
+                }
+                return redirect()->back()->with('error', 'Failure reason is required for failed delivery');
+            }
+
+            DB::beginTransaction();
+
+            // Update the parcel status
+            $parcel->status_id = $newStatus->id;
+
+            // Update timestamps based on new status
+            switch ($newStatus->slug) {
+                case 'assigned':
+                    if (!$parcel->assigned_at) {
+                        $parcel->assigned_at = now();
+                    }
+                    break;
+                case 'picked-up':
+                    $parcel->picked_up_at = now();
+                    break;
+                case 'out-for-delivery':
+                    $parcel->out_for_delivery_at = now();
+                    break;
+                case 'delivered':
+                    $parcel->delivered_at = now();
+                    break;
+                case 'failed-delivery':
+                    $parcel->failed_delivery_at = now();
+                    $parcel->delivery_attempts = ($parcel->delivery_attempts ?? 0) + 1;
+                    $parcel->failure_reason = $request->failure_reason;
+                    break;
+                case 'returned-to-hub':
+                    $parcel->returned_at = now();
+                    break;
+                case 'cancelled':
+                    $parcel->cancelled_at = now();
+                    break;
+            }
+
+            $parcel->save();
+
+            // Create history record
+            ParcelStatusHistory::create([
+                'parcel_id' => $parcel->id,
+                'status_id' => $newStatus->id,
+                'from_status_id' => $oldStatusId,
+                'notes' => $request->notes ?? $request->failure_reason,
+                'updated_by' => Auth::id(),
+            ]);
+
+            // If status is delivered or failed, update rider statistics
+            if ($parcel->assigned_rider_id && in_array($newStatus->slug, ['delivered', 'failed-delivery', 'returned-to-hub'])) {
+                $rider = Rider::find($parcel->assigned_rider_id);
+                if ($rider) {
+                    if ($newStatus->slug === 'delivered') {
+                        $rider->successful_deliveries = ($rider->successful_deliveries ?? 0) + 1;
+                        $rider->total_deliveries = ($rider->total_deliveries ?? 0) + 1;
+                        $rider->earnings = ($rider->earnings ?? 0) + ($parcel->delivery_charge * 0.7);
+                        $rider->status = 'available';
+                    } elseif ($newStatus->slug === 'failed-delivery') {
+                        $rider->failed_deliveries = ($rider->failed_deliveries ?? 0) + 1;
+                        $rider->total_deliveries = ($rider->total_deliveries ?? 0) + 1;
+                    } elseif ($newStatus->slug === 'returned-to-hub') {
+                        $rider->status = 'available';
+                    }
+                    $rider->save();
+                    $rider->syncStatusWithAssignments();
+                }
+            }
+
+            DB::commit();
+
+            // Send notification to rider if needed
+            if ($parcel->assigned_rider_id && in_array($newStatus->slug, ['assigned', 'picked-up', 'out-for-delivery'])) {
+                $this->sendStatusNotificationToRider($parcel, $newStatus);
+            }
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Status updated to: ' . $newStatus->display_name,
+                    'parcel' => [
+                        'id' => $parcel->id,
+                        'tracking_number' => $parcel->tracking_number,
+                        'status' => [
+                            'id' => $newStatus->id,
+                            'display_name' => $newStatus->display_name,
+                            'slug' => $newStatus->slug,
+                            'color_code' => $newStatus->color_code,
+                        ]
+                    ]
+                ]);
+            }
+
+            return redirect()->route('admin.parcels.show', $parcel->id)
+                ->with('success', 'Parcel status updated to: ' . $newStatus->display_name);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Status update error: ' . $e->getMessage());
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Failed to update status: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()->back()->with('error', 'Failed to update status: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send notification to rider about status change
+     */
+    private function sendStatusNotificationToRider($parcel, $newStatus)
+    {
+        $rider = Rider::with('user')->find($parcel->assigned_rider_id);
+
+        if ($rider && $rider->user) {
+            $messages = [
+                'assigned' => "New parcel #{$parcel->tracking_number} has been assigned to you.",
+                'picked-up' => "Parcel #{$parcel->tracking_number} has been marked as picked up.",
+                'out-for-delivery' => "Parcel #{$parcel->tracking_number} is out for delivery.",
+                'delivered' => "Parcel #{$parcel->tracking_number} has been delivered. Well done!",
+                'failed-delivery' => "Delivery failed for parcel #{$parcel->tracking_number}. Reason: {$parcel->failure_reason}",
+                'returned-to-hub' => "Parcel #{$parcel->tracking_number} has been returned to hub.",
+            ];
+
+            $message = $messages[$newStatus->slug] ?? "Parcel #{$parcel->tracking_number} status updated to: {$newStatus->display_name}";
+
+            Notification::create([
+                'user_id' => $rider->user->id,
+                'title' => 'Parcel Status Update',
+                'message' => $message,
+                'type' => $newStatus->slug === 'delivered' ? 'success' : 'info',
+                'is_read' => false,
+            ]);
+        }
+    }
+
+    /**
+     * Quick update parcel status only (AJAX endpoint for admin)
+     */
+    public function quickUpdateStatus(Request $request, Parcel $parcel)
+    {
+        try {
+            $request->validate([
+                'status_id' => 'required|exists:parcel_statuses,id',
+                'failure_reason' => 'nullable|string|max:255',
+                'notes' => 'nullable|string|max:500',
+            ]);
+
+            $oldStatusId = $parcel->status_id;
+            $oldStatus = $parcel->status;
+            $newStatus = ParcelStatus::find($request->status_id);
+
+            if (!$newStatus) {
+                return response()->json(['error' => 'Invalid status selected'], 400);
+            }
+
+            // Validate failure reason for failed delivery
+            if ($newStatus->slug === 'failed-delivery' && empty($request->failure_reason)) {
+                return response()->json(['error' => 'Failure reason is required for failed delivery'], 422);
+            }
+
+            DB::beginTransaction();
+
+            // Update status
+            $parcel->status_id = $newStatus->id;
+
+            // Update timestamps based on status
+            switch ($newStatus->slug) {
+                case 'assigned':
+                    if (!$parcel->assigned_at) {
+                        $parcel->assigned_at = now();
+                    }
+                    break;
+                case 'picked-up':
+                    $parcel->picked_up_at = now();
+                    break;
+                case 'out-for-delivery':
+                    $parcel->out_for_delivery_at = now();
+                    break;
+                case 'delivered':
+                    $parcel->delivered_at = now();
+                    break;
+                case 'failed-delivery':
+                    $parcel->failed_delivery_at = now();
+                    $parcel->delivery_attempts = ($parcel->delivery_attempts ?? 0) + 1;
+                    $parcel->failure_reason = $request->failure_reason;
+                    break;
+                case 'returned-to-hub':
+                    $parcel->returned_at = now();
+                    break;
+                case 'cancelled':
+                    $parcel->cancelled_at = now();
+                    break;
+            }
+
+            $parcel->save();
+
+            // Create status history
+            ParcelStatusHistory::create([
+                'parcel_id' => $parcel->id,
+                'status_id' => $newStatus->id,
+                'from_status_id' => $oldStatusId,
+                'notes' => $request->notes ?? $request->failure_reason,
+                'updated_by' => Auth::id(),
+            ]);
+
+            // Update rider statistics if needed
+            if ($parcel->assigned_rider_id && in_array($newStatus->slug, ['delivered', 'failed-delivery', 'returned-to-hub'])) {
+                $rider = Rider::find($parcel->assigned_rider_id);
+                if ($rider) {
+                    if ($newStatus->slug === 'delivered') {
+                        $rider->successful_deliveries = ($rider->successful_deliveries ?? 0) + 1;
+                        $rider->total_deliveries = ($rider->total_deliveries ?? 0) + 1;
+                        $rider->earnings = ($rider->earnings ?? 0) + ($parcel->delivery_charge * 0.7);
+                        $rider->status = 'available';
+                    } elseif ($newStatus->slug === 'failed-delivery') {
+                        $rider->failed_deliveries = ($rider->failed_deliveries ?? 0) + 1;
+                        $rider->total_deliveries = ($rider->total_deliveries ?? 0) + 1;
+                    } elseif ($newStatus->slug === 'returned-to-hub') {
+                        $rider->status = 'available';
+                    }
+                    $rider->save();
+                    $rider->syncStatusWithAssignments();
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Status updated to: ' . $newStatus->display_name,
+                'parcel' => [
+                    'id' => $parcel->id,
+                    'tracking_number' => $parcel->tracking_number,
+                    'status' => [
+                        'id' => $newStatus->id,
+                        'display_name' => $newStatus->display_name,
+                        'slug' => $newStatus->slug,
+                        'color_code' => $newStatus->color_code,
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Quick status update error: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to update status: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

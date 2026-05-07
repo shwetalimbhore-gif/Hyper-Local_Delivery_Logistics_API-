@@ -176,6 +176,68 @@
                 </div>
             </div>
 
+            <!-- Status Change Section - NEW BUTTON SECTION -->
+            <div class="card mb-3 border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">
+                        <iconify-icon icon="solar:refresh-circle-line-duotone"></iconify-icon>
+                        Quick Status Change
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-end">
+                        <div class="col-md-5">
+                            <div class="mb-3">
+                                <label class="form-label">Change Status To</label>
+                                <select id="quickStatusSelect" class="form-control">
+                                    <option value="">-- Select Status --</option>
+                                    @foreach($statuses as $status)
+                                        <option value="{{ $status->id }}"
+                                                data-status-slug="{{ $status->slug }}"
+                                                {{ $parcel->status_id == $status->id ? 'selected' : '' }}>
+                                            {{ $status->display_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4" id="quickFailureReasonDiv" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label text-danger">Failure Reason <span class="text-danger">*</span></label>
+                                <select id="quickFailureReason" class="form-control">
+                                    <option value="">-- Select Reason --</option>
+                                    <option value="Wrong Address">Wrong Address</option>
+                                    <option value="Receiver Not Available">Receiver Not Available</option>
+                                    <option value="Phone Not Reachable">Phone Not Reachable</option>
+                                    <option value="Location Not Found">Location Not Found</option>
+                                    <option value="Parcel Damaged">Parcel Damaged</option>
+                                    <option value="Refused by Receiver">Refused by Receiver</option>
+                                    <option value="Weather Issues">Weather Issues</option>
+                                    <option value="Vehicle Problem">Vehicle Problem</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <button type="button" id="quickStatusBtn" class="btn btn-primary w-100">
+                                    <iconify-icon icon="solar:refresh-circle-line-duotone"></iconify-icon>
+                                    Update Status Only
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label class="form-label">Status Notes (Optional)</label>
+                                <textarea id="quickStatusNotes" class="form-control" rows="2" placeholder="Add any notes about this status change..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="quickStatusMessage" class="alert" style="display: none;"></div>
+                </div>
+            </div>
+
             <!-- Delivery Information -->
             <div class="card mb-3">
                 <div class="card-header bg-warning">

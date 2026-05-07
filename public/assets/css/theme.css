@@ -182,7 +182,7 @@ a {
 .form-select {
     border-radius: var(--radius-md);
     border: 1px solid var(--gray-300);
-    padding: 0.625rem 0.875rem;
+    /* padding: 0.625rem 0.875rem; */
     transition: all var(--transition-fast);
     font-size: 0.875rem;
 }
